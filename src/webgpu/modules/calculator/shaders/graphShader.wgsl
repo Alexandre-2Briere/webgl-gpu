@@ -45,7 +45,7 @@ fn vs_bar(
     let N       = f32(uniforms.count);
     let usable  = 2.0f - 2.0f * MARGIN;
     let slot    = usable / N;
-    let gap     = slot * 0.15f;
+    let gap     = slot * 0.075f;
     let bar_w   = slot - gap;
 
     let x_left  = -1.0f + MARGIN + f32(ii) * slot + gap * 0.5f;

@@ -309,9 +309,12 @@ async function runString(compute: CalculatorCompute, count: number): Promise<voi
 
 // ── Graph show/hide ────────────────────────────────────────────────────────────
 const graphCanvas      = document.getElementById('graph-canvas')      as HTMLCanvasElement;
+const graphWrapper     = document.getElementById('graph-wrapper')     as HTMLElement;
 const graphLabels      = document.getElementById('graph-labels')      as HTMLElement;
+const graphXTitle      = document.getElementById('graph-x-title')     as HTMLElement;
+const graphYTicks      = document.getElementById('graph-y-ticks')     as HTMLElement;
 const jsColumn         = document.getElementById('js-column')         as HTMLElement;
-const gpuTable         = graphCanvas.nextElementSibling               as HTMLElement; // <table>
+const gpuTable         = document.getElementById('gpu-table')         as HTMLElement;
 const gpuTableNote     = document.getElementById('table-note-gpu')    as HTMLElement;
 const countRow         = document.getElementById('count-row')         as HTMLElement;
 const graphPointsRow   = document.getElementById('graph-points-row')  as HTMLElement;
@@ -319,8 +322,9 @@ const graphTypeRow     = document.getElementById('graph-type-row')    as HTMLEle
 const timingEurCard    = document.getElementById('timing-eur')!.closest<HTMLElement>('.timing-card')!;
 
 function showGraphMode(visible: boolean): void {
-    graphCanvas.style.display    = visible ? 'block' : 'none';
+    graphWrapper.style.display   = visible ? 'flex'  : 'none';
     graphLabels.style.display    = visible ? 'flex'  : 'none';
+    graphXTitle.style.display    = visible ? 'block' : 'none';
     gpuTable.style.display       = visible ? 'none'  : '';
     gpuTableNote.style.display   = visible ? 'none'  : '';
     jsColumn.style.display       = visible ? 'none'  : '';
@@ -328,6 +332,13 @@ function showGraphMode(visible: boolean): void {
     graphPointsRow.style.display = visible ? 'flex'  : 'none';
     graphTypeRow.style.display   = visible ? 'flex'  : 'none';
     timingEurCard.style.display  = visible ? 'none'  : '';
+}
+
+function fmtAxisLabel(v: number): string {
+    const abs = Math.abs(v);
+    if (abs >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000)     return `$${Math.round(v / 1_000)}K`;
+    return `$${Math.round(v)}`;
 }
 
 async function runGraph(renderer: GraphRenderer, count: number, type: 'bar' | 'line'): Promise<void> {
@@ -347,6 +358,21 @@ async function runGraph(renderer: GraphRenderer, count: number, type: 'bar' | 'l
     pendingCard('timing-gpu');
 
     showGraphMode(true);
+
+    // Populate Y-axis ticks (6 evenly-spaced values, minVal at bottom → maxVal at top).
+    // CSS top% formula matches the WGSL vertex shader (MARGIN=0.08):
+    //   top% = (0.96 - t * 0.92) * 100  where t = (value - minVal) / (maxVal - minVal)
+    graphYTicks.innerHTML = '';
+    for (let i = 0; i <= 5; i++) {
+        const t      = i / 5;
+        const v      = minVal + t * (maxVal - minVal);
+        const topPct = (0.96 - t * 0.92) * 100;
+        const tick   = document.createElement('span');
+        tick.className  = 'graph-y-tick';
+        tick.style.top  = `${topPct.toFixed(1)}%`;
+        tick.textContent = fmtAxisLabel(v);
+        graphYTicks.appendChild(tick);
+    }
 
     // Populate nameplate labels — one per bar/point, aligned via equal flex slots.
     graphLabels.innerHTML = graphData
