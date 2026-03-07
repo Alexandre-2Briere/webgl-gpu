@@ -17,7 +17,7 @@
 /// Singleton — acquire via World::instance(), release via World::destroy().
 class World {
 public:
-    static constexpr uint32_t SIZE     = 17;          // chunks per X/Z axis (odd → clean center)
+    static constexpr uint32_t SIZE     = 9;          // chunks per X/Z axis (odd → clean center)
     static constexpr uint32_t SIZE_Y   = 9;           // chunks per Y axis (odd → clean center)
     static constexpr uint32_t RADIUS   = SIZE   / 2;  // 8 — chunks from center to edge (X/Z)
     static constexpr uint32_t RADIUS_Y = SIZE_Y / 2;  // chunks from center to edge (Y)
