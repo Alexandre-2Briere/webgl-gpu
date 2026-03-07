@@ -6,6 +6,11 @@
 ///                Y    in [0, World::SIZE * Chunk::SIZE) = [0, 288)
 namespace TerrainConstants {
 
+    /// Cache version string — bump this (1.0.0 → 1.0.1, etc.) whenever world
+    /// generation parameters change so that stale chunk files are ignored.
+    /// Chunks are stored under world/<kCacheVersion>/.
+    constexpr const char* kCacheVersion = "1.0.0";
+
     /// Y level of the flat base surface before bumps are applied.
     /// Camera spawns above the world at Y = 288, so values around 150-220
     /// give a clearly visible terrain from the start position.

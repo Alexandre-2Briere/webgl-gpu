@@ -198,7 +198,9 @@ std::unique_ptr<IRenderPipeline> MetalRenderer::createPipeline(const PipelineDes
         vert->nativeFunction(),
         frag->nativeFunction(),
         (uint32_t)MTLPixelFormatBGRA8Unorm,
-        (uint32_t)MTLPixelFormatDepth32Float);
+        (uint32_t)MTLPixelFormatDepth32Float,
+        desc.depthTest,
+        desc.noVertexDescriptor);
 }
 
 void* MetalRenderer::nativeDevice() const noexcept

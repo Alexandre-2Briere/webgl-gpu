@@ -15,8 +15,9 @@
 class Camera {
 public:
     // --- Tuning ---
-    float moveSpeed  = 40.0f;   ///< units / second
-    float turnSpeed  = 1.8f;    ///< radians / second
+    float moveSpeed       = 40.0f;   ///< units / second
+    float turnSpeed       = 1.8f;    ///< radians / second
+    float mouseSensitivity = 0.002f; ///< radians / pixel
 
     Camera() = default;
 
@@ -27,6 +28,10 @@ public:
     /// @param code  NSEvent.keyCode (macOS virtual key code)
     void keyDown(uint16_t code) noexcept;
     void keyUp  (uint16_t code) noexcept;
+
+    /// Apply raw mouse movement (call from a mouseMoved event handler).
+    /// dx > 0 = mouse right, dy > 0 = mouse down (AppKit/NSEvent delta convention).
+    void mouseDelta(float dx, float dy) noexcept;
 
     /// Advance the camera state by @p dt seconds.
     void update(float dt) noexcept;

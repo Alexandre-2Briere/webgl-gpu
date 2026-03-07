@@ -21,6 +21,13 @@ void Camera::keyUp(uint16_t code) noexcept
     if (code < KEY_COUNT) m_keys[code] = false;
 }
 
+void Camera::mouseDelta(float dx, float dy) noexcept
+{
+    m_yaw   += dx * mouseSensitivity;
+    m_pitch -= dy * mouseSensitivity;  // dy > 0 = mouse down = look down = pitch decreases
+    m_pitch  = std::max(-kPitchLimit, std::min(kPitchLimit, m_pitch));
+}
+
 void Camera::update(float dt) noexcept
 {
     // --- Rotation ---

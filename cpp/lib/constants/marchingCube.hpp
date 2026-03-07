@@ -20,7 +20,7 @@
 ///   4:4-5  5:5-6  6:6-7  7:7-4
 ///   8:0-4  9:1-5 10:2-6 11:3-7
 ///
-/// Convention: a corner bit is SET when corner.getValue() < ISO_LEVEL (air side).
+/// Convention: a corner bit is SET when corner.getValue() >= ISO_LEVEL (solid/inside).
 /// triTable rows are terminated by -1.
 
 namespace MarchingCube {

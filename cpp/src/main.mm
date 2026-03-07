@@ -1,34 +1,30 @@
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/QuartzCore.h>   // CACurrentMediaTime
 
-#include <algorithm>
-#include <cmath>
 #include "renderer/RendererFactory.h"
 #include "renderer/IRenderer.h"
 #include "renderer/ICommandBuffer.h"
-#include "world/world.hpp"
-#include "world/worldRenderer.hpp"
-#include "math/mat4.hpp"
-#include "camera/camera.hpp"
-#include "constants/controls.hpp"
-#include "physics/collider.hpp"
-#include "constants/physics.hpp"
+#include "world/world.hpp"          // World::SIZE — needed for the loading overlay progress bar
+#include "constants/controls.hpp"   // Controls::kQuit
+#include "game.hpp"
+
 // ---------------------------------------------------------------------------
-@interface AppDelegate : NSObject<NSApplicationDelegate> {
+@interface AppDelegate : NSObject<NSApplicationDelegate, NSWindowDelegate> {
     NSWindow*                  _window;
     std::unique_ptr<IRenderer> _renderer;
-    std::unique_ptr<IBuffer>   _uniformBuf;
-    WorldRenderer              _worldRenderer;
-    Camera                     _camera;
+    Game                       _game;
     CFTimeInterval             _lastTime;
     id                         _keyMonitorDown;
     id                         _keyMonitorUp;
     id                         _mouseMonitor;
+    id                         _mouseMoveMonitor;
     uint32_t                   _width;
     uint32_t                   _height;
     BOOL                       _cursorLocked;
-    float                      _velY;
-    BOOL                       _grounded;
+    // Loading overlay
+    NSView*                    _loadingView;
+    NSProgressIndicator*       _progressBar;
+    NSTextField*               _progressLabel;
 }
 @end
 
@@ -36,23 +32,34 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification*)notification
 {
-    // --- Fullscreen window (borderless, covers menu bar + dock) ---
+    // Heavy init (renderer, world, meshes) is deferred to windowDidEnterFullScreen:
+    // so we have the correct post-transition content-view size.
     NSRect screen = [[NSScreen mainScreen] frame];
     _width  = static_cast<uint32_t>(screen.size.width);
     _height = static_cast<uint32_t>(screen.size.height);
 
+    NSWindowStyleMask style = NSWindowStyleMaskTitled
+                            | NSWindowStyleMaskClosable
+                            | NSWindowStyleMaskMiniaturizable
+                            | NSWindowStyleMaskResizable;
     _window = [[NSWindow alloc]
         initWithContentRect:screen
-        styleMask:NSWindowStyleMaskBorderless
+        styleMask:style
         backing:NSBackingStoreBuffered
         defer:NO];
-    [_window setLevel:NSMainMenuWindowLevel + 1];
+    [_window setDelegate:self];
+    [_window setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
     [_window makeKeyAndOrderFront:nil];
-    [NSApp setPresentationOptions:
-        NSApplicationPresentationHideMenuBar |
-        NSApplicationPresentationHideDock];
+    [_window toggleFullScreen:nil];
+}
 
-    // --- Renderer ---
+- (void)windowDidEnterFullScreen:(NSNotification*)notification
+{
+    NSRect bounds = [[_window contentView] bounds];
+    _width  = static_cast<uint32_t>(bounds.size.width);
+    _height = static_cast<uint32_t>(bounds.size.height);
+
+    // --- Renderer (platform-specific creation, abstract interface from here on) ---
     NSView* view = [_window contentView];
     _renderer = RendererFactory::create();
     if (!_renderer->init((__bridge void*)view, _width, _height)) {
@@ -61,40 +68,34 @@
         return;
     }
 
-    // --- Camera (world-unit position above the centre-top chunk) ---
-    const float camX = (World::CAM_START_CX + 0.5f) * Chunk::SIZE;
-    const float camY = static_cast<float>(World::CAM_START_CY + 1) * Chunk::SIZE;
-    const float camZ = (World::CAM_START_CZ + 0.5f) * Chunk::SIZE;
-    _camera.setPosition(camX, camY, camZ);
+    // --- Game ---
+    _game.init(*_renderer, _width, _height);
 
-    // --- MVP uniform buffer (initial frame) ---
-    Mat4 proj = Mat4::perspective(
-        0.8727f,
-        static_cast<float>(_width) / _height,
-        1.0f, 4000.0f);
-    Mat4 mvp = Mat4::multiply(proj, _camera.viewMatrix());
-    _uniformBuf = _renderer->createBuffer(BufferType::Uniform, sizeof(Mat4));
-    _uniformBuf->upload(&mvp, sizeof(Mat4));
-
-    // --- World + meshes ---
-    World::instance().init();
-    _worldRenderer.init(*_renderer);
-    _worldRenderer.buildMeshes(*_renderer, World::instance());
-
-    // --- Event monitors (keyboard + mouse click to lock cursor) ---
+    // --- Event monitors ---
     __weak AppDelegate* weakSelf = self;
+
     _keyMonitorDown = [NSEvent
         addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
         handler:^NSEvent*(NSEvent* e) {
-            [weakSelf handleKeyCode:(uint16_t)e.keyCode down:YES];
-            return e;
+            AppDelegate* s = weakSelf;
+            if (!s) return nil;
+            if (e.keyCode == Controls::kQuit) {
+                [s unlockCursor];
+                [NSApp terminate:nil];
+                return nil;
+            }
+            s->_game.keyDown((uint16_t)e.keyCode);
+            return nil;  // consume: prevents NSBeep() on unhandled key repeat
         }];
+
     _keyMonitorUp = [NSEvent
         addLocalMonitorForEventsMatchingMask:NSEventMaskKeyUp
         handler:^NSEvent*(NSEvent* e) {
-            [weakSelf handleKeyCode:(uint16_t)e.keyCode down:NO];
-            return e;
+            AppDelegate* s = weakSelf;
+            if (s) s->_game.keyUp((uint16_t)e.keyCode);
+            return nil;
         }];
+
     _mouseMonitor = [NSEvent
         addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseDown
         handler:^NSEvent*(NSEvent* e) {
@@ -102,7 +103,124 @@
             return e;
         }];
 
-    // --- Render loop ---
+    _mouseMoveMonitor = [NSEvent
+        addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved | NSEventMaskLeftMouseDragged
+        handler:^NSEvent*(NSEvent* e) {
+            AppDelegate* s = weakSelf;
+            if (s && s->_cursorLocked)
+                s->_game.mouseDelta((float)e.deltaX, (float)e.deltaY);
+            return e;
+        }];
+
+    [self showLoadingOverlay];
+    [self startAsyncLoading];
+}
+
+// ---------------------------------------------------------------------------
+// Loading overlay (macOS UI — NSView / NSProgressIndicator)
+// ---------------------------------------------------------------------------
+
+- (void)showLoadingOverlay
+{
+    NSView* content = [_window contentView];
+    NSRect frame = content.bounds;
+
+    _loadingView = [[NSView alloc] initWithFrame:frame];
+    _loadingView.wantsLayer = YES;
+    _loadingView.layer.backgroundColor =
+        [[NSColor colorWithWhite:0.04 alpha:1.0] CGColor];
+    _loadingView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+
+    CGFloat cx = frame.size.width  / 2.0;
+    CGFloat cy = frame.size.height / 2.0;
+
+    NSTextField* title = [NSTextField labelWithString:@"Loading World"];
+    title.font      = [NSFont systemFontOfSize:26 weight:NSFontWeightSemibold];
+    title.textColor = [NSColor whiteColor];
+    title.alignment = NSTextAlignmentCenter;
+    [title sizeToFit];
+    title.frame = NSMakeRect(cx - title.frame.size.width / 2.0,
+                             cy + 36,
+                             title.frame.size.width,
+                             title.frame.size.height);
+
+    _progressBar = [[NSProgressIndicator alloc]
+        initWithFrame:NSMakeRect(cx - 220, cy - 4, 440, 16)];
+    _progressBar.style         = NSProgressIndicatorStyleBar;
+    _progressBar.indeterminate = NO;
+    _progressBar.minValue      = 0;
+    _progressBar.maxValue      = World::SIZE * World::SIZE * World::SIZE * 2.0;
+    _progressBar.doubleValue   = 0;
+
+    constexpr uint32_t total = World::SIZE * World::SIZE * World::SIZE;
+    _progressLabel = [NSTextField labelWithString:
+        [NSString stringWithFormat:@"0 / %u chunks", total]];
+    _progressLabel.font      = [NSFont monospacedDigitSystemFontOfSize:12
+                                                               weight:NSFontWeightRegular];
+    _progressLabel.textColor = [NSColor colorWithWhite:0.6 alpha:1.0];
+    _progressLabel.alignment = NSTextAlignmentCenter;
+    [_progressLabel sizeToFit];
+    _progressLabel.frame = NSMakeRect(cx - 110, cy - 28,
+                                      220, _progressLabel.frame.size.height);
+
+    [_loadingView addSubview:title];
+    [_loadingView addSubview:_progressBar];
+    [_loadingView addSubview:_progressLabel];
+    [content addSubview:_loadingView];
+}
+
+- (void)updateLoadingProgress:(uint32_t)done
+                           of:(uint32_t)outOf
+                        label:(NSString*)label
+{
+    _progressBar.doubleValue   = done;
+    _progressLabel.stringValue = label;
+}
+
+- (void)startAsyncLoading
+{
+    __weak AppDelegate* weakSelf = self;
+    constexpr uint32_t total = World::SIZE * World::SIZE * World::SIZE;
+
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        AppDelegate* s = weakSelf;
+        if (!s) return;
+
+        // Game::loadWorld is synchronous and backend-agnostic.
+        // We wrap the callbacks here to marshal progress updates onto the main
+        // thread for the macOS UI — no dispatch_async lives inside Game.
+        s->_game.loadWorld(
+            // worldProgress
+            [weakSelf](uint32_t done, uint32_t t) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    NSString* lbl = [NSString stringWithFormat:
+                        @"Generating terrain: %u / %u chunks", done, t];
+                    [weakSelf updateLoadingProgress:done of:total * 2 label:lbl];
+                });
+            },
+            // meshProgress
+            [weakSelf](uint32_t done, uint32_t t) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    NSString* lbl = [NSString stringWithFormat:
+                        @"Building meshes: %u / %u chunks", done, t];
+                    [weakSelf updateLoadingProgress:total + done of:total * 2 label:lbl];
+                });
+            }
+        );
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [weakSelf finishLoading];
+        });
+    });
+}
+
+- (void)finishLoading
+{
+    [_loadingView removeFromSuperview];
+    _loadingView   = nil;
+    _progressBar   = nil;
+    _progressLabel = nil;
+
     _lastTime = CACurrentMediaTime();
     [NSTimer scheduledTimerWithTimeInterval:(1.0 / 60.0)
                                      target:self
@@ -111,104 +229,60 @@
                                     repeats:YES];
 }
 
+// ---------------------------------------------------------------------------
+// Frame loop
+// ---------------------------------------------------------------------------
+
+- (void)tick:(NSTimer*)timer
+{
+    CFTimeInterval now = CACurrentMediaTime();
+    float dt = static_cast<float>(now - _lastTime);
+    _lastTime = now;
+    if (dt > 0.1f) dt = 0.1f;  // cap: avoid spiral-of-death after a stall
+
+    _game.update(dt);
+
+    ICommandBuffer* cmd = _renderer->beginFrame();
+    if (!cmd) return;
+    _game.render(*cmd);
+    _renderer->endFrame();
+    _renderer->present();
+}
+
+// ---------------------------------------------------------------------------
+// Window / cursor
+// ---------------------------------------------------------------------------
+
+- (void)windowDidResize:(NSNotification*)notification
+{
+    NSRect bounds = [[_window contentView] bounds];
+    _width  = static_cast<uint32_t>(bounds.size.width);
+    _height = static_cast<uint32_t>(bounds.size.height);
+    if (_renderer) {
+        _renderer->resize(_width, _height);
+        _game.resize(_width, _height);
+    }
+}
+
 - (void)lockCursor
 {
     if (_cursorLocked) return;
     _cursorLocked = YES;
     [NSCursor hide];
+    CGAssociateMouseAndMouseCursorPosition(NO);
 }
 
 - (void)unlockCursor
 {
     if (!_cursorLocked) return;
     _cursorLocked = NO;
+    CGAssociateMouseAndMouseCursorPosition(YES);
     [NSCursor unhide];
 }
 
-- (void)handleKeyCode:(uint16_t)code down:(BOOL)down
-{
-    if (down && code == Controls::kQuit) {
-        [self unlockCursor];
-        [NSApp terminate:nil];
-        return;
-    }
-    if (down && code == Controls::kJump) {
-        if (_grounded) {
-            _velY    = PhysicsConstants::kJumpForce;
-            _grounded = NO;
-        }
-        return;  // Space is not forwarded to the camera
-    }
-    if (down) _camera.keyDown(code);
-    else      _camera.keyUp(code);
-}
-
-- (void)tick:(NSTimer*)timer
-{
-    // --- Delta time ---
-    CFTimeInterval now = CACurrentMediaTime();
-    float dt = static_cast<float>(now - _lastTime);
-    _lastTime = now;
-    if (dt > 0.1f) dt = 0.1f;  // cap: avoid spiral-of-death after a stall
-
-    // --- Gravity ---
-    _velY -= PhysicsConstants::kGravity * dt;
-    if (_velY < -PhysicsConstants::kTerminalVelocity)
-        _velY = -PhysicsConstants::kTerminalVelocity;
-
-    // --- Update camera (horizontal movement only) ---
-    _camera.update(dt);
-    World::instance().update(_camera.x(), _camera.y(), _camera.z());
-
-    // --- Convert stored eye position → physics body centre ---
-    // The camera stores the eye (rendering) Y = bodyCenter + kEyeOffset.
-    // All collision functions operate on the body centre so that the symmetric
-    // hitbox (± kHitboxHeight/2) sits correctly around the physics body.
-    float camX = _camera.x();
-    float camY = _camera.y() - PhysicsConstants::kEyeOffset;
-    float camZ = _camera.z();
-
-    // --- Resolve horizontal movement against walls ---
-    Collider::resolveXZ(camX, camY, camZ, World::instance());
-
-    // --- Integrate vertical velocity into Y (sub-stepped to prevent tunnelling) ---
-    // Splitting into steps of at most kMaxSubStepY (< 1 voxel) guarantees that
-    // resolveY always sees an overlap and can push the camera back to the surface.
-    const float totalDeltaY = _velY * dt;
-    const int nSteps = std::max(1, static_cast<int>(
-        std::ceil(std::abs(totalDeltaY) / PhysicsConstants::kMaxSubStepY)));
-    const float stepY = totalDeltaY / static_cast<float>(nSteps);
-
-    for (int i = 0; i < nSteps; ++i) {
-        camY += stepY;
-        Collider::resolveY(camX, camY, camZ, World::instance());
-    }
-
-    // --- Grounded check: stop falling when on solid ground ---
-    _grounded = Collider::isGrounded(camX, camY, camZ, World::instance());
-    if (_grounded && _velY < 0.0f)
-        _velY = 0.0f;
-
-    // --- Store eye position back into camera ---
-    _camera.setPosition(camX, camY + PhysicsConstants::kEyeOffset, camZ);
-
-    // --- Rebuild MVP ---
-    Mat4 proj = Mat4::perspective(
-        0.8727f,
-        static_cast<float>(_width) / _height,
-        1.0f, 4000.0f);
-    Mat4 mvp = Mat4::multiply(proj, _camera.viewMatrix());
-    _uniformBuf->upload(&mvp, sizeof(Mat4));
-
-    // --- Render ---
-    ICommandBuffer* cmd = _renderer->beginFrame();
-    if (!cmd) return;
-
-    _worldRenderer.render(*cmd, *_uniformBuf);
-
-    _renderer->endFrame();
-    _renderer->present();
-}
+// ---------------------------------------------------------------------------
+// App lifecycle
+// ---------------------------------------------------------------------------
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)sender
 {
@@ -218,9 +292,10 @@
 - (void)dealloc
 {
     [self unlockCursor];
-    if (_keyMonitorDown) [NSEvent removeMonitor:_keyMonitorDown];
-    if (_keyMonitorUp)   [NSEvent removeMonitor:_keyMonitorUp];
-    if (_mouseMonitor)   [NSEvent removeMonitor:_mouseMonitor];
+    if (_keyMonitorDown)   [NSEvent removeMonitor:_keyMonitorDown];
+    if (_keyMonitorUp)     [NSEvent removeMonitor:_keyMonitorUp];
+    if (_mouseMonitor)     [NSEvent removeMonitor:_mouseMonitor];
+    if (_mouseMoveMonitor) [NSEvent removeMonitor:_mouseMoveMonitor];
     World::destroy();
 }
 

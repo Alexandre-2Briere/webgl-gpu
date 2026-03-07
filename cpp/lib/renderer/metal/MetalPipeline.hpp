@@ -10,7 +10,8 @@ public:
     /// @param colorFmt   MTLPixelFormat value for the colour attachment (cast to uint32_t)
     /// @param depthFmt   MTLPixelFormat value for the depth attachment
     MetalPipeline(void* device, void* vertFn, void* fragFn,
-                  uint32_t colorFmt, uint32_t depthFmt);
+                  uint32_t colorFmt, uint32_t depthFmt,
+                  bool depthTest = true, bool noVertexDescriptor = false);
     ~MetalPipeline() override;
 
     /// Returns (__bridge void*)id<MTLRenderPipelineState>
