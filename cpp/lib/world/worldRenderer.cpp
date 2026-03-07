@@ -2,8 +2,13 @@
 #include "marchingCubes/mesher.hpp"
 #include "marchingCubes/vertex.hpp"
 #include "renderer/ICommandBuffer.h"
-#include "renderer/metal/MetalRenderer.hpp"  // for createShaderWithName + nativeDevice
-#include <dispatch/dispatch.h>
+#ifdef _WIN32
+#  include "renderer/directx/DXRenderer.hpp"  // for createShaderWithName
+#  include <thread>
+#else
+#  include "renderer/metal/MetalRenderer.hpp"  // for createShaderWithName + nativeDevice
+#  include <dispatch/dispatch.h>
+#endif
 
 // ---------------------------------------------------------------------------
 // Crosshair MSL — 6 vertices (2 triangles) generated from vertex_id.
@@ -89,19 +94,100 @@ fragment float4 fragmentMain(VertOut in [[stage_in]])
 )";
 
 // ---------------------------------------------------------------------------
+#ifdef _WIN32
+// HLSL shader source — terrain, simple diffuse + ambient shading.
+// #pragma pack_matrix(column_major) ensures the same matrix memory layout as MSL.
+// The vertex struct (float3 position, float3 normal) matches DXPipeline's input layout
+// (stride 24, POSITION at offset 0, NORMAL at offset 12).
+// ---------------------------------------------------------------------------
+static const char* kHLSLSource = R"(
+#pragma pack_matrix(column_major)
+
+cbuffer Uniforms : register(b1) {
+    float4x4 mvp;
+};
+
+struct VertIn {
+    float3 position : POSITION;
+    float3 normal   : NORMAL;
+};
+
+struct VertOut {
+    float4 position : SV_Position;
+    float3 normal   : TEXCOORD0;
+};
+
+VertOut VSMain(VertIn input)
+{
+    VertOut o;
+    o.position = mul(mvp, float4(input.position, 1.0));
+    o.normal   = input.normal;
+    return o;
+}
+
+float4 PSMain(VertOut input) : SV_Target
+{
+    float3 lightDir = normalize(float3(0.6, 1.0, 0.4));
+    float  diffuse  = max(dot(normalize(input.normal), lightDir), 0.0);
+    float3 color    = float3(0.35, 0.55, 0.25) * (diffuse * 0.8 + 0.2);
+    return float4(color, 1.0);
+}
+)";
+
+// HLSL crosshair — 6 vertices generated from SV_VertexID, no vertex buffer.
+// ---------------------------------------------------------------------------
+static const char* kCrosshairHLSL = R"(
+static const float4 kVerts[6] = {
+    float4(-0.01, -0.01, 0.0, 0.0),
+    float4( 0.01, -0.01, 1.0, 0.0),
+    float4(-0.01,  0.01, 0.0, 1.0),
+    float4(-0.01,  0.01, 0.0, 1.0),
+    float4( 0.01, -0.01, 1.0, 0.0),
+    float4( 0.01,  0.01, 1.0, 1.0),
+};
+
+struct CrosshairOut {
+    float4 position : SV_Position;
+    float2 uv       : TEXCOORD0;
+};
+
+CrosshairOut CrosshairVSMain(uint vid : SV_VertexID)
+{
+    CrosshairOut o;
+    o.position = float4(kVerts[vid].xy, 0.0, 1.0);
+    o.uv       = kVerts[vid].zw;
+    return o;
+}
+
+float4 CrosshairPSMain(CrosshairOut input) : SV_Target
+{
+    float2 uv = input.uv * 2.0 - 1.0;
+    if (length(uv) > 1.0) discard;
+    return float4(0.0, 0.0, 0.0, 1.0);
+}
+)";
+#endif  // _WIN32
+
+// ---------------------------------------------------------------------------
 WorldRenderer::WorldRenderer() = default;
 
 void WorldRenderer::init(IRenderer& renderer)
 {
-    // WorldRenderer needs Metal-specific shader creation; we downcast here.
-    // This is the only file that touches Metal internals outside the metal/ folder.
-    // If another backend is added, add a branch or move shader creation into IRenderer.
+    // WorldRenderer is the single file that knows about concrete renderer types.
+    // Each backend's dynamic_cast returns nullptr for the other backend — safe.
+#ifdef _WIN32
+    DXRenderer* dr = dynamic_cast<DXRenderer*>(&renderer);
+    if (dr) {
+        m_vertShader = dr->createShaderWithName(kHLSLSource, "VSMain", "vs_5_0");
+        m_fragShader = dr->createShaderWithName(kHLSLSource, "PSMain", "ps_5_0");
+    }
+#else
     MetalRenderer* mr = dynamic_cast<MetalRenderer*>(&renderer);
-
     if (mr) {
         m_vertShader = mr->createShaderWithName(kMSLSource, "vertexMain");
         m_fragShader = mr->createShaderWithName(kMSLSource, "fragmentMain");
     }
+#endif
 
     PipelineDesc pd;
     pd.vertex   = m_vertShader.get();
@@ -109,10 +195,17 @@ void WorldRenderer::init(IRenderer& renderer)
     m_pipeline  = renderer.createPipeline(pd);
 
     // --- Crosshair pipeline (no depth test, no vertex buffer) ---
+#ifdef _WIN32
+    if (dr) {
+        m_crosshairVertShader = dr->createShaderWithName(kCrosshairHLSL, "CrosshairVSMain", "vs_5_0");
+        m_crosshairFragShader = dr->createShaderWithName(kCrosshairHLSL, "CrosshairPSMain", "ps_5_0");
+    }
+#else
     if (mr) {
         m_crosshairVertShader = mr->createShaderWithName(kCrosshairMSL, "crosshairVert");
         m_crosshairFragShader = mr->createShaderWithName(kCrosshairMSL, "crosshairFrag");
     }
+#endif
     PipelineDesc cpd;
     cpd.vertex             = m_crosshairVertShader.get();
     cpd.fragment           = m_crosshairFragShader.get();
@@ -190,6 +283,26 @@ void WorldRenderer::buildMeshesAsync(IRenderer& renderer, const World& world,
         int32_t gz = chunk->gridZ();
 
         m_activeMeshJobs++;
+#ifdef _WIN32
+        std::thread([rptr, wptr, self, slot, gx, gy, gz]() {
+            std::vector<Vertex> verts = Mesher::generate(*wptr, gx, gy, gz);
+
+            ReadyMesh rm;
+            rm.idx         = slot;
+            rm.vertexCount = 0;
+            if (!verts.empty()) {
+                size_t bytes = verts.size() * sizeof(Vertex);
+                rm.vertexBuffer = rptr->createBuffer(BufferType::Vertex, bytes);
+                rm.vertexBuffer->upload(verts.data(), bytes);
+                rm.vertexCount  = static_cast<uint32_t>(verts.size());
+            }
+            {
+                std::lock_guard<std::mutex> lock(self->m_readyMeshMutex);
+                self->m_readyMeshes.push_back(std::move(rm));
+            }
+            self->m_activeMeshJobs--;
+        }).detach();
+#else
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
             std::vector<Vertex> verts = Mesher::generate(*wptr, gx, gy, gz);
 
@@ -208,6 +321,7 @@ void WorldRenderer::buildMeshesAsync(IRenderer& renderer, const World& world,
             }
             self->m_activeMeshJobs--;
         });
+#endif
     }
 }
 
