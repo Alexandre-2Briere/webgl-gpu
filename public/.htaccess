@@ -1,0 +1,12 @@
+Options -MultiViews
+RewriteEngine On
+
+# Serve existing files and directories directly.
+# This covers /demos/webgpu/, all built assets, images, etc.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Everything else goes to the React SPA.
+# React Router handles the URL from here.
+RewriteRule ^ /index.html [L]
