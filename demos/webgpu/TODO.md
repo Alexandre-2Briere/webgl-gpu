@@ -28,12 +28,12 @@
 - [ ] `keydown` / `keyup` → maintain `state.keys` Set
 - [ ] `Digit0–9` keydown → set `activeSlot`, call `updateHotbarUI`
 - [ ] `pointerlockchange` → update `state.pointerLocked`, show/hide lock hint
-- [ ] `mousemove` (locked) → `camera.rotate`, clamp `pitch = min(0, pitch)`
+- [ ] `mousemove` (locked) → `camera.rotate(-dx*SENS, -dy*SENS)` then `camera.pitch = Math.min(PITCH_UPPER_BOUND, camera.pitch)` (engine clamps ±89°; our clamp prevents looking up)
 - [ ] `mousedown` button 0 (locked) → `placeTile` at `hoveredCell`
 - [ ] `mousedown` button 2 (locked) → `removeTile` at `hoveredCell`
 - [ ] `click` canvas (unlocked) → `raycastMouse`; if grid hit → `selectedCell`; else `requestPointerLock()`
 - [ ] `click` hotbar slot (unlocked) → set `activeSlot`; if `selectedCell` → `placeTile`
-- [ ] `contextmenu` → `preventDefault()`
+- [ ] `contextmenu` on **canvas** → `preventDefault()` (canvas only, not document)
 
 ## Phase 6 — Logic RAF
 - [ ] `applyMovement(camera, keys, dt)` — yaw-only XZ movement (do NOT use `camera.move()`)
@@ -57,3 +57,11 @@
 - [ ] Verify 0–9 hotbar selection and number-key placement both work
 - [ ] Verify right-click removal works
 - [ ] Check console for any WebGPU validation errors
+
+## Phase 9 — Maintenance Hardening
+- [ ] Assert `FOV_Y` in `tileBuilder.ts` matches `fovY` in `main.ts` `createCamera()` call — add co-located comment in both files
+- [ ] Document pool cap in code: `// 26 lines + 1 highlight + 1 crosshair + 1 floor + GRID_SIZE²(max 144) = 173 / 512 cap`
+- [ ] Confirm logic RAF is started before `engine.start()` — add comment explaining the ordering requirement
+- [ ] Confirm `state.mat` is only written from one place per tick — add `// shared scratch: never hold a reference across frames` comment
+- [ ] Confirm `contextmenu` listener is attached to `canvas`, not `document`
+- [ ] Confirm `camera.pitch` manual clamp is preserved after `camera.rotate()` call — add inline comment: `// extra clamp: engine clamps ±89°; we also disallow looking up`

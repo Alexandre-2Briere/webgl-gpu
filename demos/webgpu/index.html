@@ -3,16 +3,132 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WebGPU Marching Cubes Terrain</title>
+    <title>WebGPU Tile Builder</title>
     <link rel="icon" href="/favicon.svg" />
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
+
       body { background: #000; overflow: hidden; }
-      canvas { display: block; width: 100vw; height: 100vh; }
+
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        color: #fff;
+      }
+
+      /* ── Hotbar ─────────────────────────────────────────────────────── */
+
+      #hotbar {
+        position: absolute;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 6px;
+        pointer-events: auto;
+      }
+
+      .hotbar-slot {
+        width: 64px;
+        height: 64px;
+        border: 2px solid rgba(255,255,255,0.35);
+        border-radius: 6px;
+        background: rgba(0,0,0,0.55);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        cursor: pointer;
+        user-select: none;
+        transition: border-color 0.1s, background 0.1s;
+      }
+
+      .hotbar-slot:hover {
+        border-color: rgba(255,255,255,0.7);
+        background: rgba(0,0,0,0.75);
+      }
+
+      .hotbar-slot.active {
+        border-color: #fff;
+        background: rgba(255,255,255,0.15);
+      }
+
+      .hotbar-slot .key-badge {
+        font-size: 10px;
+        font-weight: 700;
+        color: rgba(255,255,255,0.5);
+        line-height: 1;
+      }
+
+      .hotbar-slot.active .key-badge {
+        color: #fff;
+      }
+
+      .hotbar-slot .tile-name {
+        font-size: 9px;
+        color: rgba(255,255,255,0.8);
+        text-align: center;
+        word-break: break-all;
+        padding: 0 3px;
+        line-height: 1.2;
+      }
+
+      /* ── Instructions ───────────────────────────────────────────────── */
+
+      #instructions {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        background: rgba(0,0,0,0.55);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 12px;
+        line-height: 1.8;
+        color: rgba(255,255,255,0.85);
+      }
+
+      #instructions .section-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.45);
+        margin-top: 6px;
+      }
+
+      #instructions .section-label:first-child {
+        margin-top: 0;
+      }
+
+      /* ── Lock hint ──────────────────────────────────────────────────── */
+
+      #lock-hint {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.65);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 14px;
+        color: rgba(255,255,255,0.9);
+        pointer-events: none;
+      }
     </style>
   </head>
   <body>
     <canvas id="webgpu-canvas"></canvas>
+    <div id="overlay"></div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

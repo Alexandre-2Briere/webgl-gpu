@@ -255,10 +255,12 @@ function removeTile(state, row, col) {
 ## RAF Architecture
 
 Two independent `requestAnimationFrame` loops:
-1. **Engine RAF** (`engine.start()`) — renders, calls `Scene.frame()` → `camera.updateMatrices()`
+1. **Engine RAF** (`engine.start()`) — renders, calls `Scene.frame()` → `camera.updateMatrices()` + `camera.uploadTo()`
 2. **Logic RAF** (in `tileBuilder.ts`) — movement, raycasting, highlight, `dt` capped at 100ms
 
-Start logic RAF **before** `engine.start()` so first render frame sees correct camera state.
+**Order matters:** start logic RAF **before** `engine.start()`. Reason: the engine RAF fires immediately on the next vsync. If `engine.start()` is called first, the first render frame can execute before any logic frame has run, producing one frame with stale camera state or an invisible highlight.
+
+These loops are intentionally decoupled — do NOT merge them. The engine RAF must be the sole caller of `camera.updateMatrices()` / `camera.uploadTo()` (done internally by `Scene.frame()`). The logic RAF only mutates `camera.position`, `camera.yaw`, `camera.pitch`, and renderable properties.
 
 ---
 
@@ -287,6 +289,54 @@ Injected into `<div id="overlay">` by `tileBuilder.ts`:
 - `#lock-hint` — "Click to capture cursor", center screen, shown when unlocked
 
 Crosshair is a `Quad2D` (GPU rendered), not HTML.
+
+---
+
+## Maintenance Notes
+
+Critical context for anyone modifying this demo months or years later.
+
+### FOV_Y must stay in sync with camera creation
+`FOV_Y` in `tileBuilder.ts` is used to reconstruct the view frustum in `raycastMouse`. The camera's internal `_fovY` field is **private** — there is no getter. If `main.ts` changes `createCamera({ fovY: ... })` without updating `FOV_Y` in `tileBuilder.ts`, mouse picking silently breaks (clicks land on wrong cells). Always change both together.
+
+### `camera.rotate()` has its own clamp — ours is intentional
+`Camera.rotate()` clamps pitch to ±89°. The demo does an **additional** clamp: `camera.pitch = Math.min(PITCH_UPPER_BOUND, camera.pitch)` right after each `camera.rotate()` call. This intentionally prevents looking up at all (bird's-eye tile builder UX). Do not remove this line thinking the engine already handles clamping — it does, but to ±89°, not to 0°.
+
+### `camera.position[1]` must always stay > 0
+Movement code only modifies `position[0]` and `position[2]`. The Y coordinate is fixed at 18 (initial value). Both raycasting functions divide by `dy` after computing `t = -camera.position[1] / dy` — if Y ever reaches 0, the ray origin is on the ground plane and `t` becomes 0 (degenerate). Do not add vertical movement without updating the raycasting guard (`dy >= -1e-6`).
+
+### Renderable pool cap
+The engine supports up to **512 renderables** (UNIFORM_POOL_SIZE in Engine.ts). Current usage:
+- 26 grid-line Quad3Ds
+- 1 highlight Quad3D
+- 1 crosshair Quad2D
+- 1 floor Mesh
+- Up to GRID_SIZE² = 144 FbxModels (tiles never freed, only hidden)
+- **Total max: 173 / 512**
+
+If you increase GRID_SIZE: recalculate. At GRID_SIZE = 21 you'd hit 441 + 29 = 470 (still safe). At GRID_SIZE = 22 you'd reach 484 + 29 = 513 — **over the cap** causing silent uniform slot exhaustion. The engine does not throw; tile placement silently fails.
+
+### `visible = false` is the only tile removal
+`FbxModel.destroy()` is intentionally a no-op — it preserves shared GPU asset buffers. Once a tile is created its uniform slot is permanently used. `removeTile()` sets `handle.visible = false` and removes from `state.grid` but does NOT reclaim the slot. Max 144 tiles × 1 slot each. This is fine for the demo's fixed grid but means you cannot "re-spawn" removed tiles as new objects without exceeding the expected slot count.
+
+### `state.mat` is a shared scratch buffer
+`state.mat` (Float32Array[16]) is reused every logic frame to build translation matrices for the highlight. It is **not safe to hold a reference** to it across frames or use it from two places in the same tick. It is a zero-allocation optimisation — if you add more transform updates in the loop, give each one its own buffer.
+
+### `selectedCell` is never cleared on re-lock
+By design: when the pointer is released (Esc), `selectedCell` persists so the purple highlight remains visible. When the pointer is re-locked (click empty canvas), `selectedCell` stays set — the next locked-mode hover overwrites `hoveredCell` but `selectedCell` is untouched until the user clicks a grid cell in unlocked mode. If you want selection to clear on lock, add `state.selectedCell = null` in the `pointerlockchange` handler when `pointerLocked` becomes true.
+
+### Quad3D axis convention (non-obvious)
+For Quad3D with `normal = [0, 1, 0]` (floor-facing):
+- `width` = extent along **Z** (depth in world space)
+- `height` = extent along **X** (width in world space)
+
+The grid line comments use "constant-Z separator" (a line at a fixed Z, spanning X → large `height`) and "constant-X separator" (at fixed X, spanning Z → large `width`). If the lines appear rotated 90°, these two values are swapped.
+
+### `contextmenu` event listener scope
+Wire `contextmenu → preventDefault()` on the **canvas** element only, not `document`. Attaching to `document` would suppress right-click context menus everywhere on the page (outside the demo area).
+
+### Asset glob and tile count
+The glob `'../../src/assets/fbx/square_forest*.fbx'` matches exactly **21 files** (verified). The Fisher-Yates shuffle picks 10 of these. If the FBX directory gains or loses files matching this pattern, adjust the comment and check that 21 ≥ 10 (it always should be). The `_detail`, `_noSides`, and `_empty` variants are included in the pool — visually distinct, which is intentional variety.
 
 ---
 
