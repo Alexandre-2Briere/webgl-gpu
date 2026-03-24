@@ -20,9 +20,13 @@ export class ComputePass {
   }
 
   encode(pass: GPUComputePassEncoder): void {
+    const MAX = 65535
     const [x, y, z] = typeof this._dispatchSize === 'function'
       ? this._dispatchSize()
       : this._dispatchSize
+    if (x < 0 || y < 0 || z < 0 || x > MAX || y > MAX || z > MAX) {
+      throw new Error(`ComputePass: dispatchWorkgroups dimensions [${x}, ${y}, ${z}] must be in [0, ${MAX}]`)
+    }
     pass.setPipeline(this._pipeline)
     pass.setBindGroup(0, this._bindGroup)
     pass.dispatchWorkgroups(x, y, z)

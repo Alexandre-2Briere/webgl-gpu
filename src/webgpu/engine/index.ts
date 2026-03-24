@@ -17,4 +17,7 @@ export type {
   ModelAssetHandle,
   Model3DOptions,
   Model3DHandle,
+  FbxAssetHandle,
+  FbxModelOptions,
+  FbxModelHandle,
 } from './types'

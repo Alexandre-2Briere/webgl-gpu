@@ -20,6 +20,7 @@ export interface CameraOptions {
 export interface BindGroupLayouts {
   camera: GPUBindGroupLayout    // group 0 — camera uniform
   object: GPUBindGroupLayout    // group 1 — per-object uniform (model + tint)
+  fbxMaterial: GPUBindGroupLayout  // group 2 — FBX diffuse + normal map textures
 }
 
 // ── Mesh ───────────────────────────────────────────────────────────────────
@@ -121,6 +122,38 @@ export interface Model3DOptions {
 }
 
 export interface Model3DHandle {
+  visible: boolean
+  setPosition(x: number, y: number, z: number): void
+  setScale(x: number, y: number, z: number): void
+  setQuaternion(x: number, y: number, z: number, w: number): void
+  setTint(r: number, g: number, b: number, a: number): void
+  destroy(): void
+}
+
+// ── FbxAsset ────────────────────────────────────────────────────────────────
+
+/** Shared GPU resource produced by engine.loadFbx(). Safe to pass to createFbxModel() many times. */
+export interface FbxAssetHandle {
+  readonly sliceCount: number
+  destroy(): void
+}
+
+// ── FbxModel (world-space FBX mesh with textures) ──────────────────────────
+
+export interface FbxModelOptions {
+  asset: FbxAssetHandle
+  /** World-space position. Default [0, 0, 0]. */
+  position?: [number, number, number]
+  /** Uniform scale per axis. Default [1, 1, 1]. */
+  scale?: [number, number, number]
+  /** Unit quaternion [x, y, z, w]. Default identity [0, 0, 0, 1]. */
+  quaternion?: [number, number, number, number]
+  /** RGBA tint multiplied in the shader. Default [1, 1, 1, 1]. */
+  tint?: [number, number, number, number]
+  label?: string
+}
+
+export interface FbxModelHandle {
   visible: boolean
   setPosition(x: number, y: number, z: number): void
   setScale(x: number, y: number, z: number): void

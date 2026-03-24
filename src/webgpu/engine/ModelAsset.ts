@@ -25,14 +25,14 @@ export class ModelAsset implements ModelAssetHandle {
       size: vertices.byteLength,
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     })
-    queue.writeBuffer(this.vertexBuf, 0, vertices)
+    queue.writeBuffer(this.vertexBuf, 0, vertices as Float32Array<ArrayBuffer>)
 
     this.indexBuf = device.createBuffer({
       label: 'model-asset:idx',
       size: indices.byteLength,
       usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
     })
-    queue.writeBuffer(this.indexBuf, 0, indices)
+    queue.writeBuffer(this.indexBuf, 0, indices as Uint32Array<ArrayBuffer>)
   }
 
   destroy(): void {

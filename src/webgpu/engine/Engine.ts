@@ -6,24 +6,22 @@ import type {
   Quad2DOptions, Quad2DHandle,
   Quad3DOptions, Quad3DHandle,
   Model3DOptions, Model3DHandle, ModelAssetHandle,
+  FbxModelOptions, FbxModelHandle, FbxAssetHandle,
   CameraOptions,
 } from './types'
-import { Camera } from './core/Camera'
-import { Renderer } from './core/Renderer'
-import { Scene } from './core/Scene'
-import { PipelineCache } from './core/PipelineCache'
-import { UniformPool } from './buffers/UniformPool'
-import { Mesh } from './renderables/Mesh'
-import { Quad2D } from './renderables/Quad2D'
-import { Quad3D } from './renderables/Quad3D'
-import { ComputedRenderable } from './renderables/ComputedRenderable'
-import { Model3D } from './renderables/Model3D'
+import { Camera, Renderer, Scene, PipelineCache } from './core'
+import { UniformPool } from './buffers'
+import { Mesh, Quad2D, Quad3D, ComputedRenderable, Model3D, FbxModel } from './renderables'
+import type { RenderableInitArgs } from './renderables'
+import { parseObj, parseFbx } from './loaders'
 import { ModelAsset } from './ModelAsset'
-import { parseObj } from './loaders/parseObj'
-import type { RenderableInitArgs } from './renderables/Renderable'
+import { FbxAsset } from './FbxAsset'
 
 /** Pool size for per-object uniforms: supports up to 512 renderables. */
 const UNIFORM_POOL_SIZE = 512 * 256
+
+/** Maximum asset download size (256 MB). Enforced both on Content-Length and during streaming. */
+const MAX_ASSET_BYTES = 256 * 1024 * 1024
 
 export class Engine {
   private readonly _canvas: HTMLCanvasElement
@@ -95,7 +93,16 @@ export class Engine {
       }],
     })
 
-    const layouts: BindGroupLayouts = { camera: cameraLayout, object: objectLayout }
+    const fbxMaterialLayout = device.createBindGroupLayout({
+      label: 'fbx-material-bgl',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float', viewDimension: '2d' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float', viewDimension: '2d' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+      ],
+    })
+
+    const layouts: BindGroupLayouts = { camera: cameraLayout, object: objectLayout, fbxMaterial: fbxMaterialLayout }
 
     // Default camera
     const camera = new Camera(device, cameraLayout, {})
@@ -147,9 +154,8 @@ export class Engine {
    * Non-blocking: the fetch is async; parsing runs synchronously after the response arrives.
    */
   async loadModel(url: string): Promise<ModelAssetHandle> {
-    const response = await fetch(url)
-    if (!response.ok) throw new Error(`loadModel: failed to fetch "${url}" (${response.status})`)
-    const text = await response.text()
+    const bytes = await this._fetchWithLimit(url, 'loadModel')
+    const text = new TextDecoder().decode(bytes)
     const { vertices, indices } = parseObj(text)
     return new ModelAsset(this._renderer.device, this._renderer.queue, vertices, indices)
   }
@@ -157,6 +163,29 @@ export class Engine {
   /** Creates a Model3D instance from a loaded ModelAsset. Sync and fast — no GPU buffer upload. */
   createModel3D(opts: Model3DOptions): Model3DHandle {
     const model = new Model3D(opts)
+    model.init(this._initArgs())
+    this._scene.add(model)
+    return model
+  }
+
+  /**
+   * Fetches and parses a .fbx file, uploading all mesh geometry and textures to GPU once.
+   * The returned FbxAssetHandle can be passed to createFbxModel() many times.
+   */
+  async loadFbx(url: string): Promise<FbxAssetHandle> {
+    const bytes = await this._fetchWithLimit(url, 'loadFbx')
+    const parsed = await parseFbx(bytes)
+    return new FbxAsset(
+      this._renderer.device,
+      this._renderer.queue,
+      this._layouts.fbxMaterial,
+      parsed,
+    )
+  }
+
+  /** Creates an FbxModel instance from a loaded FbxAsset. Sync and fast — no GPU buffer upload. */
+  createFbxModel(opts: FbxModelOptions): FbxModelHandle {
+    const model = new FbxModel(opts)
     model.init(this._initArgs())
     this._scene.add(model)
     return model
@@ -192,6 +221,35 @@ export class Engine {
   get canvas(): HTMLCanvasElement { return this._canvas }
 
   // ── Private helpers ─────────────────────────────────────────────────────────
+
+  private async _fetchWithLimit(url: string, label: string): Promise<Uint8Array> {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`${label}: failed to fetch "${url}" (${response.status})`)
+
+    const contentLength = response.headers.get('Content-Length')
+    if (contentLength !== null && Number(contentLength) > MAX_ASSET_BYTES)
+      throw new Error(`${label}: asset too large (Content-Length ${contentLength} > ${MAX_ASSET_BYTES})`)
+
+    if (!response.body) throw new Error(`${label}: response body is null`)
+
+    const reader = response.body.getReader()
+    const chunks: Uint8Array[] = []
+    let total = 0
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      total += value.byteLength
+      if (total > MAX_ASSET_BYTES)
+        throw new Error(`${label}: asset exceeded ${MAX_ASSET_BYTES} bytes during download`)
+      chunks.push(value)
+    }
+
+    const result = new Uint8Array(total)
+    let offset = 0
+    for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.byteLength }
+    return result
+  }
 
   private _initArgs(): RenderableInitArgs {
     return {
