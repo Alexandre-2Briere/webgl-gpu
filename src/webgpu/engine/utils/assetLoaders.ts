@@ -2,6 +2,7 @@ import type { ModelAssetHandle, FbxAssetHandle } from '../types'
 import { ModelAsset } from '../ModelAsset'
 import { FbxAsset } from '../FbxAsset'
 import { parseObj, parseFbx } from '../loaders'
+import { logger } from './logger'
 
 /** Maximum asset download size (256 MB). Enforced on Content-Length and during streaming. */
 const MAX_ASSET_BYTES = 256 * 1024 * 1024
@@ -62,5 +63,6 @@ export async function loadFbxAsset(
 ): Promise<FbxAssetHandle> {
   const bytes = await fetchWithLimit(url, 'loadFbxAsset')
   const parsed = await parseFbx(bytes)
+  console.debug(parsed);
   return new FbxAsset(device, queue, fbxMaterialLayout, parsed)
 }

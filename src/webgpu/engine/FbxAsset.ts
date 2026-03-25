@@ -1,5 +1,6 @@
 import type { FbxAssetHandle } from './types'
 import type { ParsedFbxData } from './loaders/parseFbx'
+import { logger } from './utils'
 
 export interface FbxMeshSlice {
   vertexBuf: GPUBuffer
@@ -61,13 +62,29 @@ export class FbxAsset implements FbxAssetHandle {
       queue.writeBuffer(indexBuf, 0, mesh.indices as Uint32Array<ArrayBuffer>)
 
       // ── Material textures ────────────────────────────────────────────────
-      const diffuseTex = mesh.material.diffuseImageData
-        ? this._uploadImageBitmap(device, queue, mesh.material.diffuseImageData, `fbx:${mesh.name}:diffuse`)
-        : fallbackDiffuse
+      let diffuseTex: GPUTexture
+      if (mesh.material.diffuseImageData) {
+        diffuseTex = this._uploadImageBitmap(device, queue, mesh.material.diffuseImageData, `fbx:${mesh.name}:diffuse`)
+      } else if (mesh.material.baseColor) {
+        diffuseTex = this._createFallbackTexture(device, queue, [
+          Math.round(mesh.material.baseColor[0] * 255),
+          Math.round(mesh.material.baseColor[1] * 255),
+          Math.round(mesh.material.baseColor[2] * 255),
+          255,
+        ])
+      } else {
+        diffuseTex = fallbackDiffuse
+      }
 
       const normalTex = mesh.material.normalMapImageData
         ? this._uploadImageBitmap(device, queue, mesh.material.normalMapImageData, `fbx:${mesh.name}:normal`)
         : fallbackNormal
+
+      logger.debug(
+        `[FbxAsset] slice "${mesh.name}"`,
+        `baseColor=[${mesh.material.baseColor.map(v => v.toFixed(3)).join(', ')}]`,
+        `diffuse=${mesh.material.diffuseImageData ? 'texture' : mesh.material.baseColor ? 'baseColor' : 'FALLBACK(white)'}`,
+      )
 
       // ── Material bind group (group 2) ────────────────────────────────────
       const materialBindGroup = device.createBindGroup({

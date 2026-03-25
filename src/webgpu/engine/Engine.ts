@@ -13,7 +13,7 @@ import { Camera, Renderer, Scene, PipelineCache } from './core'
 import { UniformPool } from './buffers'
 import { Mesh, Quad2D, Quad3D, ComputedRenderable, Model3D, FbxModel } from './renderables'
 import type { Renderable, RenderableInitArgs } from './renderables'
-import { loadObjAsset, loadFbxAsset, createEngineLayouts } from './utils'
+import { loadObjAsset, loadFbxAsset, createEngineLayouts, logger } from './utils'
 
 /** Pool size for per-object uniforms: supports up to 512 renderables. */
 const UNIFORM_POOL_SIZE = 512 * 256
@@ -62,7 +62,7 @@ export class Engine {
     })
 
     device.lost.then(info => {
-      console.error('WebGPU device lost:', info.message)
+      logger.error('WebGPU device lost:', info.message)
     })
 
     const renderer = new Renderer(device, canvas)

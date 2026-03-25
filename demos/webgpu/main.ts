@@ -1,4 +1,5 @@
 import { Engine } from '../../src/webgpu/engine/index'
+import { logger } from '../../src/webgpu/engine/utils'
 import { FOV_Y, initTileBuilder } from './tileBuilder'
 
 async function main() {
@@ -17,7 +18,7 @@ async function main() {
     far:      500,
     position: [6, 18, 16],
     yaw:      0,
-    pitch:    -(55 * Math.PI / 180),
+    pitch:    +(55 * Math.PI / 180),
   })
   engine.setCamera(camera)
 
@@ -29,5 +30,5 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error('Engine init failed:', err)
+  logger.error('Engine init failed:', err)
 })

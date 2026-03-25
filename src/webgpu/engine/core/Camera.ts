@@ -94,7 +94,7 @@ export class Camera {
 
   /**
    * Adjust orientation. Pitch is clamped to ±89°.
-   * @param deltaYaw    radians, positive = rotate left
+   * @param deltaYaw    radians, positive = rotate right
    * @param deltaPitch  radians, positive = look up
    */
   rotate(deltaYaw: number, deltaPitch: number): void {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchProjectMeta } from '@lib/services/fetchProjectMeta'
+import { logger } from '../../webgpu/engine/utils'
 import type { ProjectMeta } from '@lib/projects/types'
 import ProjectCard from '@components/ProjectCard/ProjectCard'
 import styles from './Home.module.css'
@@ -8,7 +9,7 @@ export default function Home() {
   const [projects, setProjects] = useState<ProjectMeta[]>([])
 
   useEffect(() => {
-    fetchProjectMeta().then(setProjects).catch(console.error)
+    fetchProjectMeta().then(setProjects).catch(e => logger.error(e))
   }, [])
 
   return (
