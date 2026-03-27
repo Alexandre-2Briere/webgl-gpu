@@ -1,4 +1,5 @@
-import type { Engine, Camera, FbxAssetHandle, FbxModelHandle, Quad3DHandle } from '../../src/webgpu/engine/index'
+import type { Engine, Camera, FbxAssetHandle, IGameObject } from '../../src/webgpu/engine/index'
+import type { Quad3D } from '../../src/webgpu/engine/gameObject/renderables'
 
 // FOV_Y must match fovY in main.ts createCamera() call.
 // raycastMouse() uses this to reconstruct the view frustum — if they diverge,
@@ -24,7 +25,7 @@ const COLOR_SELECTED:       [number, number, number, number] = [0.9,  0.3,  1.0,
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface TileType { name: string; asset: FbxAssetHandle }
-interface GridCell { handle: FbxModelHandle; quad: Quad3DHandle }
+interface GridCell { handle: IGameObject; quad: IGameObject<Quad3D> }
 
 interface State {
   tiles:         TileType[]
@@ -32,7 +33,7 @@ interface State {
   activeSlot:    number
   hoveredCell:   [number, number] | null   // locked-mode center-ray target
   selectedCell:  [number, number] | null   // unlocked-mode click-selected cell
-  highlight:     Quad3DHandle
+  highlight:     IGameObject<Quad3D>
   hotbarSlotEls: HTMLElement[]
   lockHint:      HTMLElement
   pointerLocked: boolean
@@ -76,7 +77,7 @@ function createFloorMesh(engine: Engine): void {
       0,    0,   gs,  0,    nx,  ny,  nz,  0,    r, g, b, a,
   ])
   const indices = new Uint32Array([0, 2, 1, 0, 3, 2])
-  engine.createMesh({ vertices, indices, label: 'floor' })
+  engine.createMesh({ renderable: { vertices, indices, label: 'floor' } })
 }
 
 function createGridLines(engine: Engine): void {
@@ -91,22 +92,18 @@ function createGridLines(engine: Engine): void {
   for (let i = 0; i <= GRID_SIZE; i++) {
     const coord = i * CELL_SIZE
     // Constant-Z line: spans X, fixed Z
-    engine.createQuad3D({ position: [half,  y, coord], normal: [0, 1, 0], width: 0.05, height: gs,   color, label: `gridZ${i}` })
+    engine.createQuad3D({ renderable: { normal: [0, 1, 0], width: 0.05, height: gs,   color, label: `gridZ${i}` }, position: [half,  y, coord] })
     // Constant-X line: spans Z, fixed X
-    engine.createQuad3D({ position: [coord, y, half],  normal: [0, 1, 0], width: gs,   height: 0.05, color, label: `gridX${i}` })
+    engine.createQuad3D({ renderable: { normal: [0, 1, 0], width: gs,   height: 0.05, color, label: `gridX${i}` }, position: [coord, y, half]  })
   }
 }
 
-function createHighlight(engine: Engine): Quad3DHandle {
+function createHighlight(engine: Engine): IGameObject<Quad3D> {
   // Moved each frame via setModelMatrix; color set via setColor.
   // Baked at origin — position is purely a starting value, overwritten immediately.
   return engine.createQuad3D({
+    renderable: { normal: [0, 1, 0], width: 0.95, height: 0.95, color: [1, 1, 1, 1], label: 'highlight' },
     position: [0, 0.01, 0],
-    normal:   [0, 1, 0],
-    width:    0.95,
-    height:   0.95,
-    color:    [1, 1, 1, 1],
-    label:    'highlight',
   })
 }
 
@@ -176,17 +173,19 @@ function placeTile(engine: Engine, state: State, row: number, col: number, slotI
   const key = row * GRID_SIZE + col
   if (state.grid.has(key)) return   // no double-stacking
   const handle = engine.createFbxModel({
-    asset:    state.tiles[slotIdx].asset,
+    renderable: { asset: state.tiles[slotIdx].asset },
     position: [col + 0.5, 0, row + 0.5],
     scale:    TILE_SCALE,
   })
   const quad = engine.createQuad3D({
+    renderable: {
+      normal:  [0, 1, 0],
+      width:   CELL_SIZE * 0.92,
+      height:  CELL_SIZE * 0.92,
+      color:   ROAD_QUAD_COLOR,
+      label:   `road-surface-${row}-${col}`,
+    },
     position: [col + 0.5, ROAD_QUAD_Y, row + 0.5],
-    normal:   [0, 1, 0],
-    width:    CELL_SIZE * 0.92,
-    height:   CELL_SIZE * 0.92,
-    color:    ROAD_QUAD_COLOR,
-    label:    `road-surface-${row}-${col}`,
   })
   state.grid.set(key, { handle, quad })
 }
@@ -195,8 +194,8 @@ function removeTile(state: State, row: number, col: number): void {
   const key  = row * GRID_SIZE + col
   const cell = state.grid.get(key)
   if (!cell) return
-  cell.handle.visible = false   // FbxModel.destroy() is a no-op; hide is enough
-  cell.quad.visible = false
+  cell.handle.renderable.visible = false   // FbxModel.destroy() is a no-op; hide is enough
+  cell.quad.renderable.visible = false
   state.grid.delete(key)
 }
 
@@ -367,17 +366,17 @@ function startLogicRAF(camera: Camera, state: State): void {
     if (activeDisplayCell) {
       const [row, col] = activeDisplayCell
       makeTranslationMat(col + 0.5, 0.01, row + 0.5, state.mat)
-      state.highlight.setModelMatrix(state.mat)
-      state.highlight.visible = true
+      state.highlight.renderable.setModelMatrix(state.mat)
+      state.highlight.renderable.visible = true
 
       const occupied = state.grid.has(row * GRID_SIZE + col)
       if (state.pointerLocked) {
-        state.highlight.setColor(...(occupied ? COLOR_HOVER_OCCUPIED : COLOR_HOVER_EMPTY))
+        state.highlight.renderable.setColor(...(occupied ? COLOR_HOVER_OCCUPIED : COLOR_HOVER_EMPTY))
       } else {
-        state.highlight.setColor(...COLOR_SELECTED)
+        state.highlight.renderable.setColor(...COLOR_SELECTED)
       }
     } else {
-      state.highlight.visible = false
+      state.highlight.renderable.visible = false
     }
   }
 
@@ -399,11 +398,11 @@ export async function initTileBuilder(
   createFloorMesh(engine)
   createGridLines(engine)
   const highlight = createHighlight(engine)
-  highlight.visible = false   // hidden until first logic tick places it correctly
+  highlight.renderable.visible = false   // hidden until first logic tick places it correctly
 
   // Crosshair: 0.012×0.012 white dot at screen center
   // NDC top-left corner: x=-0.006 places left edge, y=0.006 places top edge
-  engine.createQuad2D({ x: -0.006, y: 0.006, width: 0.012, height: 0.012, color: [1, 1, 1, 0.85], label: 'crosshair' })
+  engine.createQuad2D({ renderable: { x: -0.006, y: 0.006, width: 0.012, height: 0.012, color: [1, 1, 1, 0.85], label: 'crosshair' } })
 
   const state: State = {
     tiles,

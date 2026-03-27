@@ -1,3 +1,5 @@
 export { UniformPool } from './UniformPool'
+export type { UniformSlot } from './UniformPool'
 export { VertexBuffer } from './VertexBuffer'
 export { StorageBuffer } from './StorageBuffer'
+export { IndirectBuffer } from './IndirectBuffer'
