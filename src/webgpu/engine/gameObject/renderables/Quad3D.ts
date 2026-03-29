@@ -6,7 +6,7 @@ import type { UniformSlot } from '../../buffers/UniformPool'
 import { COMMON } from '../../shaders/common'
 import { QUAD3D } from '../../shaders/quad3d'
 import { cross3, norm3, makeTransformMatrix } from '../../math'
-import type { Vec3, Vec4 } from '../../math/vec3'
+import type { Vec3, Vec4 } from '../../math'
 
 /**
  * Vertex layout: vec3f position + vec4f color = 28 bytes/vertex (padded to 32).

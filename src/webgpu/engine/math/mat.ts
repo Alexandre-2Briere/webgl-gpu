@@ -7,6 +7,9 @@ export function identityMat(n: number): Float32Array {
   for (let i = 0; i < n; i++) m[i * n + i] = 1
   return m
 }
+export function zeroMat(n: number): Float32Array {
+  return new Float32Array(n * n);
+}
 
 /** Column-major 4×4 matrix multiply: out = a × b */
 export function mul4x4(a: Float32Array, b: Float32Array, out: Float32Array): void {

@@ -1,5 +1,5 @@
-import type { Hitbox3D } from '../hitbox/Hitbox3D'
-import type { Vec3, Vec4 } from '../../math/vec3'
+import type { Hitbox3D } from '../hitbox'
+import type { Vec3, Vec4 } from '../../math'
 
 export interface Rigidbody3DOptions {
   layer: string

@@ -1,5 +1,5 @@
 import type { CameraOptions } from '../types'
-import { mul4x4 } from '../math'
+import { mul4x4, forward, right, up, dot, type Vec2 } from '../math'
 
 const PITCH_LIMIT = (89 * Math.PI) / 180
 
@@ -135,43 +135,27 @@ export class Camera {
   // ── Matrix math (column-major, matching WGSL mat4x4f convention) ───────────
 
   private _buildView(): void {
-    const cosPitch = Math.cos(this.pitch)
-    const sinPitch = Math.sin(this.pitch)
-    const cosYaw   = Math.cos(this.yaw)
-    const sinYaw   = Math.sin(this.yaw)
+    const yaw:   Vec2 = [Math.cos(this.yaw),   Math.sin(this.yaw)]
+    const pitch: Vec2 = [Math.cos(this.pitch),  Math.sin(this.pitch)]
 
-    // Forward direction (looking towards -Z in local space, rotated by yaw then pitch)
-    const fx = sinYaw * cosPitch
-    const fy = -sinPitch
-    const fz = -cosYaw * cosPitch
+    const forwardDir = forward(yaw, pitch)
+    const rightDir   = right(yaw)
+    const upDir      = up(rightDir, forwardDir)
 
-    // Right = forward × world-up (then normalize)
-    const rx = cosYaw
-    const ry = 0
-    const rz = sinYaw
+    for (let i = 0; i < 3; i++) {
+      this._view[i * 4 + 0] = rightDir[i]    // right axis
+      this._view[i * 4 + 1] = upDir[i]       // up axis
+      this._view[i * 4 + 2] = -forwardDir[i] // look axis (negated forward)
+      this._view[i * 4 + 3] = 0              // homogeneous row
+    }
+    const positionArray = Array.from(this.position);
 
-    // Up = right × forward
-    const ux = ry * fz - rz * fy
-    const uy = rz * fx - rx * fz
-    const uz = rx * fy - ry * fx
-
-    const px = this.position[0]
-    const py = this.position[1]
-    const pz = this.position[2]
-
-    // View matrix (column-major):
-    // col 0: [rx, ux, -fx, 0]
-    // col 1: [ry, uy, -fy, 0]
-    // col 2: [rz, uz, -fz, 0]
-    // col 3: [-dot(r,p), -dot(u,p), dot(f,p), 1]
-    const m = this._view
-    m[0]  = rx;  m[1]  = ux;  m[2]  = -fx;  m[3]  = 0
-    m[4]  = ry;  m[5]  = uy;  m[6]  = -fy;  m[7]  = 0
-    m[8]  = rz;  m[9]  = uz;  m[10] = -fz;  m[11] = 0
-    m[12] = -(rx * px + ry * py + rz * pz)
-    m[13] = -(ux * px + uy * py + uz * pz)
-    m[14] =  (fx * px + fy * py + fz * pz)
-    m[15] = 1
+    // Translation column: project camera position onto each basis axis
+    // to express the world origin in camera space
+    this._view[12] = -dot(rightDir,   positionArray)  // right axis
+    this._view[13] = -dot(upDir,      positionArray)  // up axis
+    this._view[14] =  dot(forwardDir, positionArray)  // look axis — sign flipped because -forward is the look axis
+    this._view[15] = 1
   }
 
   private _buildProj(aspect: number): void {

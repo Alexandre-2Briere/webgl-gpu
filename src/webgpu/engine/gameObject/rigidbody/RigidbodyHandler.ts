@@ -1,10 +1,6 @@
 import { Rigidbody3D } from './Rigidbody3D'
-import type { Hitbox3D } from '../hitbox/Hitbox3D'
-import type { CubeHitbox } from '../hitbox/CubeHitbox'
-import type { SphereHitbox } from '../hitbox/SphereHitbox'
-import type { CapsuleHitbox } from '../hitbox/CapsuleHitbox'
-import type { MeshHitbox } from '../hitbox/MeshHitbox'
-import { dot3, cross3, norm3, type Vec3 } from '../../math/vec3'
+import type { Hitbox3D, CubeHitbox, SphereHitbox, CapsuleHitbox, MeshHitbox } from '../hitbox'
+import { dot, cross3, norm3, safeNorm3, type Vec3 } from '../../math'
 
 const GRAVITY = 9.81
 
@@ -103,21 +99,21 @@ function projectOBBOntoAxis(
   halfExtents: Vec3,
   axis: Vec3,
 ): [number, number] {
-  const centerProjection = dot3(center, axis)
-  const projectedRadius = Math.abs(dot3(axes[0], axis)) * halfExtents[0]
-                        + Math.abs(dot3(axes[1], axis)) * halfExtents[1]
-                        + Math.abs(dot3(axes[2], axis)) * halfExtents[2]
+  const centerProjection = dot(center, axis)
+  const projectedRadius = Math.abs(dot(axes[0], axis)) * halfExtents[0]
+                        + Math.abs(dot(axes[1], axis)) * halfExtents[1]
+                        + Math.abs(dot(axes[2], axis)) * halfExtents[2]
   return [centerProjection - projectedRadius, centerProjection + projectedRadius]
 }
 
 function closestPointOnSegment(segStart: Vec3, segEnd: Vec3, point: Vec3): Vec3 {
   const direction: Vec3 = [segEnd[0] - segStart[0], segEnd[1] - segStart[1], segEnd[2] - segStart[2]]
-  const lengthSq = dot3(direction, direction)
+  const lengthSq = dot(direction, direction)
   if (lengthSq < 1e-10) {
     return [segStart[0], segStart[1], segStart[2]]
   }
   const toPoint: Vec3 = [point[0] - segStart[0], point[1] - segStart[1], point[2] - segStart[2]]
-  const param = Math.max(0, Math.min(1, dot3(toPoint, direction) / lengthSq))
+  const param = Math.max(0, Math.min(1, dot(toPoint, direction) / lengthSq))
   return [segStart[0] + direction[0] * param, segStart[1] + direction[1] * param, segStart[2] + direction[2] * param]
 }
 
@@ -141,7 +137,7 @@ function pointRadiusVsOBB(point: Vec3, radius: number, cube: CubeHitbox): Collis
   const halfExtents = cube.halfExtents
   const delta: Vec3 = [point[0] - obbCenter[0], point[1] - obbCenter[1], point[2] - obbCenter[2]]
   // Point projected into OBB local space
-  const localPoint: Vec3 = [dot3(delta, axes[0]), dot3(delta, axes[1]), dot3(delta, axes[2])]
+  const localPoint: Vec3 = [dot(delta, axes[0]), dot(delta, axes[1]), dot(delta, axes[2])]
   const insideOBB = Math.abs(localPoint[0]) <= halfExtents[0]
                  && Math.abs(localPoint[1]) <= halfExtents[1]
                  && Math.abs(localPoint[2]) <= halfExtents[2]
@@ -179,14 +175,12 @@ function pointRadiusVsOBB(point: Vec3, radius: number, cube: CubeHitbox): Collis
     obbCenter[2] + clamped[0] * axes[0][2] + clamped[1] * axes[1][2] + clamped[2] * axes[2][2],
   ]
   const toPoint: Vec3 = [point[0] - closestPoint[0], point[1] - closestPoint[1], point[2] - closestPoint[2]]
-  const squaredDist = dot3(toPoint, toPoint)
+  const squaredDist = dot(toPoint, toPoint)
   if (squaredDist >= radius * radius) {
     return NO_HIT
   }
   const distance = Math.sqrt(squaredDist)
-  const normal: Vec3 = distance > 1e-6
-    ? [toPoint[0] / distance, toPoint[1] / distance, toPoint[2] / distance]
-    : [0, 1, 0]
+  const normal = safeNorm3(toPoint)
   return { hit: true, depth: radius - distance, normal }
 }
 
@@ -227,14 +221,12 @@ function pointRadiusVsAABB(point: Vec3, radius: number, mesh: MeshHitbox): Colli
     Math.max(-halfExtents[2], Math.min(halfExtents[2], delta[2])),
   ]
   const toPoint: Vec3 = [delta[0] - clamped[0], delta[1] - clamped[1], delta[2] - clamped[2]]
-  const squaredDist = dot3(toPoint, toPoint)
+  const squaredDist = dot(toPoint, toPoint)
   if (squaredDist >= radius * radius) {
     return NO_HIT
   }
   const distance = Math.sqrt(squaredDist)
-  const normal: Vec3 = distance > 1e-6
-    ? [toPoint[0] / distance, toPoint[1] / distance, toPoint[2] / distance]
-    : [0, 1, 0]
+  const normal = safeNorm3(toPoint)
   return { hit: true, depth: radius - distance, normal }
 }
 
@@ -242,15 +234,13 @@ function pointRadiusVsAABB(point: Vec3, radius: number, mesh: MeshHitbox): Colli
 
 function testSphereSphere(a: SphereHitbox, b: SphereHitbox): CollisionResult {
   const delta: Vec3 = [a.worldCenter[0] - b.worldCenter[0], a.worldCenter[1] - b.worldCenter[1], a.worldCenter[2] - b.worldCenter[2]]
-  const squaredDist = dot3(delta, delta)
+  const squaredDist = dot(delta, delta)
   const radiusSum = a.radius + b.radius
   if (squaredDist >= radiusSum * radiusSum) {
     return NO_HIT
   }
   const distance = Math.sqrt(squaredDist)
-  const normal: Vec3 = distance > 1e-6
-    ? [delta[0] / distance, delta[1] / distance, delta[2] / distance]
-    : [0, 1, 0]
+  const normal = safeNorm3(delta)
   return { hit: true, depth: radiusSum - distance, normal }
 }
 
@@ -272,7 +262,7 @@ function testCubeCube(a: CubeHitbox, b: CubeHitbox): CollisionResult {
   let minPenetrationDepth = Infinity
   let minPenetrationNormal: Vec3 = [0, 1, 0]
   for (const axis of separatingAxes) {
-    if (dot3(axis, axis) < 1e-10) {
+    if (dot(axis, axis) < 1e-10) {
       continue
     }
     const [minA, maxA] = projectOBBOntoAxis(centerA, axesA, halfExtentsA, axis)
@@ -283,7 +273,7 @@ function testCubeCube(a: CubeHitbox, b: CubeHitbox): CollisionResult {
     }
     if (overlap < minPenetrationDepth) {
       minPenetrationDepth = overlap
-      const sign = dot3(centerDelta, axis) > 0 ? 1 : -1
+      const sign = dot(centerDelta, axis) > 0 ? 1 : -1
       minPenetrationNormal = [axis[0] * sign, axis[1] * sign, axis[2] * sign]
     }
   }
@@ -294,15 +284,13 @@ function testCapsuleSphere(capsule: CapsuleHitbox, sphere: SphereHitbox): Collis
   const [segmentStart, segmentEnd] = getCapsuleSegment(capsule)
   const closestPoint = closestPointOnSegment(segmentStart, segmentEnd, sphere.worldCenter)
   const delta: Vec3 = [sphere.worldCenter[0] - closestPoint[0], sphere.worldCenter[1] - closestPoint[1], sphere.worldCenter[2] - closestPoint[2]]
-  const squaredDist = dot3(delta, delta)
+  const squaredDist = dot(delta, delta)
   const radiusSum = capsule.radius + sphere.radius
   if (squaredDist >= radiusSum * radiusSum) {
     return NO_HIT
   }
   const distance = Math.sqrt(squaredDist)
-  const normal: Vec3 = distance > 1e-6
-    ? [delta[0] / distance, delta[1] / distance, delta[2] / distance]
-    : [0, 1, 0]
+  const normal = safeNorm3(delta)
   return { hit: true, depth: radiusSum - distance, normal }
 }
 
@@ -318,14 +306,14 @@ function testCapsuleCapsule(capsuleA: CapsuleHitbox, capsuleB: CapsuleHitbox): C
   const dir1: Vec3 = [segAEnd[0] - segAStart[0], segAEnd[1] - segAStart[1], segAEnd[2] - segAStart[2]]
   const dir2: Vec3 = [segBEnd[0] - segBStart[0], segBEnd[1] - segBStart[1], segBEnd[2] - segBStart[2]]
   const startDelta: Vec3 = [segAStart[0] - segBStart[0], segAStart[1] - segBStart[1], segAStart[2] - segBStart[2]]
-  const dir1LengthSq = dot3(dir1, dir1)
-  const dir2LengthSq = dot3(dir2, dir2)
-  const dir1DotStartDelta = dot3(dir1, startDelta)
+  const dir1LengthSq = dot(dir1, dir1)
+  const dir2LengthSq = dot(dir2, dir2)
+  const dir1DotStartDelta = dot(dir1, startDelta)
   let paramS = 0
   let paramT = 0
   if (dir1LengthSq >= 1e-10 && dir2LengthSq >= 1e-10) {
-    const dir1DotDir2 = dot3(dir1, dir2)
-    const dir2DotStartDelta = dot3(dir2, startDelta)
+    const dir1DotDir2 = dot(dir1, dir2)
+    const dir2DotStartDelta = dot(dir2, startDelta)
     const denominator = dir1LengthSq * dir2LengthSq - dir1DotDir2 * dir1DotDir2
     paramS = denominator > 1e-10
       ? Math.max(0, Math.min(1, (dir1DotDir2 * dir2DotStartDelta - dir2LengthSq * dir1DotStartDelta) / denominator))
@@ -335,20 +323,18 @@ function testCapsuleCapsule(capsuleA: CapsuleHitbox, capsuleB: CapsuleHitbox): C
   } else if (dir1LengthSq >= 1e-10) {
     paramS = Math.max(0, Math.min(1, -dir1DotStartDelta / dir1LengthSq))
   } else if (dir2LengthSq >= 1e-10) {
-    paramT = Math.max(0, Math.min(1, -dot3(dir2, startDelta) / dir2LengthSq))
+    paramT = Math.max(0, Math.min(1, -dot(dir2, startDelta) / dir2LengthSq))
   }
   const closestPointA: Vec3 = [segAStart[0] + dir1[0] * paramS, segAStart[1] + dir1[1] * paramS, segAStart[2] + dir1[2] * paramS]
   const closestPointB: Vec3 = [segBStart[0] + dir2[0] * paramT, segBStart[1] + dir2[1] * paramT, segBStart[2] + dir2[2] * paramT]
   const delta: Vec3 = [closestPointA[0] - closestPointB[0], closestPointA[1] - closestPointB[1], closestPointA[2] - closestPointB[2]]
-  const squaredDist = dot3(delta, delta)
+  const squaredDist = dot(delta, delta)
   const radiusSum = capsuleA.radius + capsuleB.radius
   if (squaredDist >= radiusSum * radiusSum) {
     return NO_HIT
   }
   const distance = Math.sqrt(squaredDist)
-  const normal: Vec3 = distance > 1e-6
-    ? [delta[0] / distance, delta[1] / distance, delta[2] / distance]
-    : [0, 1, 0]
+  const normal = safeNorm3(delta)
   return { hit: true, depth: radiusSum - distance, normal }
 }
 
@@ -397,7 +383,7 @@ function testMeshCube(mesh: MeshHitbox, cube: CubeHitbox): CollisionResult {
   let minPenetrationDepth = Infinity
   let minPenetrationNormal: Vec3 = [0, 1, 0]
   for (const axis of separatingAxes) {
-    if (dot3(axis, axis) < 1e-10) {
+    if (dot(axis, axis) < 1e-10) {
       continue
     }
     const [minA, maxA] = projectOBBOntoAxis(meshCenter, identityAxes, meshHalfExtents, axis)
@@ -408,7 +394,7 @@ function testMeshCube(mesh: MeshHitbox, cube: CubeHitbox): CollisionResult {
     }
     if (overlap < minPenetrationDepth) {
       minPenetrationDepth = overlap
-      const sign = dot3(centerDelta, axis) > 0 ? 1 : -1
+      const sign = dot(centerDelta, axis) > 0 ? 1 : -1
       minPenetrationNormal = [axis[0] * sign, axis[1] * sign, axis[2] * sign]
     }
   }
@@ -495,8 +481,13 @@ function narrowPhase(a: Hitbox3D, b: Hitbox3D): CollisionResult {
 export class RigidbodyHandler {
   private readonly _bodies: Set<Rigidbody3D> = new Set()
 
-  bind(body: Rigidbody3D): void   { this._bodies.add(body) }
-  unbind(body: Rigidbody3D): void { this._bodies.delete(body) }
+  bind(body: Rigidbody3D): void {
+    this._bodies.add(body)
+  }
+
+  unbind(body: Rigidbody3D): void {
+    this._bodies.delete(body)
+  }
 
   update(dt: number): void {
     const bodies = Array.from(this._bodies)

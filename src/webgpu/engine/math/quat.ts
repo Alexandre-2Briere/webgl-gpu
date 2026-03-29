@@ -1,4 +1,4 @@
-import type { Vec3, Vec4 } from './vec3'
+import type { Vec3, Vec4 } from './vec'
 
 /** Convert yaw (Y-axis), pitch (X-axis), and roll (Z-axis) angles in radians to a unit quaternion [x, y, z, w]. YXZ order. */
 export function yawPitchRollToQuat(yaw: number, pitch: number, roll: number): Vec4 {

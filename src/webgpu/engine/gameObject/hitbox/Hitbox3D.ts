@@ -1,6 +1,5 @@
-import { makeTransformMatrix, identityMat } from '../../math/mat4'
-import { yawPitchToQuat, mulQuat, rotateByQuat } from '../../math/quat'
-import type { Vec3, Vec4 } from '../../math/vec3'
+import { makeTransformMatrix, identityMat, yawPitchToQuat, mulQuat, rotateByQuat } from '../../math'
+import type { Vec3, Vec4 } from '../../math'
 
 export type HitboxType = 'cube' | 'sphere' | 'capsule' | 'mesh'
 

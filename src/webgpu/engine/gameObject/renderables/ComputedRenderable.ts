@@ -8,8 +8,8 @@ import type { UniformSlot } from '../../buffers/UniformPool'
 import { MESH_PIPELINE_KEY } from './Mesh'
 import { COMMON } from '../../shaders/common'
 import { MESH } from '../../shaders/mesh'
-import { makeTransformMatrix } from '../../math'
-import type { Vec3, Vec4 } from '../../math/vec3'
+import { makeTransformMatrix, identityMat } from '../../math'
+import type { Vec3, Vec4 } from '../../math'
 
 /** Vertex buffer flags: must be readable as both vertex data and storage target. */
 const VERTEX_STORAGE_FLAGS =
@@ -18,12 +18,6 @@ const VERTEX_STORAGE_FLAGS =
 /** Bytes per Vertex struct: 48 (see common.wgsl). */
 const BYTES_PER_VERTEX = 48
 
-const IDENTITY = new Float32Array([
-  1, 0, 0, 0,
-  0, 1, 0, 0,
-  0, 0, 1, 0,
-  0, 0, 0, 1,
-])
 
 /** Default compute bind group layout used by the engine for all ComputedRenderables. */
 export function createComputeBindGroupLayout(device: GPUDevice): GPUBindGroupLayout {
@@ -72,17 +66,22 @@ export class ComputedRenderable implements Renderable {
     this._opts = opts
     this._dispatchSize = opts.dispatchSize
 
-    this._uniformData.set(IDENTITY, 0)
+    this._uniformData.set(identityMat(4), 0)
     this._uniformData.set([1, 1, 1, 1], 16)
 
     // ChunkUniforms
     const origin = opts.chunkOrigin ?? [0, 0, 0]
     const dims   = opts.voxelGridDimensions ?? [64, 64, 64]
-    this._chunkData[0] = origin[0]; this._chunkData[1] = origin[1]; this._chunkData[2] = origin[2]
+    this._chunkData[0] = origin[0]
+    this._chunkData[1] = origin[1]
+    this._chunkData[2] = origin[2]
     this._chunkData[3] = opts.isoLevel ?? 0.5
     // gridDims as u32 — reinterpret via Uint32Array view
     const u32view = new Uint32Array(this._chunkData.buffer)
-    u32view[4] = dims[0]; u32view[5] = dims[1]; u32view[6] = dims[2]; u32view[7] = 0
+    u32view[4] = dims[0]
+    u32view[5] = dims[1]
+    u32view[6] = dims[2]
+    u32view[7] = 0
   }
 
   init(args: RenderableInitArgs): void {
@@ -204,7 +203,9 @@ export class ComputedRenderable implements Renderable {
   }
 
   setChunkOrigin(x: number, y: number, z: number): void {
-    this._chunkData[0] = x; this._chunkData[1] = y; this._chunkData[2] = z
+    this._chunkData[0] = x
+    this._chunkData[1] = y
+    this._chunkData[2] = z
     this._device.queue.writeBuffer(this._chunkUniformBuf, 0, this._chunkData)
   }
 

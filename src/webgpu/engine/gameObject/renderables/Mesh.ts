@@ -5,15 +5,9 @@ import { VertexBuffer } from '../../buffers/VertexBuffer'
 import type { UniformSlot } from '../../buffers/UniformPool'
 import { COMMON } from '../../shaders/common'
 import { MESH } from '../../shaders/mesh'
-import { makeTransformMatrix } from '../../math'
-import type { Vec3, Vec4 } from '../../math/vec3'
+import { makeTransformMatrix, identityMat } from '../../math'
+import type { Vec3, Vec4 } from '../../math'
 
-const IDENTITY = new Float32Array([
-  1, 0, 0, 0,
-  0, 1, 0, 0,
-  0, 0, 1, 0,
-  0, 0, 0, 1,
-])
 
 /** Bytes per vertex: vec3f pos + f32 pad + vec3f normal + f32 pad + vec4f color = 48 */
 const BYTES_PER_VERTEX = 48
@@ -44,7 +38,7 @@ export class Mesh implements Renderable {
 
   constructor(opts: MeshOptions) {
     this._opts = opts
-    this._uniformData.set(IDENTITY, 0)
+    this._uniformData.set(identityMat(4), 0)
     this._uniformData.set([1, 1, 1, 1], 16)
   }
 

@@ -7,7 +7,7 @@ import { MESH_PIPELINE_KEY } from './Mesh'
 import { COMMON } from '../../shaders/common'
 import { MESH } from '../../shaders/mesh'
 import { makeTransformMatrix } from '../../math'
-import type { Vec3, Vec4 } from '../../math/vec3'
+import type { Vec3, Vec4 } from '../../math'
 
 const BYTES_PER_VERTEX = 48
 

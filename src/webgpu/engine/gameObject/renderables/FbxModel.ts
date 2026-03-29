@@ -6,7 +6,7 @@ import { FbxAsset } from './FbxAsset'
 import { COMMON } from '../../shaders/common'
 import { FBX_MESH } from '../../shaders/fbx'
 import { makeTransformMatrix } from '../../math'
-import type { Vec3, Vec4 } from '../../math/vec3'
+import type { Vec3, Vec4 } from '../../math'
 
 export const FBX_PIPELINE_KEY = 'fbx'
 
