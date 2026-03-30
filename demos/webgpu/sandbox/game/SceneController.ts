@@ -1,11 +1,13 @@
 import { Engine }           from '../../../../src/webgpu/engine/index'
 import type { IGameObject } from '../../../../src/webgpu/engine/index'
 import { applyPhysics, applyCollisions } from '../../../../src/webgpu/engine/gameObject/rigidbody/index'
-import type { Rigidbody3D } from '../../../../src/webgpu/engine/gameObject/rigidbody/Rigidbody3D'
+import { Rigidbody3D } from '../../../../src/webgpu/engine/gameObject/rigidbody/Rigidbody3D'
+import { CubeHitbox }  from '../../../../src/webgpu/engine/gameObject/hitbox/CubeHitbox'
+import type { Vec3 }   from '../../../../src/webgpu/engine/math'
 import type { Terminal }    from '../ui/Terminal'
 import type { PropertyPanel } from '../ui/PropertyPanel'
 import type { SceneHierarchy } from '../ui/SceneHierarchy'
-import type { ItemEntry, PropertyGroup } from '../items/types'
+import type { ItemEntry, PropertyGroup, PhysicsConfig } from '../items/types'
 import { spawn as spawnQuad } from '../items/quad'
 import { spawn as spawnCube } from '../items/cube'
 
@@ -13,16 +15,29 @@ const CAMERA_MOVE_SPEED  = 5.0   // units per second
 const CAMERA_YAW_SPEED   = 1.5   // radians per second (Q/E keys)
 const MOUSE_SENSITIVITY  = 0.003  // radians per pixel
 
-const SPAWN_MAP: Record<string, (engine: Engine) => IGameObject> = {
+const DEFAULT_PHYSICS: PhysicsConfig = {
+  hasRigidbody: false,
+  isStatic:     false,
+  hasHitbox:    false,
+  layer:        'default',
+}
+
+const SPAWN_MAP: Record<string, (engine: Engine, rigidbody?: Rigidbody3D, hitbox?: CubeHitbox) => IGameObject> = {
   Quad: spawnQuad,
   Cube: spawnCube,
 }
 
+function makeHitbox(key: string, scale: Vec3): CubeHitbox {
+  if (key === 'Quad') return new CubeHitbox([scale[0] * 0.5, 0.01,           scale[2] * 0.5])
+  return new CubeHitbox([scale[0] * 0.5, scale[1] * 0.5, scale[2] * 0.5])
+}
+
 interface SpawnedObject {
-  gameObject:   IGameObject
-  key:          string
-  label:        string
-  properties:   PropertyGroup[]
+  gameObject:    IGameObject
+  key:           string
+  label:         string
+  properties:    PropertyGroup[]
+  physicsConfig: PhysicsConfig
   // World-space position snapshot taken at the moment Play is pressed.
   // Restored on stop. Null before the first Play.
   playSnapshot: [number, number, number] | null
@@ -39,10 +54,6 @@ export class SceneController {
   private _spawnedObjects:      SpawnedObject[] = []
 
   private _playing = false
-
-  // RAF handles
-  private _logicRafHandle = 0
-  private _lastTimestamp       = 0
 
   // Input state
   private readonly _pressedKeys = new Set<string>()
@@ -81,7 +92,8 @@ export class SceneController {
     this._engine.start()
 
     this._wireInput()
-    this._startFreeCameraRaf()
+    this._engine.onFrame(this._onFrame)
+    this._wirePhysicsCallbacks()
 
     this._terminal.print('Engine initialised.', 'log')
     this._terminal.print('Press Play to start | Click an object to inspect it.', 'log')
@@ -102,9 +114,6 @@ export class SceneController {
     this._canvas.requestPointerLock()
     this._playing = true
 
-    this._lastTimestamp = performance.now()
-    this._logicRafHandle = requestAnimationFrame(this._logicTick)
-
     this._terminal.print('Play started.', 'log')
   }
 
@@ -112,11 +121,6 @@ export class SceneController {
     if (!this._playing) return
 
     this.unfocused = true;
-    // Stop logic RAF
-    if (this._logicRafHandle !== 0) {
-      cancelAnimationFrame(this._logicRafHandle)
-      this._logicRafHandle = 0
-    }
 
     // Release pointer lock (no-op if already released by ESC)
     if (document.pointerLockElement === this._canvas) {
@@ -159,19 +163,21 @@ export class SceneController {
     }
 
     const label = this._generateUniqueName(entry.label)
+    const physicsConfig: PhysicsConfig = { ...DEFAULT_PHYSICS }
 
     this._spawnedObjects.push({
       gameObject,
       key,
       label,
-      properties:   entry.properties,
-      playSnapshot: null,
+      properties:    entry.properties,
+      physicsConfig,
+      playSnapshot:  null,
     })
 
     const index = this._spawnedObjects.length - 1
     this._sceneHierarchy.addObject(label)
     this._sceneHierarchy.setSelected(index)
-    this._propertyPanel.show(gameObject, label, entry.properties)
+    this._propertyPanel.show(gameObject, label, entry.properties, physicsConfig)
     this._terminal.print(`Spawned ${label} at (0, 0, 0).`, 'log')
   }
 
@@ -181,7 +187,7 @@ export class SceneController {
     const obj = this._spawnedObjects[index]
     if (!obj) return
     this._sceneHierarchy.setSelected(index)
-    this._propertyPanel.show(obj.gameObject, obj.label, obj.properties)
+    this._propertyPanel.show(obj.gameObject, obj.label, obj.properties, obj.physicsConfig)
   }
 
   renameObject(index: number, newName: string): boolean {
@@ -221,18 +227,22 @@ export class SceneController {
     this._terminal.print(`Removed ${obj.label}.`, 'log')
   }
 
-  // ── Logic RAF ─────────────────────────────────────────────────────────────────
+  // ── Frame callback (registered with engine.onFrame) ─────────────────────────
 
-  private _logicTick = (timestamp: number): void => {
-    if (!this._playing) return
-
-    const deltaTime = Math.min((timestamp - this._lastTimestamp) / 1000, 0.1)
-    this._lastTimestamp = timestamp
-
-    // Camera movement (shared with free-camera RAF — keys always work)
+  private _onFrame = (deltaTime: number): void => {
     this._applyCamera(deltaTime)
 
-    // Mouse rotation when pointer is locked
+    // Mouse drag rotation when not playing (no pointer lock)
+    if (this._mouseButtonDown && !this._playing) {
+      this._engine.camera.rotate(
+        -this._mouseDeltaX * MOUSE_SENSITIVITY,
+        -this._mouseDeltaY * MOUSE_SENSITIVITY,
+      )
+      this._mouseDeltaX = 0
+      this._mouseDeltaY = 0
+    }
+
+    // Mouse rotation when pointer is locked (play mode)
     if (document.pointerLockElement === this._canvas) {
       this._engine.camera.rotate(
         this._mouseDeltaX * MOUSE_SENSITIVITY,
@@ -242,45 +252,11 @@ export class SceneController {
       this._mouseDeltaY = 0
     }
 
-    // Physics step
-    const objects = this._spawnedObjects.map(s => s.gameObject)
-    applyPhysics(objects, deltaTime)
-    applyCollisions(this._rigidbodyLayerMap, objects)
-
-    this._logicRafHandle = requestAnimationFrame(this._logicTick)
-  }
-
-  // ── Free-camera RAF ───────────────────────────────────────────────────────────
-
-  private _startFreeCameraRaf(): void {
-    this._lastTimestamp = performance.now()
-
-    const tick = (timestamp: number): void => {
-      // When playing, camera movement is handled by the logic RAF instead.
-      if (!this._playing) {
-        const deltaTime = Math.min((timestamp - this._lastTimestamp) / 1000, 0.1)
-        this._lastTimestamp = timestamp
-
-        this._applyCamera(deltaTime)
-
-        // Mouse drag rotation (no pointer lock)
-        if (this._mouseButtonDown) {
-          this._engine.camera.rotate(
-            -this._mouseDeltaX * MOUSE_SENSITIVITY,
-            -this._mouseDeltaY * MOUSE_SENSITIVITY,
-          )
-          this._mouseDeltaX = 0
-          this._mouseDeltaY = 0
-        }
-      } else {
-        // Just keep timestamp updated so we don't get a huge dt spike on stop
-        this._lastTimestamp = timestamp
-      }
-
-      requestAnimationFrame(tick)
+    if (this._playing) {
+      const objects = this._spawnedObjects.map(s => s.gameObject)
+      applyPhysics(objects, deltaTime)
+      applyCollisions(this._rigidbodyLayerMap, objects)
     }
-
-    requestAnimationFrame(tick)
   }
 
   // ── Camera movement ───────────────────────────────────────────────────────────
@@ -347,6 +323,79 @@ export class SceneController {
     let i = 1
     while (existing.has(`${base} (${i})`)) i++
     return `${base} (${i})`
+  }
+
+  // ── Physics wiring ────────────────────────────────────────────────────────────
+
+  private _wirePhysicsCallbacks(): void {
+    this._propertyPanel.onPhysicsChange = (config) => {
+      const idx = this._spawnedObjects.findIndex(
+        s => s.gameObject === this._propertyPanel.currentObject,
+      )
+      if (idx === -1) return
+      this._rebuildObject(idx, config)
+      const obj = this._spawnedObjects[idx]
+      this._propertyPanel.show(obj.gameObject, obj.label, obj.properties, config)
+    }
+
+    this._propertyPanel.onScaleChange = (x, y, z) => {
+      const obj = this._spawnedObjects.find(
+        s => s.gameObject === this._propertyPanel.currentObject,
+      )
+      if (!obj) return
+      const hitbox = obj.gameObject.hitbox
+      if (hitbox?.type === 'cube') {
+        const hy = obj.key === 'Quad' ? 0.01 : y * 0.5
+        ;(hitbox as CubeHitbox).halfExtents = [x * 0.5, hy, z * 0.5]
+      }
+    }
+  }
+
+  private _rebuildObject(index: number, config: PhysicsConfig): void {
+    const obj   = this._spawnedObjects[index]
+    const oldGO = obj.gameObject
+
+    // Save current transform and color
+    const pos   = [...oldGO.position]   as [number, number, number]
+    const quat  = [...oldGO.quaternion] as [number, number, number, number]
+    const scale = [...oldGO.scale]      as Vec3
+    const color = [...oldGO.color]      as [number, number, number, number]
+
+    // Remove old rigidbody from layer map
+    const oldRb = oldGO.getRigidbody()
+    if (oldRb) {
+      const bucket = this._rigidbodyLayerMap.get(oldRb.layer)
+      if (bucket) {
+        const i = bucket.indexOf(oldRb)
+        if (i !== -1) bucket.splice(i, 1)
+      }
+    }
+
+    oldGO.destroy()
+
+    // Build new physics components
+    const hitbox    = config.hasHitbox    ? makeHitbox(obj.key, scale) : undefined
+    const rigidbody = config.hasRigidbody
+      ? new Rigidbody3D({ layer: config.layer, isStatic: config.isStatic, hitbox })
+      : undefined
+
+    const spawnFn = SPAWN_MAP[obj.key]
+    const newGO   = spawnFn(this._engine, rigidbody, hitbox)
+    newGO.setPosition(pos)
+    newGO.setQuaternion(quat)
+    newGO.setScale(scale[0], scale[1], scale[2])
+    newGO.setColor(color[0], color[1], color[2], color[3])
+
+    // Register new rigidbody
+    const newRb = newGO.getRigidbody()
+    if (newRb) {
+      let bucket = this._rigidbodyLayerMap.get(newRb.layer)
+      if (!bucket) { bucket = []; this._rigidbodyLayerMap.set(newRb.layer, bucket) }
+      bucket.push(newRb)
+    }
+
+    obj.gameObject    = newGO
+    obj.physicsConfig = config
   }
 
   // ── Input wiring ──────────────────────────────────────────────────────────────
@@ -421,7 +470,7 @@ export class SceneController {
 
       if (closestObject && closestIndex !== -1) {
         this._sceneHierarchy.setSelected(closestIndex)
-        this._propertyPanel.show(closestObject.gameObject, closestObject.label, closestObject.properties)
+        this._propertyPanel.show(closestObject.gameObject, closestObject.label, closestObject.properties, closestObject.physicsConfig)
       }
     })
   }

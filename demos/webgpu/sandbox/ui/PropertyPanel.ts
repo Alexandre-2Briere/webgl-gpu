@@ -1,11 +1,15 @@
 import type { IGameObject } from '../../../../src/webgpu/engine/index'
-import type { PropertyGroup } from '../items/types'
+import type { PropertyGroup, PhysicsConfig } from '../items/types'
 
 const DEG = Math.PI / 180
 
 export class PropertyPanel {
   private readonly _root: HTMLElement
   private _currentObject: IGameObject | null = null
+
+  // Callbacks
+  onPhysicsChange: ((config: PhysicsConfig) => void) | null = null
+  onScaleChange:   ((x: number, y: number, z: number) => void) | null = null
 
   // Position inputs
   private _posX!: HTMLInputElement
@@ -26,11 +30,20 @@ export class PropertyPanel {
   private _scaleY!: HTMLInputElement
   private _scaleZ!: HTMLInputElement
 
+  // Physics inputs
+  private _rbCheckbox!:    HTMLInputElement
+  private _staticCheckbox!: HTMLInputElement
+  private _staticRow!:     HTMLElement
+  private _hbCheckbox!:    HTMLInputElement
+  private _layerInput!:    HTMLInputElement
+  private _layerRow!:      HTMLElement
+
   // Section containers (for show/hide per item)
   private _positionSection!: HTMLElement
   private _rotationSection!: HTMLElement
   private _colorSection!:    HTMLElement
   private _scaleSection!:    HTMLElement
+  private _physicsSection!:  HTMLElement
 
   constructor(root: HTMLElement) {
     this._root = root
@@ -39,7 +52,7 @@ export class PropertyPanel {
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
-  show(gameObject: IGameObject, label: string, properties: PropertyGroup[]): void {
+  show(gameObject: IGameObject, label: string, properties: PropertyGroup[], physicsConfig?: PhysicsConfig): void {
     // Commit any pending edits to the outgoing object before switching.
     this._applyPosition()
     this._applyRotation()
@@ -80,11 +93,23 @@ export class PropertyPanel {
       this._updateSwatch()
     }
 
+    // Populate physics section
+    const showPhysics = properties.includes('rigidbody') || properties.includes('hitbox')
+    if (showPhysics && physicsConfig) {
+      this._rbCheckbox.checked     = physicsConfig.hasRigidbody
+      this._staticCheckbox.checked = physicsConfig.isStatic
+      this._staticRow.style.display = physicsConfig.hasRigidbody ? '' : 'none'
+      this._hbCheckbox.checked     = physicsConfig.hasHitbox
+      this._layerInput.value       = physicsConfig.layer
+      this._layerRow.style.display  = physicsConfig.hasHitbox ? '' : 'none'
+    }
+
     // Show/hide sections per item definition
     this._positionSection.style.display = properties.includes('position') ? '' : 'none'
     this._rotationSection.style.display = properties.includes('rotation') ? '' : 'none'
     this._colorSection.style.display    = properties.includes('color')    ? '' : 'none'
     this._scaleSection.style.display    = properties.includes('scale')    ? '' : 'none'
+    this._physicsSection.style.display  = showPhysics ? '' : 'none'
 
     this._root.classList.add('open')
   }
@@ -129,11 +154,13 @@ export class PropertyPanel {
     this._rotationSection = this._buildRotationSection()
     this._colorSection    = this._buildColorSection()
     this._scaleSection    = this._buildScaleSection()
+    this._physicsSection  = this._buildPhysicsSection()
 
     body.appendChild(this._positionSection)
     body.appendChild(this._rotationSection)
     body.appendChild(this._colorSection)
     body.appendChild(this._scaleSection)
+    body.appendChild(this._physicsSection)
 
     inner.append(header, body)
     this._root.appendChild(inner)
@@ -308,6 +335,95 @@ export class PropertyPanel {
     const y = parseFloat(this._scaleY.value) || 1
     const z = parseFloat(this._scaleZ.value) || 1
     this._currentObject.setScale(x, y, z)
+    this.onScaleChange?.(x, y, z)
+  }
+
+  private _buildPhysicsSection(): HTMLElement {
+    const section = document.createElement('div')
+
+    const sectionLabel = document.createElement('div')
+    sectionLabel.className   = 'prop-section-label'
+    sectionLabel.textContent = 'Physics'
+    section.appendChild(sectionLabel)
+
+    // Rigidbody row
+    const rbRow = document.createElement('div')
+    rbRow.className = 'prop-row'
+    const rbLabel = document.createElement('span')
+    rbLabel.className   = 'prop-label'
+    rbLabel.textContent = 'Rigidbody'
+    const rbCheckbox = document.createElement('input')
+    rbCheckbox.type      = 'checkbox'
+    rbCheckbox.className = 'prop-checkbox'
+    rbCheckbox.addEventListener('change', () => {
+      this._staticRow.style.display = rbCheckbox.checked ? '' : 'none'
+      this._applyPhysics()
+    })
+    this._rbCheckbox = rbCheckbox
+    rbRow.append(rbLabel, rbCheckbox)
+    section.appendChild(rbRow)
+
+    // Static sub-row
+    const staticRow = document.createElement('div')
+    staticRow.className    = 'prop-row prop-subrow'
+    staticRow.style.display = 'none'
+    const staticLabel = document.createElement('span')
+    staticLabel.className   = 'prop-label'
+    staticLabel.textContent = 'Static'
+    const staticCheckbox = document.createElement('input')
+    staticCheckbox.type      = 'checkbox'
+    staticCheckbox.className = 'prop-checkbox'
+    staticCheckbox.addEventListener('change', () => this._applyPhysics())
+    this._staticCheckbox = staticCheckbox
+    this._staticRow      = staticRow
+    staticRow.append(staticLabel, staticCheckbox)
+    section.appendChild(staticRow)
+
+    // Hitbox row
+    const hbRow = document.createElement('div')
+    hbRow.className = 'prop-row'
+    const hbLabel = document.createElement('span')
+    hbLabel.className   = 'prop-label'
+    hbLabel.textContent = 'Hitbox'
+    const hbCheckbox = document.createElement('input')
+    hbCheckbox.type      = 'checkbox'
+    hbCheckbox.className = 'prop-checkbox'
+    hbCheckbox.addEventListener('change', () => {
+      this._layerRow.style.display = hbCheckbox.checked ? '' : 'none'
+      this._applyPhysics()
+    })
+    this._hbCheckbox = hbCheckbox
+    hbRow.append(hbLabel, hbCheckbox)
+    section.appendChild(hbRow)
+
+    // Layer sub-row
+    const layerRow = document.createElement('div')
+    layerRow.className    = 'prop-row prop-subrow'
+    layerRow.style.display = 'none'
+    const layerLabel = document.createElement('span')
+    layerLabel.className   = 'prop-label'
+    layerLabel.textContent = 'Layer'
+    const layerInput = document.createElement('input')
+    layerInput.type      = 'text'
+    layerInput.className = 'prop-input'
+    layerInput.value     = 'default'
+    layerInput.addEventListener('change', () => this._applyPhysics())
+    this._layerInput = layerInput
+    this._layerRow   = layerRow
+    layerRow.append(layerLabel, layerInput)
+    section.appendChild(layerRow)
+
+    return section
+  }
+
+  private _applyPhysics(): void {
+    const config: PhysicsConfig = {
+      hasRigidbody: this._rbCheckbox.checked,
+      isStatic:     this._staticCheckbox.checked,
+      hasHitbox:    this._hbCheckbox.checked,
+      layer:        this._layerInput.value.trim() || 'default',
+    }
+    this.onPhysicsChange?.(config)
   }
 
   private _updateSwatch(): void {

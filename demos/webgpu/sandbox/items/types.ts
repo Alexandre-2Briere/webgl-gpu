@@ -1,4 +1,11 @@
-export type PropertyGroup = 'position' | 'rotation' | 'color' | 'scale'
+export type PropertyGroup = 'position' | 'rotation' | 'color' | 'scale' | 'rigidbody' | 'hitbox'
+
+export interface PhysicsConfig {
+  hasRigidbody: boolean
+  isStatic:     boolean
+  hasHitbox:    boolean
+  layer:        string
+}
 
 export interface ItemEntry {
   key:        string

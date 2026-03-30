@@ -4,13 +4,13 @@
       "key": "Quad",
       "label": "Quad",
       "isReady": true,
-      "properties": ["position", "rotation", "color"]
+      "properties": ["position", "rotation", "color", "rigidbody", "hitbox"]
     },
     {
       "key": "Cube",
       "label": "Cube",
       "isReady": true,
-      "properties": ["position", "rotation", "color"]
+      "properties": ["position", "rotation", "color", "rigidbody", "hitbox"]
     },
     {
       "key": "FBX",

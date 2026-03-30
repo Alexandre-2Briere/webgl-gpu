@@ -33,6 +33,7 @@ export class Engine {
   private readonly _layouts: BindGroupLayouts
   private _camera: Camera
   private _rafHandle = 0
+  private _onFrame: ((deltaTime: number) => void) | null = null
 
   private constructor(
     canvas: HTMLCanvasElement,
@@ -126,10 +127,18 @@ export class Engine {
 
   // ── RAF loop ────────────────────────────────────────────────────────────────
 
+  onFrame(callback: (deltaTime: number) => void): void {
+    this._onFrame = callback
+  }
+
   start(): void {
     if (this._rafHandle !== 0) return
-    const loop = () => {
+    let lastTimestamp = performance.now()
+    const loop = (timestamp: number) => {
       this._rafHandle = requestAnimationFrame(loop)
+      const deltaTime = Math.min((timestamp - lastTimestamp) / 1000, 0.1)
+      lastTimestamp = timestamp
+      this._onFrame?.(deltaTime)
       this._scene.frame(this._camera, this._canvas)
     }
     this._rafHandle = requestAnimationFrame(loop)
