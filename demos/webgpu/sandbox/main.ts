@@ -2,6 +2,7 @@ import { mountComponents }  from './ui/loader'
 import { Terminal }          from './ui/Terminal'
 import { ItemMenu }          from './ui/ItemMenu'
 import { PropertyPanel }     from './ui/PropertyPanel'
+import { SceneHierarchy }    from './ui/SceneHierarchy'
 import { SceneController }   from './game/SceneController'
 import registryJson          from './items/registry.json'
 import type { ItemRegistry, ItemEntry } from './items/types'
@@ -19,7 +20,18 @@ async function main(): Promise<void> {
 
   const terminal      = new Terminal(tabsContainer, outputContainer)
   const propertyPanel = new PropertyPanel(document.getElementById('property-panel')!)
-  const controller    = new SceneController(canvas, terminal, propertyPanel)
+
+  // Use a ref object so the hierarchy callbacks always reach the controller instance.
+  const controllerRef = { current: null as unknown as SceneController }
+  const sceneHierarchy = new SceneHierarchy(
+    document.getElementById('scene-hierarchy')!,
+    (index) => controllerRef.current.selectObject(index),
+    (index, newName) => controllerRef.current.renameObject(index, newName),
+    (index) => controllerRef.current.removeObject(index),
+  )
+
+  const controller = new SceneController(canvas, terminal, propertyPanel, sceneHierarchy)
+  controllerRef.current = controller
 
   const menu = new ItemMenu(
     menuContainer,

@@ -4,6 +4,7 @@ import { applyPhysics, applyCollisions } from '../../../../src/webgpu/engine/gam
 import type { Rigidbody3D } from '../../../../src/webgpu/engine/gameObject/rigidbody/Rigidbody3D'
 import type { Terminal }    from '../ui/Terminal'
 import type { PropertyPanel } from '../ui/PropertyPanel'
+import type { SceneHierarchy } from '../ui/SceneHierarchy'
 import type { ItemEntry, PropertyGroup } from '../items/types'
 import { spawn as spawnQuad } from '../items/quad'
 import { spawn as spawnCube } from '../items/cube'
@@ -28,9 +29,10 @@ interface SpawnedObject {
 }
 
 export class SceneController {
-  private readonly _canvas:        HTMLCanvasElement
-  private readonly _terminal:      Terminal
-  private readonly _propertyPanel: PropertyPanel
+  private readonly _canvas:          HTMLCanvasElement
+  private readonly _terminal:        Terminal
+  private readonly _propertyPanel:   PropertyPanel
+  private readonly _sceneHierarchy:  SceneHierarchy
 
   private _engine!:             Engine
   private _rigidbodyLayerMap:   Map<string, Rigidbody3D[]> = new Map()
@@ -49,10 +51,16 @@ export class SceneController {
   private _mouseDeltaX     = 0
   private _mouseDeltaY     = 0
 
-  constructor(canvas: HTMLCanvasElement, terminal: Terminal, propertyPanel: PropertyPanel) {
-    this._canvas        = canvas
-    this._terminal      = terminal
-    this._propertyPanel = propertyPanel
+  constructor(
+    canvas: HTMLCanvasElement,
+    terminal: Terminal,
+    propertyPanel: PropertyPanel,
+    sceneHierarchy: SceneHierarchy,
+  ) {
+    this._canvas         = canvas
+    this._terminal       = terminal
+    this._propertyPanel  = propertyPanel
+    this._sceneHierarchy = sceneHierarchy
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────────
@@ -150,16 +158,67 @@ export class SceneController {
       bucket.push(rb)
     }
 
+    const label = this._generateUniqueName(entry.label)
+
     this._spawnedObjects.push({
       gameObject,
       key,
-      label:        entry.label,
+      label,
       properties:   entry.properties,
       playSnapshot: null,
     })
 
-    this._propertyPanel.show(gameObject, entry.label, entry.properties)
-    this._terminal.print(`Spawned ${entry.label} at (0, 0, 0).`, 'log')
+    const index = this._spawnedObjects.length - 1
+    this._sceneHierarchy.addObject(label)
+    this._sceneHierarchy.setSelected(index)
+    this._propertyPanel.show(gameObject, label, entry.properties)
+    this._terminal.print(`Spawned ${label} at (0, 0, 0).`, 'log')
+  }
+
+  // ── Public: select / rename (called by SceneHierarchy callbacks) ──────────────
+
+  selectObject(index: number): void {
+    const obj = this._spawnedObjects[index]
+    if (!obj) return
+    this._sceneHierarchy.setSelected(index)
+    this._propertyPanel.show(obj.gameObject, obj.label, obj.properties)
+  }
+
+  renameObject(index: number, newName: string): boolean {
+    const obj = this._spawnedObjects[index]
+    if (!obj) return false
+    obj.label = newName
+    this._sceneHierarchy.renameRow(index, newName)
+    if (this._propertyPanel.currentObject === obj.gameObject) {
+      this._propertyPanel.setTitle(newName)
+    }
+    return true
+  }
+
+  removeObject(index: number): void {
+    const obj = this._spawnedObjects[index]
+    if (!obj) return
+
+    // Remove rigidbody from layer map
+    const rb = obj.gameObject.getRigidbody()
+    if (rb) {
+      const bucket = this._rigidbodyLayerMap.get(rb.layer)
+      if (bucket) {
+        const i = bucket.indexOf(rb)
+        if (i !== -1) bucket.splice(i, 1)
+      }
+    }
+
+    // Hide property panel if this object was selected
+    if (this._propertyPanel.currentObject === obj.gameObject) {
+      this._propertyPanel.hide()
+    }
+
+    obj.gameObject.destroy()
+    this._spawnedObjects.splice(index, 1)
+    this._sceneHierarchy.removeRow(index)
+
+    this._terminal.print(`Removed ${obj.label}.`, 'log')
   }
 
   // ── Logic RAF ─────────────────────────────────────────────────────────────────
@@ -280,6 +339,16 @@ export class SceneController {
     }
   }
 
+  // ── Unique name generation ────────────────────────────────────────────────────
+
+  private _generateUniqueName(base: string): string {
+    const existing = new Set(this._spawnedObjects.map(s => s.label))
+    if (!existing.has(base)) return base
+    let i = 1
+    while (existing.has(`${base} (${i})`)) i++
+    return `${base} (${i})`
+  }
+
   // ── Input wiring ──────────────────────────────────────────────────────────────
 
   private _wireInput(): void {
@@ -328,9 +397,11 @@ export class SceneController {
 
       const cameraData   = this._engine.camera.getData()  // viewProj packed at indices [0..15]
       let closestObject: SpawnedObject | null = null
+      let closestIndex  = -1
       let closestDistance = 0.08  // NDC pick threshold
 
-      for (const spawnedObject of this._spawnedObjects) {
+      for (let i = 0; i < this._spawnedObjects.length; i++) {
+        const spawnedObject = this._spawnedObjects[i]
         const [worldX, worldY, worldZ] = spawnedObject.gameObject.position
         // Transform world position by the viewProj matrix (column-major)
         const clipX = cameraData[0]*worldX + cameraData[4]*worldY + cameraData[8]*worldZ  + cameraData[12]
@@ -344,10 +415,12 @@ export class SceneController {
         if (distance < closestDistance) {
           closestDistance = distance
           closestObject   = spawnedObject
+          closestIndex    = i
         }
       }
 
-      if (closestObject) {
+      if (closestObject && closestIndex !== -1) {
+        this._sceneHierarchy.setSelected(closestIndex)
         this._propertyPanel.show(closestObject.gameObject, closestObject.label, closestObject.properties)
       }
     })

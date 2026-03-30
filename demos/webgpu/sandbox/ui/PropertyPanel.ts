@@ -86,6 +86,15 @@ export class PropertyPanel {
     this._root.classList.remove('open')
   }
 
+  get currentObject(): IGameObject | null {
+    return this._currentObject
+  }
+
+  setTitle(label: string): void {
+    const titleEl = this._root.querySelector('.prop-panel-title') as HTMLElement
+    if (titleEl) titleEl.textContent = label
+  }
+
   // ── Build DOM ───────────────────────────────────────────────────────────────
 
   private _build(): void {
