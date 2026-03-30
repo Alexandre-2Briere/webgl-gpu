@@ -1,18 +1,27 @@
 import { Engine }           from '../../../../src/webgpu/engine/index'
 import type { IGameObject } from '../../../../src/webgpu/engine/index'
-import { RigidbodyHandler } from '../../../../src/webgpu/engine/gameObject/rigidbody/RigidbodyHandler'
+import { applyPhysics, applyCollisions } from '../../../../src/webgpu/engine/gameObject/rigidbody/index'
+import type { Rigidbody3D } from '../../../../src/webgpu/engine/gameObject/rigidbody/Rigidbody3D'
 import type { Terminal }    from '../ui/Terminal'
-import type { SpawnCategory } from '../ui/ItemMenu'
 import type { PropertyPanel } from '../ui/PropertyPanel'
-import { buildCubeVertices } from './geometry'
+import type { ItemEntry, PropertyGroup } from '../items/types'
+import { spawn as spawnQuad } from '../items/quad'
+import { spawn as spawnCube } from '../items/cube'
 
 const CAMERA_MOVE_SPEED  = 5.0   // units per second
 const CAMERA_YAW_SPEED   = 1.5   // radians per second (Q/E keys)
 const MOUSE_SENSITIVITY  = 0.003  // radians per pixel
 
+const SPAWN_MAP: Record<string, (engine: Engine) => IGameObject> = {
+  Quad: spawnQuad,
+  Cube: spawnCube,
+}
+
 interface SpawnedObject {
   gameObject:   IGameObject
-  category:     SpawnCategory
+  key:          string
+  label:        string
+  properties:   PropertyGroup[]
   // World-space position snapshot taken at the moment Play is pressed.
   // Restored on stop. Null before the first Play.
   playSnapshot: [number, number, number] | null
@@ -23,19 +32,19 @@ export class SceneController {
   private readonly _terminal:      Terminal
   private readonly _propertyPanel: PropertyPanel
 
-  private _engine!:           Engine
-  private _rigidbodyHandler!: RigidbodyHandler
-  private _spawnedObjects:    SpawnedObject[] = []
+  private _engine!:             Engine
+  private _rigidbodyLayerMap:   Map<string, Rigidbody3D[]> = new Map()
+  private _spawnedObjects:      SpawnedObject[] = []
 
   private _playing = false
 
   // RAF handles
-  private _freeCameraRafHandle = 0
-  private _logicRafHandle      = 0
+  private _logicRafHandle = 0
   private _lastTimestamp       = 0
 
   // Input state
   private readonly _pressedKeys = new Set<string>()
+  private unfocused = true;
   private _mouseButtonDown = false
   private _mouseDeltaX     = 0
   private _mouseDeltaY     = 0
@@ -60,8 +69,6 @@ export class SceneController {
     })
     this._engine.setCamera(camera)
 
-    this._rigidbodyHandler = new RigidbodyHandler()
-
     // Render loop always runs so spawned objects are visible immediately.
     this._engine.start()
 
@@ -76,6 +83,7 @@ export class SceneController {
 
   play(): void {
     if (this._playing) return
+    this.unfocused = false;
 
     // Snapshot current positions before physics starts
     for (const spawnedObject of this._spawnedObjects) {
@@ -95,6 +103,7 @@ export class SceneController {
   stop(): void {
     if (!this._playing) return
 
+    this.unfocused = true;
     // Stop logic RAF
     if (this._logicRafHandle !== 0) {
       cancelAnimationFrame(this._logicRafHandle)
@@ -120,36 +129,37 @@ export class SceneController {
 
   // ── Spawn ─────────────────────────────────────────────────────────────────────
 
-  spawn(category: SpawnCategory): void {
-    if (category === 'FBX') {
-      this._terminal.print('FBX assets not yet available.', 'warn')
+  spawn(key: string, entry: ItemEntry): void {
+    if (!entry.isReady) {
+      this._terminal.print(`${entry.label} is not yet available.`, 'warn')
       return
     }
 
-    let gameObject: IGameObject
-
-    if (category === 'Quad3D') {
-      gameObject = this._engine.createQuad3D({
-        renderable: {
-          normal: [0, 1, 0],
-          width:  1,
-          height: 1,
-          color:  [0.4, 0.6, 1.0, 1.0],
-        },
-        position: [0, 0, 0],
-      })
-      this._terminal.print('Spawned Quad3D at (0, 0, 0).', 'log')
-    } else {
-      const { vertices, indices } = buildCubeVertices()
-      gameObject = this._engine.createMesh({
-        renderable: { vertices, indices, label: 'cube' },
-        position:   [0, 0, 0],
-      })
-      this._terminal.print('Spawned Cube at (0, 0, 0).', 'log')
+    const spawnFn = SPAWN_MAP[key]
+    if (!spawnFn) {
+      this._terminal.print(`No spawn handler registered for: ${key}`, 'warn')
+      return
     }
 
-    this._spawnedObjects.push({ gameObject, category, playSnapshot: null })
-    this._propertyPanel.show(gameObject, category)
+    const gameObject = spawnFn(this._engine)
+
+    const rb = gameObject.getRigidbody()
+    if (rb) {
+      let bucket = this._rigidbodyLayerMap.get(rb.layer)
+      if (!bucket) { bucket = []; this._rigidbodyLayerMap.set(rb.layer, bucket) }
+      bucket.push(rb)
+    }
+
+    this._spawnedObjects.push({
+      gameObject,
+      key,
+      label:        entry.label,
+      properties:   entry.properties,
+      playSnapshot: null,
+    })
+
+    this._propertyPanel.show(gameObject, entry.label, entry.properties)
+    this._terminal.print(`Spawned ${entry.label} at (0, 0, 0).`, 'log')
   }
 
   // ── Logic RAF ─────────────────────────────────────────────────────────────────
@@ -174,19 +184,9 @@ export class SceneController {
     }
 
     // Physics step
-    for (const spawnedObject of this._spawnedObjects) {
-      if (spawnedObject.gameObject.rigidbody) {
-        spawnedObject.gameObject.syncToPhysics()
-      }
-    }
-
-    this._rigidbodyHandler.update(deltaTime)
-
-    for (const spawnedObject of this._spawnedObjects) {
-      if (spawnedObject.gameObject.rigidbody) {
-        spawnedObject.gameObject.syncFromPhysics()
-      }
-    }
+    const objects = this._spawnedObjects.map(s => s.gameObject)
+    applyPhysics(objects, deltaTime)
+    applyCollisions(this._rigidbodyLayerMap, objects)
 
     this._logicRafHandle = requestAnimationFrame(this._logicTick)
   }
@@ -207,8 +207,8 @@ export class SceneController {
         // Mouse drag rotation (no pointer lock)
         if (this._mouseButtonDown) {
           this._engine.camera.rotate(
-            this._mouseDeltaX * MOUSE_SENSITIVITY,
-            this._mouseDeltaY * MOUSE_SENSITIVITY,
+            -this._mouseDeltaX * MOUSE_SENSITIVITY,
+            -this._mouseDeltaY * MOUSE_SENSITIVITY,
           )
           this._mouseDeltaX = 0
           this._mouseDeltaY = 0
@@ -218,15 +218,16 @@ export class SceneController {
         this._lastTimestamp = timestamp
       }
 
-      this._freeCameraRafHandle = requestAnimationFrame(tick)
+      requestAnimationFrame(tick)
     }
 
-    this._freeCameraRafHandle = requestAnimationFrame(tick)
+    requestAnimationFrame(tick)
   }
 
   // ── Camera movement ───────────────────────────────────────────────────────────
 
   private _applyCamera(deltaTime: number): void {
+    if(this.unfocused) return;
     const camera   = this._engine.camera
     const cosYaw   = Math.cos(camera.yaw)
     const sinYaw   = Math.sin(camera.yaw)
@@ -270,10 +271,11 @@ export class SceneController {
       }
 
       // Zero rigidbody velocity
-      if (gameObject.rigidbody) {
-        gameObject.rigidbody.velocity[0] = 0
-        gameObject.rigidbody.velocity[1] = 0
-        gameObject.rigidbody.velocity[2] = 0
+      const rb = gameObject.getRigidbody()
+      if (rb) {
+        rb.velocity[0] = 0
+        rb.velocity[1] = 0
+        rb.velocity[2] = 0
       }
     }
   }
@@ -346,7 +348,7 @@ export class SceneController {
       }
 
       if (closestObject) {
-        this._propertyPanel.show(closestObject.gameObject, closestObject.category)
+        this._propertyPanel.show(closestObject.gameObject, closestObject.label, closestObject.properties)
       }
     })
   }

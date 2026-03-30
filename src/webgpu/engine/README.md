@@ -9,6 +9,11 @@ A lightweight, modular WebGPU rendering engine with a clean facade API. Supports
 - [Quick Start](#quick-start)
 - [Engine API](#engine-api)
 - [Camera](#camera)
+- [GameObject](#gameobject)
+- [Game Loop](#game-loop)
+- [Physics](#physics)
+  - [Rigidbody3D](#rigidbody3d)
+  - [Hitbox Types](#hitbox-types)
 - [Renderables](#renderables)
   - [Mesh](#mesh)
   - [ComputedMesh (Marching Cubes)](#computedmesh-marching-cubes)
@@ -123,6 +128,139 @@ engine.setCamera(camera)
 | `yaw` | `number` | Current yaw in radians |
 | `pitch` | `number` | Current pitch in radians |
 | `bindGroup` | `GPUBindGroup` | GPU bind group (group 0) |
+
+---
+
+## GameObject
+
+All `engine.create*()` calls return an `IGameObject<R>` wrapping the renderable. It is the primary handle for transform manipulation and physics.
+
+**Base creation options** (shared by all `create*` methods):
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `position` | `[x, y, z]` | `[0,0,0]` | Initial world-space position |
+| `quaternion` | `[x, y, z, w]` | `[0,0,0,1]` | Initial orientation (unit quaternion) |
+| `scale` | `[x, y, z]` | `[1,1,1]` | Uniform or non-uniform scale |
+| `hitbox` | `Hitbox3D` | `null` | Collision shape |
+| `rigidbody` | `Rigidbody3D` | `null` | Physics body |
+| `rigidbodyOffset` | `[x, y, z]` | `[0,0,0]` | Physics body center offset from visual center (local space) |
+
+**Transform methods:**
+
+| Method | Description |
+|--------|-------------|
+| `setPosition(pos)` | Teleport to world-space `[x, y, z]` |
+| `setQuaternion(q)` | Set orientation as `[x, y, z, w]` unit quaternion |
+| `setRotation(yaw, pitch, roll?)` | Set orientation from Euler angles (radians, Y/X/Z order) |
+| `rotate(yaw, pitch, roll?)` | Apply a relative Euler rotation on top of the current orientation |
+| `setScale(x, y, z)` | Set scale |
+| `setColor(r, g, b, a)` | Update tint/color on the underlying renderable |
+
+**Physics accessor:**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `getRigidbody()` | `Rigidbody3D \| null` | Access the physics body — use this instead of accessing the field directly |
+
+**Lifecycle:**
+
+| Method | Description |
+|--------|-------------|
+| `copy()` | Create an independent duplicate at the same transform |
+| `destroy()` | Remove from scene and free GPU memory |
+
+---
+
+## Game Loop
+
+The engine's render RAF runs independently via `engine.start()`. Physics logic runs in a separate RAF that you manage. Use `applyPhysics` + `applyCollisions` from the rigidbody module:
+
+```typescript
+import { Engine, applyPhysics, applyCollisions } from './engine'
+import type { IGameObject, Rigidbody3D } from './engine'
+
+// Pre-built layer map — maintained on spawn/destroy so no per-frame grouping is needed
+const layerMap = new Map<string, Rigidbody3D[]>()
+const objects:  IGameObject[] = []
+
+function registerObject(obj: IGameObject): void {
+  const rb = obj.getRigidbody()
+  if (rb) {
+    let bucket = layerMap.get(rb.layer) ?? []
+    bucket.push(rb)
+    layerMap.set(rb.layer, bucket)
+  }
+  objects.push(obj)
+}
+
+// Initialize
+const engine = await Engine.create(canvas)
+const camera  = engine.createCamera({ position: [0, 3, 8] })
+engine.setCamera(camera)
+engine.start()  // Render loop — always running
+
+// Physics + logic RAF
+let lastTimestamp = performance.now()
+
+function logicTick(timestamp: number): void {
+  const dt = Math.min((timestamp - lastTimestamp) / 1000, 0.1)
+  lastTimestamp = timestamp
+
+  applyPhysics(objects, dt)             // syncToPhysics → gravity → Euler integration
+  applyCollisions(layerMap, objects)    // collision detection + resolution → syncFromPhysics
+
+  requestAnimationFrame(logicTick)
+}
+requestAnimationFrame(logicTick)
+```
+
+> `applyPhysics` calls `syncToPhysics` before integration. `applyCollisions` calls `syncFromPhysics` after resolution. You do **not** need to call these manually.
+
+---
+
+## Physics
+
+### Rigidbody3D
+
+Create with `new Rigidbody3D(opts)` and pass to `engine.create*({ rigidbody: rb })`.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `layer` | `string` | *(required)* | Collision layer — bodies only collide within the same layer |
+| `isStatic` | `boolean` | `false` | Immovable body; never updated by the physics step |
+| `mass` | `number` | `1` | Mass in kg — affects collision impulse split |
+| `useGravity` | `boolean` | `true` | Whether to apply gravity (9.81 m/s²) |
+| `velocity` | `Vec3` | `[0,0,0]` | Linear velocity in units/second — can be set directly |
+| `hitbox` | `Hitbox3D \| null` | `null` | Collision shape (required for collision detection) |
+| `onCollision` | `(other) => void` | `null` | Fired after solid collision response (use for damage, sound, etc.) |
+| `onOverlap` | `(other) => void` | `null` | Fired on overlap before any physics response (trigger volumes) |
+
+### Hitbox Types
+
+| Class | Constructor args | Best for |
+|-------|-----------------|---------|
+| `SphereHitbox` | `radius` | Spherical objects, projectiles |
+| `CubeHitbox` | `halfExtents: [x, y, z]` | Boxes, crates (follows object rotation — OBB) |
+| `CapsuleHitbox` | `radius, height` | Characters, cylinders |
+| `MeshHitbox` | `vertices: Float32Array` | Complex static geometry (axis-aligned AABB only) |
+
+All hitboxes accept optional `offsetTranslation: [x, y, z]` and `offsetRotation: [yaw, pitch]` to offset the collision shape from the visual center.
+
+```typescript
+import { Rigidbody3D, CubeHitbox } from './engine'
+
+const hitbox = new CubeHitbox([0.5, 0.5, 0.5])   // half-extents
+const rb = new Rigidbody3D({ layer: 'world', mass: 2, hitbox })
+
+const cube = engine.createMesh({
+  renderable: { vertices, indices },
+  position:   [0, 5, 0],
+  hitbox,
+  rigidbody:  rb,
+})
+registerObject(cube)  // inserts rb into layerMap under 'world'
+```
 
 ---
 

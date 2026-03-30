@@ -25,6 +25,9 @@ export interface IGameObject<R extends Renderable = Renderable> {
   setScale(x: number, y: number, z: number): void
   setColor(r: number, g: number, b: number, a: number): void
 
+  // Physics accessor
+  getRigidbody(): Rigidbody3D | null
+
   // Physics sync (called in the user's game loop)
   syncToPhysics(): void
   syncFromPhysics(): void
@@ -60,8 +63,7 @@ export interface GameObjectOptions<R extends Renderable = Renderable> {
  * Rigidbody3D.  Transform ownership:
  *   - `position`, `quaternion`, and `scale` on this class are the source of truth.
  *   - Use `setPosition` / `setQuaternion` / `rotate` / `setRotation` for direct movement.
- *   - Call `syncToPhysics()` before `RigidbodyHandler.update()` each frame.
- *   - Call `syncFromPhysics()` after  `RigidbodyHandler.update()` each frame.
+ *   - These are called automatically by `applyPhysics` and `applyCollisions`.
  */
 export class GameObject<R extends Renderable = Renderable> implements IGameObject<R> {
   readonly renderable: R
@@ -124,8 +126,12 @@ export class GameObject<R extends Renderable = Renderable> implements IGameObjec
 
   /**
    * Copy current transform into the rigidbody so the physics step starts from
-   * the correct world transform.  Call before `RigidbodyHandler.update(dt)`.
+   * the correct world transform.  Called by `applyPhysics` each frame.
    */
+  getRigidbody(): Rigidbody3D | null {
+    return this.rigidbody
+  }
+
   syncToPhysics(): void {
     if (!this.rigidbody) return
     const rotated = rotateByQuat(this._rigidbodyOffset, this.quaternion)
@@ -139,7 +145,7 @@ export class GameObject<R extends Renderable = Renderable> implements IGameObjec
 
   /**
    * Read the rigidbody's post-simulation position + quaternion back and apply
-   * them to the renderable and hitbox.  Call after `RigidbodyHandler.update(dt)`.
+   * them to the renderable and hitbox.  Called by `applyCollisions` each frame.
    */
   syncFromPhysics(): void {
     if (!this.rigidbody) return

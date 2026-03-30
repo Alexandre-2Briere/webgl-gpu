@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'node:path'
@@ -11,6 +12,11 @@ export default defineConfig({
       '@components': resolve(__dirname, 'src/components'),
       '@pages': resolve(__dirname, 'src/pages'),
     },
+  },
+  test: {
+    environment: 'node',
+    include: ['src/webgpu/engine/tests/**/*.test.ts'],
+    setupFiles: ['src/webgpu/engine/tests/setup.ts'],
   },
   build: {
     rollupOptions: {

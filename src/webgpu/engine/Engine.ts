@@ -3,7 +3,6 @@ import type {
   BindGroupLayouts,
   GameObjectBaseOptions,
   MeshGameObjectOptions,
-  ComputedMeshGameObjectOptions,
   Quad2DGameObjectOptions,
   Quad3DGameObjectOptions,
   Model3DGameObjectOptions,
@@ -14,7 +13,7 @@ import type {
 } from './types'
 import { Camera, Renderer, Scene, PipelineCache } from './core'
 import { UniformPool } from './buffers'
-import { Mesh, Quad2D, Quad3D, ComputedRenderable, Model3D, FbxModel } from './gameObject/renderables'
+import { Mesh, Quad2D, Quad3D, Model3D, FbxModel } from './gameObject/renderables'
 import type { Renderable, RenderableInitArgs } from './gameObject/renderables'
 import { loadObjAsset, loadFbxAsset, createEngineLayouts, logger } from './utils'
 import { GameObject } from './gameObject/GameObject'
@@ -93,10 +92,6 @@ export class Engine {
 
   createMesh(opts: MeshGameObjectOptions): GameObject<Mesh> {
     return this._spawnGameObject(new Mesh(opts.renderable), opts)
-  }
-
-  createComputedMesh(opts: ComputedMeshGameObjectOptions): GameObject<ComputedRenderable> {
-    return this._spawnGameObject(new ComputedRenderable(opts.renderable), opts)
   }
 
   createQuad2D(opts: Quad2DGameObjectOptions): GameObject<Quad2D> {

@@ -13,8 +13,6 @@ export type {
   GameObjectBaseOptions,
   MeshOptions,
   MeshGameObjectOptions,
-  ComputedMeshOptions,
-  ComputedMeshGameObjectOptions,
   Quad2DOptions,
   Quad2DGameObjectOptions,
   Quad3DOptions,

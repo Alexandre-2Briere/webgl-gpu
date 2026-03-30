@@ -10,4 +10,5 @@ export { MeshHitbox } from './hitbox/MeshHitbox'
 
 export { Rigidbody3D } from './rigidbody/Rigidbody3D'
 export type { Rigidbody3DOptions } from './rigidbody/Rigidbody3D'
-export { RigidbodyHandler } from './rigidbody/RigidbodyHandler'
+export { applyPhysics } from './rigidbody/physicsStep'
+export { applyCollisions } from './rigidbody/collisionStep'

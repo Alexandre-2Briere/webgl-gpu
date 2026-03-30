@@ -37,24 +37,6 @@ export interface MeshOptions {
   label?: string
 }
 
-export interface ComputedMeshOptions {
-  /** Full WGSL source for the compute shader. Must bind group 0 bindings 0-3. */
-  computeShaderCode: string
-  /** Pre-allocates vertex buffer at maxVertices * 48 bytes. */
-  maxVertices: number
-  /** Workgroup dispatch count [x, y, z] or a function returning it. */
-  dispatchSize: [number, number, number] | (() => [number, number, number])
-  /** Optional initial voxel scalar field data. */
-  initialVoxelData?: Float32Array
-  /** Voxel grid dimensions [x, y, z]. Default [64, 64, 64]. */
-  voxelGridDimensions?: [number, number, number]
-  /** ISO surface level. Default 0.5. */
-  isoLevel?: number
-  /** World-space chunk origin. Default [0, 0, 0]. */
-  chunkOrigin?: [number, number, number]
-  label?: string
-}
-
 export interface Quad2DOptions {
   /** NDC x of the top-left corner, range [-1, 1]. */
   x: number
@@ -119,10 +101,6 @@ export interface GameObjectBaseOptions {
 
 export interface MeshGameObjectOptions extends GameObjectBaseOptions {
   renderable: MeshOptions
-}
-
-export interface ComputedMeshGameObjectOptions extends GameObjectBaseOptions {
-  renderable: ComputedMeshOptions
 }
 
 export interface Quad2DGameObjectOptions extends GameObjectBaseOptions {

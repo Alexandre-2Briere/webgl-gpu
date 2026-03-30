@@ -1,5 +1,4 @@
 import type { Renderable } from '../gameObject/renderables/Renderable'
-import { ComputedRenderable } from '../gameObject/renderables/ComputedRenderable'
 import { Camera } from './Camera'
 import { Renderer } from './Renderer'
 
@@ -7,18 +6,13 @@ export class Scene {
   private readonly _renderer: Renderer
   private readonly _worldRenderables: Renderable[] = []
   private readonly _overlayRenderables: Renderable[] = []
-  private readonly _computedRenderables: ComputedRenderable[] = []
 
   constructor(renderer: Renderer) {
     this._renderer = renderer
   }
 
   add(r: Renderable): void {
-    if (r instanceof ComputedRenderable) {
-      this._computedRenderables.push(r)
-      // ComputedRenderable also participates in the world pass
-      this._worldRenderables.push(r)
-    } else if (r.layer === 'world') {
+    if (r.layer === 'world') {
       this._worldRenderables.push(r)
     } else {
       this._overlayRenderables.push(r)
@@ -34,7 +28,6 @@ export class Scene {
     }
     removeFrom(this._worldRenderables)
     removeFrom(this._overlayRenderables)
-    if (r instanceof ComputedRenderable) removeFrom(this._computedRenderables as unknown as Renderable[])
   }
 
   /**
@@ -53,16 +46,7 @@ export class Scene {
     const colorView = this._renderer.getCurrentColorView()
     const depthView = this._renderer.getDepthView()
 
-    // ── 1. Compute pre-pass ────────────────────────────────────────────────────
-    if (this._computedRenderables.some(c => c.visible)) {
-      const computePass = encoder.beginComputePass({ label: 'compute-pre-pass' })
-      for (const cr of this._computedRenderables) {
-        if (cr.visible) cr.encodeCompute(computePass)
-      }
-      computePass.end()
-    }
-
-    // ── 2. World render pass ───────────────────────────────────────────────────
+    // ── 1. World render pass ───────────────────────────────────────────────────
     {
       const worldPass = encoder.beginRenderPass({
         label: 'world-pass',
@@ -91,7 +75,7 @@ export class Scene {
       worldPass.end()
     }
 
-    // ── 3. Overlay render pass ─────────────────────────────────────────────────
+    // ── 2. Overlay render pass ─────────────────────────────────────────────────
     if (this._overlayRenderables.some(r => r.visible)) {
       const overlayPass = encoder.beginRenderPass({
         label: 'overlay-pass',

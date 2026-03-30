@@ -1,4 +1,5 @@
 import type { IGameObject } from '../../../../src/webgpu/engine/index'
+import type { PropertyGroup } from '../items/types'
 
 const DEG = Math.PI / 180
 
@@ -20,6 +21,17 @@ export class PropertyPanel {
   private _colorInput!:  HTMLInputElement
   private _colorSwatch!: HTMLElement
 
+  // Scale inputs
+  private _scaleX!: HTMLInputElement
+  private _scaleY!: HTMLInputElement
+  private _scaleZ!: HTMLInputElement
+
+  // Section containers (for show/hide per item)
+  private _positionSection!: HTMLElement
+  private _rotationSection!: HTMLElement
+  private _colorSection!:    HTMLElement
+  private _scaleSection!:    HTMLElement
+
   constructor(root: HTMLElement) {
     this._root = root
     this._build()
@@ -27,24 +39,25 @@ export class PropertyPanel {
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
-  show(gameObject: IGameObject, label: string): void {
-    // Commit any pending (not-yet-change-event-fired) edits to the outgoing object
-    // before switching, so typed-but-uncommitted values are not lost.
+  show(gameObject: IGameObject, label: string, properties: PropertyGroup[]): void {
+    // Commit any pending edits to the outgoing object before switching.
     this._applyPosition()
     this._applyRotation()
     this._applyColor()
+    this._applyScale()
 
     this._currentObject = gameObject
 
     const titleEl = this._root.querySelector('.prop-panel-title') as HTMLElement
     titleEl.textContent = label
 
+    // Populate position
     const [posX, posY, posZ] = gameObject.position
     this._posX.value = posX.toFixed(3)
     this._posY.value = posY.toFixed(3)
     this._posZ.value = posZ.toFixed(3)
 
-    // Derive Euler angles from quaternion for display
+    // Populate rotation from quaternion
     const [qx, qy, qz, qw] = gameObject.quaternion
     const yawDeg   = Math.atan2(2*(qw*qy + qz*qx), 1 - 2*(qy*qy + qz*qz)) / DEG
     const pitchDeg = Math.asin(Math.max(-1, Math.min(1, 2*(qw*qx - qy*qz)))) / DEG
@@ -52,6 +65,18 @@ export class PropertyPanel {
     this._rotYaw.value   = yawDeg.toFixed(1)
     this._rotPitch.value = pitchDeg.toFixed(1)
     this._rotRoll.value  = rollDeg.toFixed(1)
+
+    // Populate scale
+    const [sx, sy, sz] = gameObject.scale
+    this._scaleX.value = sx.toFixed(3)
+    this._scaleY.value = sy.toFixed(3)
+    this._scaleZ.value = sz.toFixed(3)
+
+    // Show/hide sections per item definition
+    this._positionSection.style.display = properties.includes('position') ? '' : 'none'
+    this._rotationSection.style.display = properties.includes('rotation') ? '' : 'none'
+    this._colorSection.style.display    = properties.includes('color')    ? '' : 'none'
+    this._scaleSection.style.display    = properties.includes('scale')    ? '' : 'none'
 
     this._root.classList.add('open')
   }
@@ -70,11 +95,11 @@ export class PropertyPanel {
     // Header
     const header = document.createElement('div')
     header.className = 'prop-panel-header'
-    const title = document.createElement('span')
-    title.className = 'prop-panel-title'
+    const title = document.createElement('h2')
+    title.className   = 'prop-panel-title'
     title.textContent = ''
     const closeBtn = document.createElement('button')
-    closeBtn.className = 'prop-panel-close'
+    closeBtn.className   = 'prop-panel-close'
     closeBtn.textContent = '×'
     closeBtn.addEventListener('click', () => this.hide())
     header.append(title, closeBtn)
@@ -83,9 +108,15 @@ export class PropertyPanel {
     const body = document.createElement('div')
     body.className = 'prop-panel-body'
 
-    body.appendChild(this._buildPositionSection())
-    body.appendChild(this._buildRotationSection())
-    body.appendChild(this._buildColorSection())
+    this._positionSection = this._buildPositionSection()
+    this._rotationSection = this._buildRotationSection()
+    this._colorSection    = this._buildColorSection()
+    this._scaleSection    = this._buildScaleSection()
+
+    body.appendChild(this._positionSection)
+    body.appendChild(this._rotationSection)
+    body.appendChild(this._colorSection)
+    body.appendChild(this._scaleSection)
 
     inner.append(header, body)
     this._root.appendChild(inner)
@@ -95,28 +126,27 @@ export class PropertyPanel {
     const section = document.createElement('div')
 
     const sectionLabel = document.createElement('div')
-    sectionLabel.className = 'prop-section-label'
+    sectionLabel.className   = 'prop-section-label'
     sectionLabel.textContent = 'Position'
     section.appendChild(sectionLabel)
 
-    const axes: [string, 'X' | 'Y' | 'Z'][] = [['X', 'X'], ['Y', 'Y'], ['Z', 'Z']]
-    for (const [axis] of axes) {
+    for (const axis of ['X', 'Y', 'Z'] as const) {
       const row = document.createElement('div')
       row.className = 'prop-row'
 
       const axisLabel = document.createElement('span')
-      axisLabel.className = 'prop-axis-label'
+      axisLabel.className   = 'prop-axis-label'
       axisLabel.textContent = axis
 
       const input = document.createElement('input')
-      input.type = 'number'
-      input.step = '0.1'
+      input.type      = 'number'
+      input.step      = '0.1'
       input.className = 'prop-input'
       input.addEventListener('change', () => this._applyPosition())
 
-      if (axis === 'X') this._posX = input
+      if (axis === 'X')      this._posX = input
       else if (axis === 'Y') this._posY = input
-      else this._posZ = input
+      else                   this._posZ = input
 
       row.append(axisLabel, input)
       section.appendChild(row)
@@ -129,28 +159,28 @@ export class PropertyPanel {
     const section = document.createElement('div')
 
     const sectionLabel = document.createElement('div')
-    sectionLabel.className = 'prop-section-label'
+    sectionLabel.className   = 'prop-section-label'
     sectionLabel.textContent = 'Rotation (deg)'
     section.appendChild(sectionLabel)
 
-    const axes: [string, 'Yaw' | 'Pitch' | 'Roll'][] = [['Y', 'Yaw'], ['P', 'Pitch'], ['R', 'Roll']]
+    const axes = [['Y', 'Yaw'], ['P', 'Pitch'], ['R', 'Roll']] as const
     for (const [axis, key] of axes) {
       const row = document.createElement('div')
       row.className = 'prop-row'
 
       const axisLabel = document.createElement('span')
-      axisLabel.className = 'prop-axis-label'
+      axisLabel.className   = 'prop-axis-label'
       axisLabel.textContent = axis
 
       const input = document.createElement('input')
-      input.type = 'number'
-      input.step = '1'
+      input.type      = 'number'
+      input.step      = '1'
       input.className = 'prop-input'
       input.addEventListener('change', () => this._applyRotation())
 
-      if (key === 'Yaw')   this._rotYaw   = input
+      if (key === 'Yaw')        this._rotYaw   = input
       else if (key === 'Pitch') this._rotPitch = input
-      else                  this._rotRoll  = input
+      else                      this._rotRoll  = input
 
       row.append(axisLabel, input)
       section.appendChild(row)
@@ -163,7 +193,7 @@ export class PropertyPanel {
     const section = document.createElement('div')
 
     const sectionLabel = document.createElement('div')
-    sectionLabel.className = 'prop-section-label'
+    sectionLabel.className   = 'prop-section-label'
     sectionLabel.textContent = 'Color (hex)'
     section.appendChild(sectionLabel)
 
@@ -171,24 +201,57 @@ export class PropertyPanel {
     colorRow.className = 'prop-color-row'
 
     const prefix = document.createElement('span')
-    prefix.className = 'prop-color-prefix'
+    prefix.className   = 'prop-color-prefix'
     prefix.textContent = '#'
 
     const colorInput = document.createElement('input')
-    colorInput.type = 'text'
+    colorInput.type      = 'text'
     colorInput.maxLength = 6
     colorInput.placeholder = 'RRGGBB'
     colorInput.className = 'prop-color-input'
     colorInput.addEventListener('change', () => this._applyColor())
-    colorInput.addEventListener('input', () => this._updateSwatch())
+    colorInput.addEventListener('input',  () => this._updateSwatch())
     this._colorInput = colorInput
 
     const swatch = document.createElement('div')
-    swatch.className = 'prop-color-swatch'
-    this._colorSwatch = swatch
+    swatch.className    = 'prop-color-swatch'
+    this._colorSwatch   = swatch
 
     colorRow.append(prefix, colorInput, swatch)
     section.appendChild(colorRow)
+
+    return section
+  }
+
+  private _buildScaleSection(): HTMLElement {
+    const section = document.createElement('div')
+
+    const sectionLabel = document.createElement('div')
+    sectionLabel.className   = 'prop-section-label'
+    sectionLabel.textContent = 'Scale'
+    section.appendChild(sectionLabel)
+
+    for (const axis of ['X', 'Y', 'Z'] as const) {
+      const row = document.createElement('div')
+      row.className = 'prop-row'
+
+      const axisLabel = document.createElement('span')
+      axisLabel.className   = 'prop-axis-label'
+      axisLabel.textContent = axis
+
+      const input = document.createElement('input')
+      input.type      = 'number'
+      input.step      = '0.1'
+      input.className = 'prop-input'
+      input.addEventListener('change', () => this._applyScale())
+
+      if (axis === 'X')      this._scaleX = input
+      else if (axis === 'Y') this._scaleY = input
+      else                   this._scaleZ = input
+
+      row.append(axisLabel, input)
+      section.appendChild(row)
+    }
 
     return section
   }
@@ -197,29 +260,37 @@ export class PropertyPanel {
 
   private _applyPosition(): void {
     if (!this._currentObject) return
-    const positionX = parseFloat(this._posX.value) || 0
-    const positionY = parseFloat(this._posY.value) || 0
-    const positionZ = parseFloat(this._posZ.value) || 0
-    this._currentObject.setPosition([positionX, positionY, positionZ])
+    const x = parseFloat(this._posX.value) || 0
+    const y = parseFloat(this._posY.value) || 0
+    const z = parseFloat(this._posZ.value) || 0
+    this._currentObject.setPosition([x, y, z])
   }
 
   private _applyRotation(): void {
     if (!this._currentObject) return
-    const yawRadians   = (parseFloat(this._rotYaw.value)   || 0) * DEG
-    const pitchRadians = (parseFloat(this._rotPitch.value) || 0) * DEG
-    const rollRadians  = (parseFloat(this._rotRoll.value)  || 0) * DEG
-    this._currentObject.setRotation(yawRadians, pitchRadians, rollRadians)
+    const yawRad   = (parseFloat(this._rotYaw.value)   || 0) * DEG
+    const pitchRad = (parseFloat(this._rotPitch.value) || 0) * DEG
+    const rollRad  = (parseFloat(this._rotRoll.value)  || 0) * DEG
+    this._currentObject.setRotation(yawRad, pitchRad, rollRad)
   }
 
   private _applyColor(): void {
     if (!this._currentObject) return
     const hex = this._colorInput.value.trim().toUpperCase()
     if (!/^[0-9A-F]{6}$/.test(hex)) return
-    const redFloat   = parseInt(hex.slice(0, 2), 16) / 255
-    const greenFloat = parseInt(hex.slice(2, 4), 16) / 255
-    const blueFloat  = parseInt(hex.slice(4, 6), 16) / 255
-    this._currentObject.setColor(redFloat, greenFloat, blueFloat, 1.0)
+    const r = parseInt(hex.slice(0, 2), 16) / 255
+    const g = parseInt(hex.slice(2, 4), 16) / 255
+    const b = parseInt(hex.slice(4, 6), 16) / 255
+    this._currentObject.setColor(r, g, b, 1.0)
     this._updateSwatch()
+  }
+
+  private _applyScale(): void {
+    if (!this._currentObject) return
+    const x = parseFloat(this._scaleX.value) || 1
+    const y = parseFloat(this._scaleY.value) || 1
+    const z = parseFloat(this._scaleZ.value) || 1
+    this._currentObject.setScale(x, y, z)
   }
 
   private _updateSwatch(): void {
