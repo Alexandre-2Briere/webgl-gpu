@@ -72,6 +72,14 @@ export class PropertyPanel {
     this._scaleY.value = sy.toFixed(3)
     this._scaleZ.value = sz.toFixed(3)
 
+    // Populate color from current object tint
+    if (properties.includes('color')) {
+      const [cr, cg, cb] = gameObject.color
+      const toHex = (v: number) => Math.round(v * 255).toString(16).padStart(2, '0').toUpperCase()
+      this._colorInput.value = `${toHex(cr)}${toHex(cg)}${toHex(cb)}`
+      this._updateSwatch()
+    }
+
     // Show/hide sections per item definition
     this._positionSection.style.display = properties.includes('position') ? '' : 'none'
     this._rotationSection.style.display = properties.includes('rotation') ? '' : 'none'

@@ -181,6 +181,10 @@ export class Mesh implements Renderable {
     )
   }
 
+  get color(): [number, number, number, number] {
+    return [this._uniformData[16], this._uniformData[17], this._uniformData[18], this._uniformData[19]]
+  }
+
   setColor(r: number, g: number, b: number, a: number): void {
     this._uniformData[16] = r
     this._uniformData[17] = g

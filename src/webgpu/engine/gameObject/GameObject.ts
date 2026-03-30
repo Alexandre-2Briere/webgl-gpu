@@ -14,6 +14,7 @@ export interface IGameObject<R extends Renderable = Renderable> {
   position:   Vec3
   quaternion: Vec4
   scale:      Vec3
+  readonly color: [number, number, number, number]
 
   // Transform
   setPosition(position: Vec3): void
@@ -116,6 +117,10 @@ export class GameObject<R extends Renderable = Renderable> implements IGameObjec
   setScale(x: number, y: number, z: number): void {
     this.scale = [x, y, z]
     this._applyTransform()
+  }
+
+  get color(): [number, number, number, number] {
+    return this.renderable.color
   }
 
   setColor(r: number, g: number, b: number, a: number): void {

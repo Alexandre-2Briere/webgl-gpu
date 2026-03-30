@@ -24,6 +24,7 @@ export interface Renderable {
   setPosition(position: Vec3): void
   setQuaternion(quaternion: Vec4): void
   setScale(x: number, y: number, z: number): void
+  readonly color: [number, number, number, number]
   setColor(r: number, g: number, b: number, a: number): void
 
   init(args: RenderableInitArgs): void
