@@ -1,13 +1,12 @@
 import type { Engine, IGameObject } from '../../../../src/webgpu/engine/index'
-import type { Rigidbody3D } from '../../../../src/webgpu/engine/gameObject/rigidbody/Rigidbody3D'
-import type { CubeHitbox } from '../../../../src/webgpu/engine/gameObject/hitbox/CubeHitbox'
+import type { PrimitiveSpawnContext } from './types'
 import { buildCubeVertices } from '../game/geometry'
 
-export function spawn(engine: Engine, rigidbody?: Rigidbody3D, hitbox?: CubeHitbox): IGameObject {
+export function spawn(engine: Engine, context: PrimitiveSpawnContext): IGameObject {
   const { vertices, indices } = buildCubeVertices()
   return engine.createMesh({
     renderable: { vertices, indices, label: 'cube' },
-    rigidbody,
-    hitbox,
+    rigidbody:  context.rigidbody,
+    hitbox:     context.hitbox,
   })
 }

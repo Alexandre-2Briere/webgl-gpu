@@ -1,5 +1,5 @@
 import { Engine }           from '../../../../src/webgpu/engine/index'
-import type { IGameObject } from '../../../../src/webgpu/engine/index'
+import type { IGameObject, FbxAssetHandle } from '../../../../src/webgpu/engine/index'
 import { applyPhysics, applyCollisions } from '../../../../src/webgpu/engine/gameObject/rigidbody/index'
 import { Rigidbody3D } from '../../../../src/webgpu/engine/gameObject/rigidbody/Rigidbody3D'
 import { CubeHitbox }  from '../../../../src/webgpu/engine/gameObject/hitbox/CubeHitbox'
@@ -7,9 +7,10 @@ import type { Vec3 }   from '../../../../src/webgpu/engine/math'
 import type { Terminal }    from '../ui/Terminal'
 import type { PropertyPanel } from '../ui/PropertyPanel'
 import type { SceneHierarchy } from '../ui/SceneHierarchy'
-import type { ItemEntry, PropertyGroup, PhysicsConfig } from '../items/types'
+import type { ItemEntry, PropertyGroup, PhysicsConfig, SpawnContext, PrimitiveSpawnContext, FbxSpawnContext } from '../items/types'
 import { spawn as spawnQuad } from '../items/quad'
 import { spawn as spawnCube } from '../items/cube'
+import { spawn as spawnFBX, FBX_CATALOG } from '../items/fbx'
 
 const CAMERA_MOVE_SPEED  = 5.0   // units per second
 const CAMERA_YAW_SPEED   = 1.5   // radians per second (Q/E keys)
@@ -22,9 +23,10 @@ const DEFAULT_PHYSICS: PhysicsConfig = {
   layer:        'default',
 }
 
-const SPAWN_MAP: Record<string, (engine: Engine, rigidbody?: Rigidbody3D, hitbox?: CubeHitbox) => IGameObject> = {
-  Quad: spawnQuad,
-  Cube: spawnCube,
+const SPAWN_MAP: Record<string, (engine: Engine, context: SpawnContext) => IGameObject> = {
+  Quad: (engine, context) => spawnQuad(engine, context as PrimitiveSpawnContext),
+  Cube: (engine, context) => spawnCube(engine, context as PrimitiveSpawnContext),
+  FBX:  (engine, context) => spawnFBX(engine, context as FbxSpawnContext),
 }
 
 function makeHitbox(key: string, scale: Vec3): CubeHitbox {
@@ -33,11 +35,12 @@ function makeHitbox(key: string, scale: Vec3): CubeHitbox {
 }
 
 interface SpawnedObject {
-  gameObject:    IGameObject
-  key:           string
-  label:         string
-  properties:    PropertyGroup[]
-  physicsConfig: PhysicsConfig
+  gameObject:     IGameObject
+  key:            string
+  label:          string
+  properties:     PropertyGroup[]
+  physicsConfig:  PhysicsConfig
+  selectedFbxUrl: string | null
   // World-space position snapshot taken at the moment Play is pressed.
   // Restored on stop. Null before the first Play.
   playSnapshot: [number, number, number] | null
@@ -50,6 +53,7 @@ export class SceneController {
   private readonly _sceneHierarchy:  SceneHierarchy
 
   private _engine!:             Engine
+  private _fbxCache:            Map<string, FbxAssetHandle> = new Map()
   private _rigidbodyLayerMap:   Map<string, Rigidbody3D[]> = new Map()
   private _spawnedObjects:      SpawnedObject[] = []
 
@@ -87,6 +91,12 @@ export class SceneController {
       pitch:    Math.atan2(3, 8),
     })
     this._engine.setCamera(camera)
+
+    this._terminal.print('Loading FBX assets...', 'log')
+    await Promise.all(FBX_CATALOG.map(({ url }) =>
+      this._engine.loadFbx(url).then(handle => this._fbxCache.set(url, handle))
+    ))
+    this._propertyPanel.setFbxCatalog(FBX_CATALOG)
 
     // Render loop always runs so spawned objects are visible immediately.
     this._engine.start()
@@ -153,7 +163,12 @@ export class SceneController {
       return
     }
 
-    const gameObject = spawnFn(this._engine)
+    const selectedFbxUrl = key === 'FBX' ? FBX_CATALOG[0].url : null
+    const context: SpawnContext = key === 'FBX'
+      ? { kind: 'fbx', asset: this._fbxCache.get(selectedFbxUrl!)! }
+      : { kind: 'primitive' }
+
+    const gameObject = spawnFn(this._engine, context)
 
     const rb = gameObject.getRigidbody()
     if (rb) {
@@ -169,15 +184,16 @@ export class SceneController {
       gameObject,
       key,
       label,
-      properties:    entry.properties,
+      properties:     entry.properties,
       physicsConfig,
-      playSnapshot:  null,
+      selectedFbxUrl,
+      playSnapshot:   null,
     })
 
     const index = this._spawnedObjects.length - 1
     this._sceneHierarchy.addObject(label)
     this._sceneHierarchy.setSelected(index)
-    this._propertyPanel.show(gameObject, label, entry.properties, physicsConfig)
+    this._propertyPanel.show(gameObject, label, entry.properties, physicsConfig, selectedFbxUrl ?? undefined)
     this._terminal.print(`Spawned ${label} at (0, 0, 0).`, 'log')
   }
 
@@ -187,7 +203,7 @@ export class SceneController {
     const obj = this._spawnedObjects[index]
     if (!obj) return
     this._sceneHierarchy.setSelected(index)
-    this._propertyPanel.show(obj.gameObject, obj.label, obj.properties, obj.physicsConfig)
+    this._propertyPanel.show(obj.gameObject, obj.label, obj.properties, obj.physicsConfig, obj.selectedFbxUrl ?? undefined)
   }
 
   renameObject(index: number, newName: string): boolean {
@@ -335,7 +351,18 @@ export class SceneController {
       if (idx === -1) return
       this._rebuildObject(idx, config)
       const obj = this._spawnedObjects[idx]
-      this._propertyPanel.show(obj.gameObject, obj.label, obj.properties, config)
+      this._propertyPanel.show(obj.gameObject, obj.label, obj.properties, config, obj.selectedFbxUrl ?? undefined)
+    }
+
+    this._propertyPanel.onAssetChange = (url) => {
+      const idx = this._spawnedObjects.findIndex(
+        s => s.gameObject === this._propertyPanel.currentObject,
+      )
+      if (idx === -1) return
+      this._spawnedObjects[idx].selectedFbxUrl = url
+      this._rebuildObject(idx, this._spawnedObjects[idx].physicsConfig)
+      const obj = this._spawnedObjects[idx]
+      this._propertyPanel.show(obj.gameObject, obj.label, obj.properties, obj.physicsConfig, url)
     }
 
     this._propertyPanel.onScaleChange = (x, y, z) => {
@@ -379,8 +406,12 @@ export class SceneController {
       ? new Rigidbody3D({ layer: config.layer, isStatic: config.isStatic, hitbox })
       : undefined
 
+    const context: SpawnContext = obj.key === 'FBX'
+      ? { kind: 'fbx', asset: this._fbxCache.get(obj.selectedFbxUrl!)!, rigidbody, hitbox }
+      : { kind: 'primitive', rigidbody, hitbox }
+
     const spawnFn = SPAWN_MAP[obj.key]
-    const newGO   = spawnFn(this._engine, rigidbody, hitbox)
+    const newGO   = spawnFn(this._engine, context)
     newGO.setPosition(pos)
     newGO.setQuaternion(quat)
     newGO.setScale(scale[0], scale[1], scale[2])
@@ -470,7 +501,7 @@ export class SceneController {
 
       if (closestObject && closestIndex !== -1) {
         this._sceneHierarchy.setSelected(closestIndex)
-        this._propertyPanel.show(closestObject.gameObject, closestObject.label, closestObject.properties, closestObject.physicsConfig)
+        this._propertyPanel.show(closestObject.gameObject, closestObject.label, closestObject.properties, closestObject.physicsConfig, closestObject.selectedFbxUrl ?? undefined)
       }
     })
   }

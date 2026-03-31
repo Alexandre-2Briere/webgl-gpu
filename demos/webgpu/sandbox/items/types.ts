@@ -1,4 +1,8 @@
-export type PropertyGroup = 'position' | 'rotation' | 'color' | 'scale' | 'rigidbody' | 'hitbox'
+import type { Rigidbody3D }    from '../../../../src/webgpu/engine/gameObject/rigidbody/Rigidbody3D'
+import type { CubeHitbox }     from '../../../../src/webgpu/engine/gameObject/hitbox/CubeHitbox'
+import type { FbxAssetHandle } from '../../../../src/webgpu/engine/types'
+
+export type PropertyGroup = 'position' | 'rotation' | 'color' | 'scale' | 'rigidbody' | 'hitbox' | 'asset'
 
 export interface PhysicsConfig {
   hasRigidbody: boolean
@@ -15,3 +19,18 @@ export interface ItemEntry {
 }
 
 export type ItemRegistry = Record<string, ItemEntry[]>
+
+export interface PrimitiveSpawnContext {
+  kind:       'primitive'
+  rigidbody?: Rigidbody3D
+  hitbox?:    CubeHitbox
+}
+
+export interface FbxSpawnContext {
+  kind:       'fbx'
+  asset:      FbxAssetHandle
+  rigidbody?: Rigidbody3D
+  hitbox?:    CubeHitbox
+}
+
+export type SpawnContext = PrimitiveSpawnContext | FbxSpawnContext

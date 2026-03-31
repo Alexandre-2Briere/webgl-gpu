@@ -15,8 +15,8 @@
     {
       "key": "FBX",
       "label": "FBX Model",
-      "isReady": false,
-      "properties": ["position", "rotation", "scale"]
+      "isReady": true,
+      "properties": ["position", "rotation", "scale", "color", "asset"]
     }
   ]
 }

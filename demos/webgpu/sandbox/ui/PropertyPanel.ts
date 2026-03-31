@@ -38,6 +38,11 @@ export class PropertyPanel {
   private _layerInput!:    HTMLInputElement
   private _layerRow!:      HTMLElement
 
+  // Asset dropdown
+  private _assetSection!: HTMLElement
+  private _assetSelect!:  HTMLSelectElement
+  onAssetChange: ((url: string) => void) | null = null
+
   // Section containers (for show/hide per item)
   private _positionSection!: HTMLElement
   private _rotationSection!: HTMLElement
@@ -52,7 +57,17 @@ export class PropertyPanel {
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
-  show(gameObject: IGameObject, label: string, properties: PropertyGroup[], physicsConfig?: PhysicsConfig): void {
+  setFbxCatalog(catalog: { label: string; url: string }[]): void {
+    this._assetSelect.innerHTML = ''
+    for (const { label, url } of catalog) {
+      const option = document.createElement('option')
+      option.value       = url
+      option.textContent = label
+      this._assetSelect.appendChild(option)
+    }
+  }
+
+  show(gameObject: IGameObject, label: string, properties: PropertyGroup[], physicsConfig?: PhysicsConfig, selectedAssetUrl?: string): void {
     // Commit any pending edits to the outgoing object before switching.
     this._applyPosition()
     this._applyRotation()
@@ -111,6 +126,12 @@ export class PropertyPanel {
     this._scaleSection.style.display    = properties.includes('scale')    ? '' : 'none'
     this._physicsSection.style.display  = showPhysics ? '' : 'none'
 
+    const showAsset = properties.includes('asset')
+    this._assetSection.style.display = showAsset ? '' : 'none'
+    if (showAsset && selectedAssetUrl !== undefined) {
+      this._assetSelect.value = selectedAssetUrl
+    }
+
     this._root.classList.add('open')
   }
 
@@ -155,12 +176,14 @@ export class PropertyPanel {
     this._colorSection    = this._buildColorSection()
     this._scaleSection    = this._buildScaleSection()
     this._physicsSection  = this._buildPhysicsSection()
+    this._assetSection    = this._buildAssetSection()
 
     body.appendChild(this._positionSection)
     body.appendChild(this._rotationSection)
     body.appendChild(this._colorSection)
     body.appendChild(this._scaleSection)
     body.appendChild(this._physicsSection)
+    body.appendChild(this._assetSection)
 
     inner.append(header, body)
     this._root.appendChild(inner)
@@ -412,6 +435,28 @@ export class PropertyPanel {
     this._layerRow   = layerRow
     layerRow.append(layerLabel, layerInput)
     section.appendChild(layerRow)
+
+    return section
+  }
+
+  private _buildAssetSection(): HTMLElement {
+    const section = document.createElement('div')
+
+    const sectionLabel = document.createElement('div')
+    sectionLabel.className   = 'prop-section-label'
+    sectionLabel.textContent = 'Asset'
+    section.appendChild(sectionLabel)
+
+    const row = document.createElement('div')
+    row.className = 'prop-row'
+
+    const select = document.createElement('select')
+    select.className = 'prop-input'
+    select.addEventListener('change', () => this.onAssetChange?.(select.value))
+    this._assetSelect = select
+
+    row.appendChild(select)
+    section.appendChild(row)
 
     return section
   }

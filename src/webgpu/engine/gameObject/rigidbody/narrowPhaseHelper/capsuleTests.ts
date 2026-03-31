@@ -2,7 +2,7 @@ import type { CapsuleHitbox, SphereHitbox, CubeHitbox, MeshHitbox } from '../../
 import { dot, safeNorm3, type Vec3 } from '../../../math'
 import {
   type CollisionResult, NO_HIT, flipNormal,
-  pointRadiusVsOBB, pointRadiusVsAABB,
+  pointRadiusVsOBB,
   closestPointOnSegment, getCapsuleSegment,
 } from './helpers'
 import { testMeshCapsule } from './meshTests'

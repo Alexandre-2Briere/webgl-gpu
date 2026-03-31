@@ -11,7 +11,7 @@
 export function buildCubeVertices(): { vertices: Float32Array; indices: Uint32Array } {
   // [px, py, pz,   nx, ny, nz] per vertex (pad is 0, written separately)
   // 4 vertices per face, defined CCW when viewed from outside
-  const faceDefinitions: [positions: number[][], normal: [number, number, number]][] = [
+  const faceDefinitions = [
     // Front (+Z)
     [
       [-0.5, -0.5,  0.5],
