@@ -57,25 +57,26 @@ function _resolvePair(bodyA: Rigidbody3D, bodyB: Rigidbody3D): void {
   const bIsStatic = bodyB.isStatic
   if (aIsStatic && bIsStatic) return
 
-  // Positional correction — push bodies apart proportional to mass
+  // Positional correction — push bodies apart proportional to mass.
+  // normal points from B toward A (A.center - B.center), so A moves in +normal, B in -normal.
   if (!aIsStatic && !bIsStatic) {
     const totalMass = bodyA.mass + bodyB.mass
     const corrA = bodyB.mass / totalMass
     const corrB = bodyA.mass / totalMass
-    bodyA.position[0] -= normal[0] * depth * corrA
-    bodyA.position[1] -= normal[1] * depth * corrA
-    bodyA.position[2] -= normal[2] * depth * corrA
-    bodyB.position[0] += normal[0] * depth * corrB
-    bodyB.position[1] += normal[1] * depth * corrB
-    bodyB.position[2] += normal[2] * depth * corrB
+    bodyA.position[0] += normal[0] * depth * corrA
+    bodyA.position[1] += normal[1] * depth * corrA
+    bodyA.position[2] += normal[2] * depth * corrA
+    bodyB.position[0] -= normal[0] * depth * corrB
+    bodyB.position[1] -= normal[1] * depth * corrB
+    bodyB.position[2] -= normal[2] * depth * corrB
   } else if (!aIsStatic) {
-    bodyA.position[0] -= normal[0] * depth
-    bodyA.position[1] -= normal[1] * depth
-    bodyA.position[2] -= normal[2] * depth
+    bodyA.position[0] += normal[0] * depth
+    bodyA.position[1] += normal[1] * depth
+    bodyA.position[2] += normal[2] * depth
   } else {
-    bodyB.position[0] += normal[0] * depth
-    bodyB.position[1] += normal[1] * depth
-    bodyB.position[2] += normal[2] * depth
+    bodyB.position[0] -= normal[0] * depth
+    bodyB.position[1] -= normal[1] * depth
+    bodyB.position[2] -= normal[2] * depth
   }
 
   // Velocity impulse (perfectly inelastic)
