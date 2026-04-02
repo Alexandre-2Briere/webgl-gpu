@@ -4,7 +4,7 @@ import type { Camera } from '../../core/Camera'
 import type { UniformSlot } from '../../buffers/UniformPool'
 import { FbxAsset } from './FbxAsset'
 import { COMMON } from '../../shaders/common'
-import { FBX_MESH } from '../../shaders/fbx'
+import { FBX } from '../../shaders/fbx'
 import { makeTransformMatrix } from '../../math'
 import type { Vec3, Vec4 } from '../../math'
 
@@ -74,13 +74,13 @@ export class FbxModel implements Renderable {
     // ── Render pipeline ──────────────────────────────────────────────────────
     const shaderModule = device.createShaderModule({
       label: 'fbx-shader',
-      code: COMMON + '\n' + FBX_MESH,
+      code: COMMON + '\n' + FBX,
     })
 
     this._pipeline = pipelineCache.getOrCreateRender(FBX_PIPELINE_KEY, {
       label: 'fbx-pipeline',
       layout: device.createPipelineLayout({
-        bindGroupLayouts: [layouts.camera, layouts.object, layouts.fbxMaterial],
+        bindGroupLayouts: [layouts.camera, layouts.object, layouts.fbxMaterial, layouts.lights],
       }),
       vertex: {
         module: shaderModule,

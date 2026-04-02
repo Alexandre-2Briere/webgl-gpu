@@ -1,14 +1,17 @@
 import type { Renderable } from '../gameObject/renderables/Renderable'
 import { Camera } from './Camera'
 import { Renderer } from './Renderer'
+import type { LightBuffer } from '../buffers/LightBuffer'
 
 export class Scene {
   private readonly _renderer: Renderer
+  private readonly _lightBuffer: LightBuffer
   private readonly _worldRenderables: Renderable[] = []
   private readonly _overlayRenderables: Renderable[] = []
 
-  constructor(renderer: Renderer) {
-    this._renderer = renderer
+  constructor(renderer: Renderer, lightBuffer: LightBuffer) {
+    this._renderer    = renderer
+    this._lightBuffer = lightBuffer
   }
 
   add(r: Renderable): void {
@@ -42,6 +45,9 @@ export class Scene {
     camera.updateMatrices(aspect)
     camera.uploadTo(queue)
 
+    // Upload any pending light changes
+    this._lightBuffer.upload(queue)
+
     const encoder = device.createCommandEncoder({ label: 'frame' })
     const colorView = this._renderer.getCurrentColorView()
     const depthView = this._renderer.getDepthView()
@@ -64,8 +70,9 @@ export class Scene {
         },
       })
 
-      // Camera bind group is set once for the entire pass
+      // Camera and lights bind groups are set once for the entire pass
       worldPass.setBindGroup(0, camera.bindGroup)
+      worldPass.setBindGroup(3, this._lightBuffer.bindGroup)
 
       for (const r of this._worldRenderables) {
         if (!r.visible) continue

@@ -1,3 +1,5 @@
+export const FLOAT_SIZE = 4  // bytes per GPU f32 or u32
+
 export type Vec2 = [number, number]
 export type Vec3 = [number, number, number]
 export type Vec4 = [number, number, number, number]

@@ -4,19 +4,15 @@ import type { Vec3, Vec4 } from '../math'
 import { applyEulerDelta, yawPitchRollToQuat, rotateByQuat } from '../math'
 import type { Renderable } from './renderables'
 
-// ── Public interface ──────────────────────────────────────────────────────────
+// ── Public interfaces ─────────────────────────────────────────────────────────
 
-export interface IGameObject<R extends Renderable = Renderable> {
-  readonly renderable: R
-  readonly hitbox:     Hitbox3D   | null
-  readonly rigidbody:  Rigidbody3D | null
-
+/** Minimum interface shared by all scene objects (GameObjects and LightGameObjects). */
+export interface ISceneObject {
   position:   Vec3
   quaternion: Vec4
   scale:      Vec3
   readonly color: [number, number, number, number]
 
-  // Transform
   setPosition(position: Vec3): void
   setQuaternion(quaternion: Vec4): void
   /** Set rotation from Euler angles (yaw = Y-axis, pitch = X-axis, roll = Z-axis, radians). */
@@ -26,8 +22,14 @@ export interface IGameObject<R extends Renderable = Renderable> {
   setScale(x: number, y: number, z: number): void
   setColor(r: number, g: number, b: number, a: number): void
 
-  // Physics accessor
   getRigidbody(): Rigidbody3D | null
+  destroy(): void
+}
+
+export interface IGameObject<R extends Renderable = Renderable> extends ISceneObject {
+  readonly renderable: R
+  readonly hitbox:     Hitbox3D    | null
+  readonly rigidbody:  Rigidbody3D | null
 
   // Physics sync (called in the user's game loop)
   syncToPhysics(): void
@@ -35,7 +37,6 @@ export interface IGameObject<R extends Renderable = Renderable> {
 
   // Lifecycle
   copy(): IGameObject<R>
-  destroy(): void
 }
 
 // ── Internal options ──────────────────────────────────────────────────────────

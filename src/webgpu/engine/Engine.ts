@@ -10,14 +10,18 @@ import type {
   ModelAssetHandle,
   FbxAssetHandle,
   CameraOptions,
+  PointLightOptions,
+  AmbientLightOptions,
+  DirectionalLightOptions,
 } from './types'
 import { Camera, Renderer, Scene, PipelineCache } from './core'
-import { UniformPool } from './buffers'
+import { UniformPool, LightBuffer } from './buffers'
 import { Mesh, Quad2D, Quad3D, Model3D, FbxModel } from './gameObject/renderables'
 import type { Renderable, RenderableInitArgs } from './gameObject/renderables'
 import { loadObjAsset, loadFbxAsset, createEngineLayouts, logger } from './utils'
 import { GameObject } from './gameObject/GameObject'
 import type { IGameObject } from './gameObject/GameObject'
+import { LightGameObject, LightType } from './gameObject/LightGameObject'
 import { Rigidbody3D } from './gameObject/rigidbody/Rigidbody3D'
 import type { Hitbox3D } from './gameObject/hitbox/Hitbox3D'
 
@@ -30,6 +34,7 @@ export class Engine {
   private readonly _scene: Scene
   private readonly _pipelineCache: PipelineCache
   private readonly _uniformPool: UniformPool
+  private readonly _lightBuffer: LightBuffer
   private readonly _layouts: BindGroupLayouts
   private _camera: Camera
   private _rafHandle = 0
@@ -40,14 +45,16 @@ export class Engine {
     renderer: Renderer,
     pipelineCache: PipelineCache,
     uniformPool: UniformPool,
+    lightBuffer: LightBuffer,
     layouts: BindGroupLayouts,
     camera: Camera,
   ) {
     this._canvas = canvas
     this._renderer = renderer
-    this._scene = new Scene(renderer)
+    this._scene = new Scene(renderer, lightBuffer)
     this._pipelineCache = pipelineCache
     this._uniformPool = uniformPool
+    this._lightBuffer = lightBuffer
     this._layouts = layouts
     this._camera = camera
   }
@@ -76,9 +83,10 @@ export class Engine {
     const pipelineCache = new PipelineCache(device)
     const uniformPool = new UniformPool(device, UNIFORM_POOL_SIZE)
     const layouts = createEngineLayouts(device)
+    const lightBuffer = new LightBuffer(device, layouts.lights)
     const camera = new Camera(device, layouts.camera, {})
 
-    return new Engine(canvas, renderer, pipelineCache, uniformPool, layouts, camera)
+    return new Engine(canvas, renderer, pipelineCache, uniformPool, lightBuffer, layouts, camera)
   }
 
   // ── Camera ──────────────────────────────────────────────────────────────────
@@ -109,6 +117,51 @@ export class Engine {
 
   createFbxModel(opts: FbxModelGameObjectOptions): GameObject<FbxModel> {
     return this._spawnGameObject(new FbxModel(opts.renderable), opts)
+  }
+
+  // ── Light factory methods ────────────────────────────────────────────────────
+
+  createPointLight(opts: PointLightOptions = {}): LightGameObject {
+    const light = new LightGameObject({
+      lightType:   LightType.Point,
+      color:       opts.color,
+      radius:      opts.radius,
+      lightBuffer: this._lightBuffer,
+      _destroy:    () => this._lightBuffer.removeLight(light),
+    })
+    this._lightBuffer.addLight(light)
+    this._spawnLightRenderable(light)
+    return light
+  }
+
+  createAmbientLight(opts: AmbientLightOptions = {}): LightGameObject {
+    const light = new LightGameObject({
+      lightType:   LightType.Ambient,
+      color:       opts.color,
+      lightBuffer: this._lightBuffer,
+      _destroy:    () => this._lightBuffer.removeLight(light),
+    })
+    this._lightBuffer.addLight(light)
+    this._spawnLightRenderable(light)
+    return light
+  }
+
+  createDirectionalLight(opts: DirectionalLightOptions = {}): LightGameObject {
+    const light = new LightGameObject({
+      lightType:   LightType.Directional,
+      color:       opts.color,
+      radius:      opts.power ?? 1.0,
+      lightBuffer: this._lightBuffer,
+      _destroy:    () => this._lightBuffer.removeLight(light),
+    })
+    light.setDirection(opts.direction ?? [0.577, 0.577, 0.577])
+    this._lightBuffer.addLight(light)
+    this._spawnLightRenderable(light)
+    return light
+  }
+
+  private _spawnLightRenderable(light: LightGameObject): void {
+    light.initRenderable(this._initArgs(), this._scene)
   }
 
   // ── Asset loaders ────────────────────────────────────────────────────────────

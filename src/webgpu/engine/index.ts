@@ -1,9 +1,12 @@
 export { Engine } from './Engine'
 export { Camera } from './core/Camera'
 
-// GameObject (sole user-facing entity)
+// GameObject and scene-object interfaces
 export { GameObject } from './gameObject/GameObject'
-export type { IGameObject } from './gameObject/GameObject'
+export type { IGameObject, ISceneObject } from './gameObject/GameObject'
+
+// Light game object
+export { LightGameObject, LightType } from './gameObject/LightGameObject'
 
 // Option types for Engine.create*() methods
 export type {
@@ -23,4 +26,7 @@ export type {
   FbxAssetHandle,
   FbxModelOptions,
   FbxModelGameObjectOptions,
+  PointLightOptions,
+  AmbientLightOptions,
+  DirectionalLightOptions,
 } from './types'

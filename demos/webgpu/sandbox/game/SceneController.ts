@@ -1,5 +1,6 @@
 import { Engine }           from '../../../../src/webgpu/engine/index'
-import type { IGameObject, FbxAssetHandle } from '../../../../src/webgpu/engine/index'
+import type { IGameObject, ISceneObject, FbxAssetHandle } from '../../../../src/webgpu/engine/index'
+import { LightGameObject } from '../../../../src/webgpu/engine/gameObject/LightGameObject'
 import { applyPhysics, applyCollisions } from '../../../../src/webgpu/engine/gameObject/rigidbody/index'
 import { Rigidbody3D } from '../../../../src/webgpu/engine/gameObject/rigidbody/Rigidbody3D'
 import { CubeHitbox }  from '../../../../src/webgpu/engine/gameObject/hitbox/CubeHitbox'
@@ -7,10 +8,12 @@ import type { Vec3 }   from '../../../../src/webgpu/engine/math'
 import type { Terminal }    from '../ui/Terminal'
 import type { PropertyPanel } from '../ui/PropertyPanel'
 import type { SceneHierarchy } from '../ui/SceneHierarchy'
-import type { ItemEntry, PropertyGroup, PhysicsConfig, SpawnContext, PrimitiveSpawnContext, FbxSpawnContext } from '../items/types'
+import type { ItemEntry, PropertyGroup, PhysicsConfig, SpawnContext, PrimitiveSpawnContext, FbxSpawnContext, LightSpawnContext } from '../items/types'
 import { spawn as spawnQuad } from '../items/quad'
 import { spawn as spawnCube } from '../items/cube'
 import { spawn as spawnFBX, FBX_CATALOG } from '../items/fbx'
+import { spawn as spawnLight } from '../items/lights'
+import { spawn as spawnDirectionalLight } from '../items/directionalLight'
 
 const CAMERA_MOVE_SPEED  = 5.0   // units per second
 const CAMERA_YAW_SPEED   = 1.5   // radians per second (Q/E keys)
@@ -23,10 +26,16 @@ const DEFAULT_PHYSICS: PhysicsConfig = {
   layer:        'default',
 }
 
-const SPAWN_MAP: Record<string, (engine: Engine, context: SpawnContext) => IGameObject> = {
-  Quad: (engine, context) => spawnQuad(engine, context as PrimitiveSpawnContext),
-  Cube: (engine, context) => spawnCube(engine, context as PrimitiveSpawnContext),
-  FBX:  (engine, context) => spawnFBX(engine, context as FbxSpawnContext),
+const SPAWN_MAP: Record<string, (engine: Engine, context: SpawnContext) => ISceneObject> = {
+  Quad:  (engine, context) => spawnQuad(engine, context as PrimitiveSpawnContext),
+  Cube:  (engine, context) => spawnCube(engine, context as PrimitiveSpawnContext),
+  FBX:   (engine, context) => spawnFBX(engine, context as FbxSpawnContext),
+  Light:            (engine, context) => spawnLight(engine, context as LightSpawnContext),
+  DirectionalLight: (engine, context) => spawnDirectionalLight(engine, context as LightSpawnContext),
+}
+
+function isGameObject(object: ISceneObject): object is IGameObject {
+  return 'renderable' in object
 }
 
 function makeHitbox(key: string, scale: Vec3): CubeHitbox {
@@ -35,7 +44,7 @@ function makeHitbox(key: string, scale: Vec3): CubeHitbox {
 }
 
 interface SpawnedObject {
-  gameObject:     IGameObject
+  gameObject:     ISceneObject
   key:            string
   label:          string
   properties:     PropertyGroup[]
@@ -101,6 +110,13 @@ export class SceneController {
     // Render loop always runs so spawned objects are visible immediately.
     this._engine.start()
 
+    // Permanent low-level directional light — always on, not shown in hierarchy.
+    this._engine.createDirectionalLight({
+      direction: [0.577, 0.577, 0.577],
+      color:     [0.35, 0.35, 0.35],
+      power:     1.0,
+    })
+
     this._wireInput()
     this._engine.onFrame(this._onFrame)
     this._wirePhysicsCallbacks()
@@ -124,6 +140,12 @@ export class SceneController {
     this._canvas.requestPointerLock()
     this._playing = true
 
+    for (const spawnedObject of this._spawnedObjects) {
+      if (spawnedObject.gameObject instanceof LightGameObject) {
+        spawnedObject.gameObject.setVisualizationVisible(false)
+      }
+    }
+
     this._terminal.print('Play started.', 'log')
   }
 
@@ -141,6 +163,12 @@ export class SceneController {
     this._resetPhysics()
 
     this._playing = false
+
+    for (const spawnedObject of this._spawnedObjects) {
+      if (spawnedObject.gameObject instanceof LightGameObject) {
+        spawnedObject.gameObject.setVisualizationVisible(true)
+      }
+    }
 
     this._terminal.print('Play stopped.', 'log')
   }
@@ -166,7 +194,9 @@ export class SceneController {
     const selectedFbxUrl = key === 'FBX' ? FBX_CATALOG[0].url : null
     const context: SpawnContext = key === 'FBX'
       ? { kind: 'fbx', asset: this._fbxCache.get(selectedFbxUrl!)! }
-      : { kind: 'primitive' }
+      : key === 'Light' || key === 'DirectionalLight'
+        ? { kind: 'light' }
+        : { kind: 'primitive' }
 
     const gameObject = spawnFn(this._engine, context)
 
@@ -269,9 +299,9 @@ export class SceneController {
     }
 
     if (this._playing) {
-      const objects = this._spawnedObjects.map(s => s.gameObject)
-      applyPhysics(objects, deltaTime)
-      applyCollisions(this._rigidbodyLayerMap, objects)
+      const physicsObjects = this._spawnedObjects.map(s => s.gameObject).filter(isGameObject)
+      applyPhysics(physicsObjects, deltaTime)
+      applyCollisions(this._rigidbodyLayerMap, physicsObjects)
     }
   }
 
@@ -370,16 +400,45 @@ export class SceneController {
         s => s.gameObject === this._propertyPanel.currentObject,
       )
       if (!obj) return
+      if (!isGameObject(obj.gameObject)) return
       const hitbox = obj.gameObject.hitbox
       if (hitbox?.type === 'cube') {
         const hy = obj.key === 'Quad' ? 0.01 : y * 0.5
         ;(hitbox as CubeHitbox).halfExtents = [x * 0.5, hy, z * 0.5]
       }
     }
+
+    this._propertyPanel.onRadiusChange = (radius) => {
+      const obj = this._spawnedObjects.find(
+        s => s.gameObject === this._propertyPanel.currentObject,
+      )
+      if (obj?.gameObject instanceof LightGameObject) {
+        obj.gameObject.setRadius(radius)
+      }
+    }
+
+    this._propertyPanel.onLightTypeChange = (type) => {
+      const obj = this._spawnedObjects.find(
+        s => s.gameObject === this._propertyPanel.currentObject,
+      )
+      if (obj?.gameObject instanceof LightGameObject) {
+        obj.gameObject.setLightType(type)
+      }
+    }
+
+    this._propertyPanel.onPowerChange = (power) => {
+      const obj = this._spawnedObjects.find(
+        s => s.gameObject === this._propertyPanel.currentObject,
+      )
+      if (obj?.gameObject instanceof LightGameObject) {
+        obj.gameObject.setRadius(power)
+      }
+    }
   }
 
   private _rebuildObject(index: number, config: PhysicsConfig): void {
     const obj   = this._spawnedObjects[index]
+    if (!isGameObject(obj.gameObject)) return
     const oldGO = obj.gameObject
 
     // Save current transform and color

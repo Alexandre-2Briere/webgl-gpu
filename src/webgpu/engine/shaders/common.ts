@@ -50,4 +50,24 @@ struct ChunkUniforms {
   gridDims : vec3u,
   _pad     : u32,
 }
+
+// ── Light structs and binding (group 3, world-pass shaders) ──────────────────
+// Shaders that never reference lights are excluded from the pipeline auto-layout.
+
+struct Light {
+  position:  vec3f,
+  radius:    f32,
+  color:     vec3f,
+  lightType: u32,
+}
+
+struct LightBuffer {
+  count:  u32,
+  _pad0:  u32,
+  _pad1:  u32,
+  _pad2:  u32,
+  lights: array<Light, 250>,
+}
+
+@group(3) @binding(0) var<uniform> lights : LightBuffer;
 `;

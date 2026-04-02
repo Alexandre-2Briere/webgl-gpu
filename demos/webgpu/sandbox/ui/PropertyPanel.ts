@@ -1,15 +1,18 @@
-import type { IGameObject } from '../../../../src/webgpu/engine/index'
+import type { ISceneObject } from '../../../../src/webgpu/engine/index'
+import { LightGameObject, LightType } from '../../../../src/webgpu/engine/gameObject/LightGameObject'
 import type { PropertyGroup, PhysicsConfig } from '../items/types'
 
 const DEG = Math.PI / 180
 
 export class PropertyPanel {
   private readonly _root: HTMLElement
-  private _currentObject: IGameObject | null = null
+  private _currentObject: ISceneObject | null = null
 
   // Callbacks
-  onPhysicsChange: ((config: PhysicsConfig) => void) | null = null
-  onScaleChange:   ((x: number, y: number, z: number) => void) | null = null
+  onPhysicsChange:   ((config: PhysicsConfig) => void) | null = null
+  onScaleChange:     ((x: number, y: number, z: number) => void) | null = null
+  onRadiusChange:    ((radius: number) => void) | null = null
+  onLightTypeChange: ((type: LightType) => void) | null = null
 
   // Position inputs
   private _posX!: HTMLInputElement
@@ -41,7 +44,16 @@ export class PropertyPanel {
   // Asset dropdown
   private _assetSection!: HTMLElement
   private _assetSelect!:  HTMLSelectElement
-  onAssetChange: ((url: string) => void) | null = null
+  onAssetChange:  ((url: string) => void) | null = null
+  onPowerChange:  ((power: number) => void) | null = null
+
+  // Light section
+  private _lightSection!:    HTMLElement
+  private _lightTypeSelect!: HTMLSelectElement
+  private _radiusSection!:   HTMLElement
+  private _radiusInput!:     HTMLInputElement
+  private _powerSection!:    HTMLElement
+  private _powerInput!:      HTMLInputElement
 
   // Section containers (for show/hide per item)
   private _positionSection!: HTMLElement
@@ -67,7 +79,7 @@ export class PropertyPanel {
     }
   }
 
-  show(gameObject: IGameObject, label: string, properties: PropertyGroup[], physicsConfig?: PhysicsConfig, selectedAssetUrl?: string): void {
+  show(gameObject: ISceneObject, label: string, properties: PropertyGroup[], physicsConfig?: PhysicsConfig, selectedAssetUrl?: string): void {
     // Commit any pending edits to the outgoing object before switching.
     this._applyPosition()
     this._applyRotation()
@@ -132,6 +144,21 @@ export class PropertyPanel {
       this._assetSelect.value = selectedAssetUrl
     }
 
+    // Light section — only shown for LightGameObjects
+    const showLight = properties.includes('lightType') || properties.includes('lightRadius') || properties.includes('lightPower')
+    this._lightSection.style.display = showLight ? '' : 'none'
+    if (showLight && gameObject instanceof LightGameObject) {
+      this._lightTypeSelect.value = String(gameObject.lightType)
+      this._radiusSection.style.display = gameObject.lightType === LightType.Point ? '' : 'none'
+      if (properties.includes('lightRadius')) {
+        this._radiusInput.value = gameObject.radius.toFixed(1)
+      }
+      this._powerSection.style.display = properties.includes('lightPower') ? '' : 'none'
+      if (properties.includes('lightPower')) {
+        this._powerInput.value = gameObject.radius.toFixed(2)
+      }
+    }
+
     this._root.classList.add('open')
   }
 
@@ -140,7 +167,7 @@ export class PropertyPanel {
     this._root.classList.remove('open')
   }
 
-  get currentObject(): IGameObject | null {
+  get currentObject(): ISceneObject | null {
     return this._currentObject
   }
 
@@ -177,6 +204,7 @@ export class PropertyPanel {
     this._scaleSection    = this._buildScaleSection()
     this._physicsSection  = this._buildPhysicsSection()
     this._assetSection    = this._buildAssetSection()
+    this._lightSection    = this._buildLightSection()
 
     body.appendChild(this._positionSection)
     body.appendChild(this._rotationSection)
@@ -184,6 +212,7 @@ export class PropertyPanel {
     body.appendChild(this._scaleSection)
     body.appendChild(this._physicsSection)
     body.appendChild(this._assetSection)
+    body.appendChild(this._lightSection)
 
     inner.append(header, body)
     this._root.appendChild(inner)
@@ -457,6 +486,86 @@ export class PropertyPanel {
 
     row.appendChild(select)
     section.appendChild(row)
+
+    return section
+  }
+
+  private _buildLightSection(): HTMLElement {
+    const section = document.createElement('div')
+
+    const sectionLabel = document.createElement('div')
+    sectionLabel.className   = 'prop-section-label'
+    sectionLabel.textContent = 'Light'
+    section.appendChild(sectionLabel)
+
+    // Type row
+    const typeRow = document.createElement('div')
+    typeRow.className = 'prop-row'
+
+    const typeLabel = document.createElement('span')
+    typeLabel.className   = 'prop-label'
+    typeLabel.textContent = 'Type'
+
+    const select = document.createElement('select')
+    select.className = 'prop-input'
+
+    const ambientOption = document.createElement('option')
+    ambientOption.value       = String(LightType.Ambient)
+    ambientOption.textContent = 'Ambient'
+
+    const pointOption = document.createElement('option')
+    pointOption.value       = String(LightType.Point)
+    pointOption.textContent = 'Point'
+
+    select.append(ambientOption, pointOption)
+    select.addEventListener('change', () => {
+      this._radiusSection.style.display = select.value === String(LightType.Point) ? '' : 'none'
+      this.onLightTypeChange?.(parseInt(select.value) as LightType)
+    })
+    this._lightTypeSelect = select
+
+    typeRow.append(typeLabel, select)
+    section.appendChild(typeRow)
+
+    // Radius sub-row
+    const radiusRow = document.createElement('div')
+    radiusRow.className = 'prop-row prop-subrow'
+
+    const radiusLabel = document.createElement('span')
+    radiusLabel.className   = 'prop-label'
+    radiusLabel.textContent = 'Radius'
+
+    const radiusInput = document.createElement('input')
+    radiusInput.type      = 'number'
+    radiusInput.step      = '0.5'
+    radiusInput.min       = '0'
+    radiusInput.className = 'prop-input'
+    radiusInput.addEventListener('change', () => this.onRadiusChange?.(parseFloat(radiusInput.value) || 0))
+    this._radiusInput = radiusInput
+
+    this._radiusSection = radiusRow
+    radiusRow.append(radiusLabel, radiusInput)
+    section.appendChild(radiusRow)
+
+    // Power row (for directional lights)
+    const powerRow = document.createElement('div')
+    powerRow.className = 'prop-row'
+
+    const powerLabel = document.createElement('span')
+    powerLabel.className   = 'prop-label'
+    powerLabel.textContent = 'Power'
+
+    const powerInput = document.createElement('input')
+    powerInput.type      = 'number'
+    powerInput.step      = '0.1'
+    powerInput.min       = '0'
+    powerInput.className = 'prop-input'
+    powerInput.addEventListener('change', () => this.onPowerChange?.(parseFloat(powerInput.value) || 0))
+    this._powerInput = powerInput
+
+    this._powerSection = powerRow
+    powerRow.append(powerLabel, powerInput)
+    section.appendChild(powerRow)
 
     return section
   }

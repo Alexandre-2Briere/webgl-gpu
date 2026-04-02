@@ -94,7 +94,7 @@ done
     fi
     printf 'export const %s = /* wgsl */`\n' "$MAIN_CONST"
     cat "$INPUT"
-    printf '\`;\n'
+    printf '\x60;\n'
 } > "$OUTPUT"
 
 echo "Written: $OUTPUT"

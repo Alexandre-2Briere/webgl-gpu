@@ -21,6 +21,20 @@ struct VOut {
 }
 
 @fragment fn fs(in : VOut) -> @location(0) vec4f {
-  return in.color;
+  // Backward compat: no lights present → flat color
+  if (lights.count == 0u) {
+    return in.color;
+  }
+
+  var totalAmbient : vec3f = vec3f(0.0);
+  for (var i : u32 = 0u; i < lights.count; i++) {
+    if (lights.lights[i].lightType == 0u) {
+      totalAmbient += lights.lights[i].color;
+    }
+    // Point lights ignored — quad3d has no surface normal
+  }
+
+  let contribution = clamp(totalAmbient, vec3f(0.0), vec3f(1.0));
+  return vec4f(in.color.rgb * contribution, in.color.a);
 }
 `;

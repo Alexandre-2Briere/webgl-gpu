@@ -80,7 +80,7 @@ export class Model3D implements Renderable {
     this._pipeline = pipelineCache.getOrCreateRender(MESH_PIPELINE_KEY, {
       label: 'mesh-pipeline',
       layout: device.createPipelineLayout({
-        bindGroupLayouts: [layouts.camera, layouts.object],
+        bindGroupLayouts: [layouts.camera, layouts.object, layouts.empty, layouts.lights],
       }),
       vertex: {
         module: shaderModule,

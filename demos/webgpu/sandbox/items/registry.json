@@ -18,5 +18,19 @@
       "isReady": true,
       "properties": ["position", "rotation", "scale", "color", "asset"]
     }
+  ],
+  "Lights": [
+    {
+      "key": "Light",
+      "label": "Light",
+      "isReady": true,
+      "properties": ["position", "color", "lightType", "lightRadius"]
+    },
+    {
+      "key": "DirectionalLight",
+      "label": "Directional Light",
+      "isReady": true,
+      "properties": ["position", "rotation", "color", "lightPower"]
+    }
   ]
 }

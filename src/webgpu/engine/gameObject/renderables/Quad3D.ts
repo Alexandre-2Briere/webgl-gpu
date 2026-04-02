@@ -85,7 +85,7 @@ export class Quad3D implements Renderable {
     this._pipeline = pipelineCache.getOrCreateRender(QUAD3D_PIPELINE_KEY, {
       label: 'quad3d-pipeline',
       layout: device.createPipelineLayout({
-        bindGroupLayouts: [layouts.camera, layouts.object],
+        bindGroupLayouts: [layouts.camera, layouts.object, layouts.empty, layouts.lights],
       }),
       vertex: {
         module: shaderModule,

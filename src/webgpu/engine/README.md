@@ -68,17 +68,19 @@ const engine = await Engine.create(canvas, opts)
 | Method / Property | Returns | Description |
 |-------------------|---------|-------------|
 | `Engine.create(canvas, opts?)` | `Promise<Engine>` | Async factory |
-| `engine.createMesh(opts)` | `MeshHandle` | Static indexed/non-indexed mesh |
-| `engine.createComputedMesh(opts)` | `ComputedRenderableHandle` | GPU compute-generated geometry |
-| `engine.createQuad2D(opts)` | `Quad2DHandle` | Screen-space 2D quad (HUD) |
-| `engine.createQuad3D(opts)` | `Quad3DHandle` | World-space depth-tested quad |
+| `engine.createMesh(opts)` | `GameObject<Mesh>` | Static indexed/non-indexed mesh |
+| `engine.createQuad2D(opts)` | `GameObject<Quad2D>` | Screen-space 2D quad (HUD) |
+| `engine.createQuad3D(opts)` | `GameObject<Quad3D>` | World-space depth-tested quad |
 | `engine.loadObj(url)` | `Promise<ModelAssetHandle>` | Load & upload OBJ model to GPU |
-| `engine.createModelObj(opts)` | `Model3DHandle` | Instance of a loaded OBJ model asset |
+| `engine.createModelObj(opts)` | `GameObject<Model3D>` | Instance of a loaded OBJ model asset |
 | `engine.loadFbx(url)` | `Promise<FbxAssetHandle>` | Load & upload FBX model (with textures) to GPU |
-| `engine.createFbxModel(opts)` | `FbxModelHandle` | Instance of a loaded FBX model asset |
+| `engine.createFbxModel(opts)` | `GameObject<FbxModel>` | Instance of a loaded FBX model asset |
+| `engine.createPointLight(opts?)` | `LightGameObject` | Add a point light to the scene |
+| `engine.createAmbientLight(opts?)` | `LightGameObject` | Add an ambient light to the scene |
 | `engine.createCamera(opts?)` | `Camera` | Create a new camera (not active until `setCamera`) |
 | `engine.setCamera(camera)` | `void` | Switch the active camera |
 | `engine.camera` | `Camera` | Currently active camera |
+| `engine.onFrame(callback)` | `void` | Register per-frame callback invoked with `deltaTime` before render |
 | `engine.start()` | `void` | Begin the RAF render loop |
 | `engine.stop()` | `void` | Stop the RAF render loop |
 | `engine.device` | `GPUDevice` | Raw WebGPU device (escape hatch) |

@@ -1,4 +1,4 @@
-export const FBX_MESH = /* wgsl */`
+export const FBX = /* wgsl */`
 // FBX mesh shader — CCW winding, back-face culling, diffuse + normal mapping.
 // Prepend common.wgsl before compiling.
 // group 0: camera (from common), group 1: object (from common), group 2: material textures.
@@ -67,12 +67,33 @@ struct FbxVOut {
     tsNormal.z * in.tbn2
   );
 
-  // Identical diffuse lighting to mesh.wgsl
-  let light = normalize(vec3f(0.577, 0.577, 0.577));
-  let diff  = max(dot(worldNormal, light), 0.0);
-  let color = diffuse.rgb * in.tint.rgb;
-  let lit   = color * (0.3 + 0.7 * diff);
+  // Backward compat: no lights present → old hardcoded directional
+  if (lights.count == 0u) {
+    let lightDir = normalize(vec3f(0.577, 0.577, 0.577));
+    let diff     = max(dot(worldNormal, lightDir), 0.0);
+    let color    = diffuse.rgb * in.tint.rgb;
+    return vec4f(color * (0.3 + 0.7 * diff), diffuse.a * in.tint.a);
+  }
 
-  return vec4f(lit, diffuse.a * in.tint.a);
-}
-`;
+  var totalAmbient : vec3f = vec3f(0.0);
+  var totalDiffuse : vec3f = vec3f(0.0);
+
+  for (var i : u32 = 0u; i < lights.count; i++) {
+    let light = lights.lights[i];
+    if (light.lightType == 0u) {
+      totalAmbient += light.color;
+    } else {
+      let toLight     = light.position - in.worldPos;
+      let distance    = length(toLight);
+      if (distance < light.radius) {
+        let attenuation = 1.0 - distance / light.radius;
+        let diff        = max(dot(worldNormal, normalize(toLight)), 0.0);
+        totalDiffuse   += light.color * diff * attenuation;
+      }
+    }
+  }
+
+  let contribution = clamp(totalAmbient + totalDiffuse, vec3f(0.0), vec3f(1.0));
+  let color        = diffuse.rgb * in.tint.rgb;
+  return vec4f(color * contribution, diffuse.a * in.tint.a);
+}`;

@@ -2,7 +2,7 @@ import type { Rigidbody3D }    from '../../../../src/webgpu/engine/gameObject/ri
 import type { CubeHitbox }     from '../../../../src/webgpu/engine/gameObject/hitbox/CubeHitbox'
 import type { FbxAssetHandle } from '../../../../src/webgpu/engine/types'
 
-export type PropertyGroup = 'position' | 'rotation' | 'color' | 'scale' | 'rigidbody' | 'hitbox' | 'asset'
+export type PropertyGroup = 'position' | 'rotation' | 'color' | 'scale' | 'rigidbody' | 'hitbox' | 'asset' | 'lightType' | 'lightRadius' | 'lightPower'
 
 export interface PhysicsConfig {
   hasRigidbody: boolean
@@ -33,4 +33,8 @@ export interface FbxSpawnContext {
   hitbox?:    CubeHitbox
 }
 
-export type SpawnContext = PrimitiveSpawnContext | FbxSpawnContext
+export interface LightSpawnContext {
+  kind: 'light'
+}
+
+export type SpawnContext = PrimitiveSpawnContext | FbxSpawnContext | LightSpawnContext

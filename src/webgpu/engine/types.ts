@@ -22,9 +22,11 @@ export interface CameraOptions {
 // ── Shared bind group layouts passed to renderable init ────────────────────
 
 export interface BindGroupLayouts {
-  camera: GPUBindGroupLayout    // group 0 — camera uniform
-  object: GPUBindGroupLayout    // group 1 — per-object uniform (model + tint)
+  camera:      GPUBindGroupLayout  // group 0 — camera uniform
+  object:      GPUBindGroupLayout  // group 1 — per-object uniform (model + tint)
   fbxMaterial: GPUBindGroupLayout  // group 2 — FBX diffuse + normal map textures
+  lights:      GPUBindGroupLayout  // group 3 — light buffer (world-pass shaders)
+  empty:       GPUBindGroupLayout  // placeholder for unused group slots
 }
 
 // ── Renderable options (used inside renderable: { ... } when creating GameObjects) ──
@@ -117,4 +119,21 @@ export interface Model3DGameObjectOptions extends GameObjectBaseOptions {
 
 export interface FbxModelGameObjectOptions extends GameObjectBaseOptions {
   renderable: FbxModelOptions
+}
+
+// ── Light creation options ─────────────────────────────────────────────────
+
+export interface PointLightOptions {
+  color?:  Vec3
+  radius?: number
+}
+
+export interface AmbientLightOptions {
+  color?: Vec3
+}
+
+export interface DirectionalLightOptions {
+  direction?: Vec3
+  color?:     Vec3
+  power?:     number
 }
