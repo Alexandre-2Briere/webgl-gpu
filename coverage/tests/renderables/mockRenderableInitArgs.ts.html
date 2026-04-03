@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for gameObject/rigidbody/Rigidbody3D.ts</title>
+    <title>Code coverage report for tests/renderables/mockRenderableInitArgs.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -19,20 +19,20 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">gameObject/rigidbody</a> Rigidbody3D.ts</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">tests/renderables</a> mockRenderableInitArgs.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>10/10</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">91.66% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>11/12</span>
+                <span class='fraction'>0/0</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>10/10</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
@@ -114,7 +114,13 @@
 <a name='L49'></a><a href='#L49'>49</a>
 <a name='L50'></a><a href='#L50'>50</a>
 <a name='L51'></a><a href='#L51'>51</a>
-<a name='L52'></a><a href='#L52'>52</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -143,78 +149,90 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">101x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">36x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">36x</span>
-<span class="cline-any cline-yes">36x</span>
+<span class="cline-any cline-yes">101x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">101x</span>
+<span class="cline-any cline-yes">101x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">101x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">36x</span>
-<span class="cline-any cline-yes">36x</span>
-<span class="cline-any cline-yes">36x</span>
-<span class="cline-any cline-yes">36x</span>
-<span class="cline-any cline-yes">36x</span>
-<span class="cline-any cline-yes">36x</span>
-<span class="cline-any cline-yes">36x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { Hitbox3D } from '../hitbox'
-import type { Vec3, Vec4 } from '../../math'
+<span class="cline-any cline-yes">101x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">101x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { vi } from 'vitest'
+import { makeMockDevice, type MockGPUDevice, type MockGPUBuffer } from '../buffers/mockDevice'
+import type { RenderableInitArgs } from '../../gameObject/renderables/Renderable'
 &nbsp;
-export interface Rigidbody3DOptions {
-  layer: string
-  isStatic?: boolean
-  mass?: number
-  useGravity?: boolean
-  /** Collision shape. Required for collision/overlap detection. */
-  hitbox?: Hitbox3D
-  /** Called when this rigidbody physically collides with another (solid response). */
-  onCollision?: (other: Rigidbody3D) =&gt; void
-  /** Called when this rigidbody overlaps another (no physical response). */
-  onOverlap?: (other: Rigidbody3D) =&gt; void
+export interface MockUniformSlot {
+  buffer: MockGPUBuffer
+  offset: number
+  size: number
 }
 &nbsp;
-/**
- * Physics body attached to a GameObject.
- * The RigidbodyHandler owns the simulation; GameObject syncs position back to the renderable.
- *
- * position — world-space position managed by RigidbodyHandler each frame.
- *            Initialised by GameObject from the renderable's position before binding.
- */
-export class Rigidbody3D {
-  readonly layer: string
-  readonly isStatic: boolean
-  readonly mass: number
-  readonly useGravity: boolean
+export interface MockUniformPool {
+  allocate: ReturnType&lt;typeof vi.fn&gt;
+  write: ReturnType&lt;typeof vi.fn&gt;
+}
 &nbsp;
-  /** World-space position. Written by RigidbodyHandler, read by GameObject to move the renderable. */
-  position:   Vec3 = [0, 0, 0]
-  /** World-space orientation. Kept in sync by GameObject; used by RigidbodyHandler to update hitbox orientation. */
-  quaternion: Vec4 = [0, 0, 0, 1]
-  velocity:   Vec3 = [0, 0, 0]
+export interface MockRenderableDevice extends MockGPUDevice {
+  createBindGroup: ReturnType&lt;typeof vi.fn&gt;
+  createShaderModule: ReturnType&lt;typeof vi.fn&gt;
+  createPipelineLayout: ReturnType&lt;typeof vi.fn&gt;
+}
 &nbsp;
-  /** Collision shape. If null, this rigidbody participates in physics but skips collision detection. */
-  hitbox: Hitbox3D | null
+export interface MockRenderableInitArgs {
+  args: RenderableInitArgs
+  device: MockRenderableDevice
+  uniformPool: MockUniformPool
+  uniformSlot: MockUniformSlot
+}
 &nbsp;
-  onCollision: ((other: Rigidbody3D) =&gt; void) | null
-  onOverlap:   ((other: Rigidbody3D) =&gt; void) | null
+export function makeMockRenderableInitArgs(): MockRenderableInitArgs {
+  const base = makeMockDevice()
 &nbsp;
-  constructor(opts: Rigidbody3DOptions) {
-    this.layer      = opts.layer
-    this.isStatic   = opts.isStatic   ?? false
-    this.mass       = opts.mass       ?? 1
-    this.useGravity = opts.useGravity ?? <span class="branch-1 cbranch-no" title="branch not covered" >true</span>
-    this.hitbox     = opts.hitbox     ?? null
-    this.onCollision = opts.onCollision ?? null
-    this.onOverlap   = opts.onOverlap   ?? null
+  const device: MockRenderableDevice = {
+    ...base,
+    createBindGroup: vi.fn().mockReturnValue({}),
+    createShaderModule: vi.fn().mockReturnValue({}),
+    createPipelineLayout: vi.fn().mockReturnValue({}),
   }
+&nbsp;
+  const mockBuffer: MockGPUBuffer = { size: 256, usage: 0x40, destroy: vi.fn() }
+  const uniformSlot: MockUniformSlot = { buffer: mockBuffer, offset: 0, size: 256 }
+&nbsp;
+  const uniformPool: MockUniformPool = {
+    allocate: vi.fn().mockReturnValue(uniformSlot),
+    write: vi.fn(),
+  }
+&nbsp;
+  const args: RenderableInitArgs = {
+    device: device as unknown as GPUDevice,
+    queue: device.queue as unknown as GPUQueue,
+    format: 'bgra8unorm' as GPUTextureFormat,
+    pipelineCache: { getOrCreateRender: vi.fn().mockReturnValue({}) } as any,
+    layouts: { camera: {}, object: {}, empty: {}, lights: {}, fbxMaterial: {} } as any,
+    uniformPool: uniformPool as any,
+  }
+&nbsp;
+  return { args, device, uniformPool, uniformSlot }
 }
 &nbsp;</pre></td></tr></table></pre>
 
