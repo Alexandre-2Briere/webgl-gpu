@@ -24,6 +24,13 @@ export class Scene {
     this._worldRenderables.sort((a, b) => a.pipelineKey.localeCompare(b.pipelineKey))
   }
 
+  destroy(): void {
+    for (const r of this._worldRenderables) r.destroy()
+    for (const r of this._overlayRenderables) r.destroy()
+    this._worldRenderables.length = 0
+    this._overlayRenderables.length = 0
+  }
+
   remove(r: Renderable): void {
     const removeFrom = (arr: Renderable[]) => {
       const idx = arr.indexOf(r)

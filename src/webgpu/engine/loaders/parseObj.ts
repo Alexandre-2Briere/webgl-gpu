@@ -1,3 +1,6 @@
+import { logger } from '../utils'
+import { safeParseFloat } from '../math'
+
 /**
  * Parses a Wavefront OBJ string into interleaved vertex data compatible with
  * the engine's mesh format (48 bytes/vertex):
@@ -25,10 +28,10 @@ export function parseObj(source: string): { vertices: Float32Array; indices: Uin
     const line = rawLine.trim()
     if (line.startsWith('vn ')) {
       const parts = line.split(/\s+/)
-      normals.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]))
+      normals.push(safeParseFloat(parts[1]), safeParseFloat(parts[2]), safeParseFloat(parts[3]))
     } else if (line.startsWith('v ')) {
       const parts = line.split(/\s+/)
-      positions.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]))
+      positions.push(safeParseFloat(parts[1]), safeParseFloat(parts[2]), safeParseFloat(parts[3]))
     }
   }
 
@@ -50,6 +53,21 @@ export function parseObj(source: string): { vertices: Float32Array; indices: Uin
       const normIdx = parts.length >= 3 && parts[2] !== '' ? parseInt(parts[2]) - 1 : -1
       return [posIdx, normIdx]
     })
+
+    // Skip degenerate faces
+    if (faceVertices.length < 3) {
+      logger.warn('parseObj: skipping degenerate face with fewer than 3 vertices', line)
+      continue
+    }
+
+    // Skip faces with out-of-range indices
+    const positionCount = positions.length / 3
+    const normalCount = normals.length / 3
+    const validFace = faceVertices.every(([posIdx, normIdx]) =>
+      posIdx >= 0 && posIdx < positionCount &&
+      (normIdx < 0 || normIdx < normalCount)
+    )
+    if (!validFace) continue
 
     // Compute flat face normal from first triangle when no normals in file
     let flatNx = 0, flatNy = 1, flatNz = 0

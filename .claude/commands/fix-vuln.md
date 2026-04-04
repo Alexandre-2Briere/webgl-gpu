@@ -8,11 +8,12 @@ The user wants to fix one or more vulnerabilities and remove them from `Vuln.md`
 
 ## Arguments
 
-The user will provide one or more vulnerability IDs after the command, e.g.:
+The user will provide one or more vulnerability IDs after the command, or all, e.g.:
 
 ```
 /fix-vuln VULN-01
 /fix-vuln VULN-02 VULN-04
+/fix-vuln all
 ```
 
 If no ID is provided, ask the user which vulnerability they want to fix.

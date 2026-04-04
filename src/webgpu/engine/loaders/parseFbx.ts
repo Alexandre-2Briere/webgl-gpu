@@ -428,7 +428,7 @@ async function decodeTexture(texNode: FBXReaderNode): Promise<ImageBitmap | null
         const bin = atob(b64)
         bytes = new Uint8Array(bin.length)
         for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-      } catch { bytes = null }
+      } catch (e) { logger.warn('parseFbx: failed to decode embedded texture data', e); bytes = null }
     } else if (Array.isArray(raw) && raw.length > 0) {
       // Binary FBX: number[] from fbx-parser
       bytes = new Uint8Array((raw as number[]).length)
@@ -439,7 +439,7 @@ async function decodeTexture(texNode: FBXReaderNode): Promise<ImageBitmap | null
       try {
         const blob = new Blob([bytes as BlobPart])
         return await createImageBitmap(blob)
-      } catch { /* fall through */ }
+      } catch (e) { logger.warn('parseFbx: failed to decode image bitmap for embedded texture', e) }
     }
   }
 

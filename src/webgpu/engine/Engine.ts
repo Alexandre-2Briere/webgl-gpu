@@ -75,10 +75,6 @@ export class Engine {
       label: 'engine-device',
     })
 
-    device.lost.then(info => {
-      logger.error('WebGPU device lost:', info.message)
-    })
-
     const renderer = new Renderer(device, canvas)
     const pipelineCache = new PipelineCache(device)
     const uniformPool = new UniformPool(device, UNIFORM_POOL_SIZE)
@@ -86,12 +82,20 @@ export class Engine {
     const lightBuffer = new LightBuffer(device, layouts.lights)
     const camera = new Camera(device, layouts.camera, {})
 
-    return new Engine(canvas, renderer, pipelineCache, uniformPool, lightBuffer, layouts, camera)
+    const engine = new Engine(canvas, renderer, pipelineCache, uniformPool, lightBuffer, layouts, camera)
+
+    device.lost.then(info => {
+      logger.error('WebGPU device lost:', info.message)
+      engine.stop()
+    })
+
+    return engine
   }
 
   // ── Camera ──────────────────────────────────────────────────────────────────
 
   setCamera(camera: Camera): void {
+    this._camera?.destroy()
     this._camera = camera
   }
 
@@ -166,12 +170,12 @@ export class Engine {
 
   // ── Asset loaders ────────────────────────────────────────────────────────────
 
-  async loadObj(url: string): Promise<ModelAssetHandle> {
-    return loadObjAsset(this._renderer.device, this._renderer.queue, url)
+  async loadObj(url: string, timeoutMs?: number): Promise<ModelAssetHandle> {
+    return loadObjAsset(this._renderer.device, this._renderer.queue, url, timeoutMs)
   }
 
-  async loadFbx(url: string): Promise<FbxAssetHandle> {
-    return loadFbxAsset(this._renderer.device, this._renderer.queue, this._layouts.fbxMaterial, url)
+  async loadFbx(url: string, timeoutMs?: number): Promise<FbxAssetHandle> {
+    return loadFbxAsset(this._renderer.device, this._renderer.queue, this._layouts.fbxMaterial, url, timeoutMs)
   }
 
   createCamera(opts: CameraOptions = {}): Camera {
@@ -202,6 +206,14 @@ export class Engine {
       cancelAnimationFrame(this._rafHandle)
       this._rafHandle = 0
     }
+  }
+
+  destroy(): void {
+    this.stop()
+    this._scene.destroy()
+    this._camera.destroy()
+    this._uniformPool.destroy()
+    this._lightBuffer.destroy()
   }
 
   // ── Escape hatches ──────────────────────────────────────────────────────────

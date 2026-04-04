@@ -72,6 +72,7 @@ export class FbxAsset implements FbxAssetHandle {
           Math.round(mesh.material.baseColor[2] * 255),
           255,
         ])
+        this._textures.push(diffuseTex)
       } else {
         diffuseTex = fallbackDiffuse
       }

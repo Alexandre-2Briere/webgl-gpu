@@ -1,5 +1,6 @@
 import type { ISceneObject } from '../../../../src/webgpu/engine/index'
 import { LightGameObject, LightType } from '../../../../src/webgpu/engine/gameObject/LightGameObject'
+import { safeParseFloat } from '../../../../src/webgpu/engine/math'
 import type { PropertyGroup, PhysicsConfig } from '../items/types'
 
 const DEG = Math.PI / 180
@@ -356,17 +357,17 @@ export class PropertyPanel {
 
   private _applyPosition(): void {
     if (!this._currentObject) return
-    const x = parseFloat(this._posX.value) || 0
-    const y = parseFloat(this._posY.value) || 0
-    const z = parseFloat(this._posZ.value) || 0
+    const x = safeParseFloat(this._posX.value)
+    const y = safeParseFloat(this._posY.value)
+    const z = safeParseFloat(this._posZ.value)
     this._currentObject.setPosition([x, y, z])
   }
 
   private _applyRotation(): void {
     if (!this._currentObject) return
-    const yawRad   = (parseFloat(this._rotYaw.value)   || 0) * DEG
-    const pitchRad = (parseFloat(this._rotPitch.value) || 0) * DEG
-    const rollRad  = (parseFloat(this._rotRoll.value)  || 0) * DEG
+    const yawRad   = safeParseFloat(this._rotYaw.value)   * DEG
+    const pitchRad = safeParseFloat(this._rotPitch.value) * DEG
+    const rollRad  = safeParseFloat(this._rotRoll.value)  * DEG
     this._currentObject.setRotation(yawRad, pitchRad, rollRad)
   }
 
@@ -383,9 +384,9 @@ export class PropertyPanel {
 
   private _applyScale(): void {
     if (!this._currentObject) return
-    const x = parseFloat(this._scaleX.value) || 1
-    const y = parseFloat(this._scaleY.value) || 1
-    const z = parseFloat(this._scaleZ.value) || 1
+    const x = safeParseFloat(this._scaleX.value, 1)
+    const y = safeParseFloat(this._scaleY.value, 1)
+    const z = safeParseFloat(this._scaleZ.value, 1)
     this._currentObject.setScale(x, y, z)
     this.onScaleChange?.(x, y, z)
   }
@@ -540,7 +541,7 @@ export class PropertyPanel {
     radiusInput.step      = '0.5'
     radiusInput.min       = '0'
     radiusInput.className = 'prop-input'
-    radiusInput.addEventListener('change', () => this.onRadiusChange?.(parseFloat(radiusInput.value) || 0))
+    radiusInput.addEventListener('change', () => this.onRadiusChange?.(safeParseFloat(radiusInput.value)))
     this._radiusInput = radiusInput
 
     this._radiusSection = radiusRow
@@ -560,7 +561,7 @@ export class PropertyPanel {
     powerInput.step      = '0.1'
     powerInput.min       = '0'
     powerInput.className = 'prop-input'
-    powerInput.addEventListener('change', () => this.onPowerChange?.(parseFloat(powerInput.value) || 0))
+    powerInput.addEventListener('change', () => this.onPowerChange?.(safeParseFloat(powerInput.value)))
     this._powerInput = powerInput
 
     this._powerSection = powerRow

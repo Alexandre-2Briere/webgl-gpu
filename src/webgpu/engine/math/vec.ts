@@ -1,5 +1,11 @@
 export const FLOAT_SIZE = 4  // bytes per GPU f32 or u32
 
+/** Parses a float string, returning `fallback` (default 0) when the result is NaN. */
+export function safeParseFloat(value: string, fallback = 0): number {
+  const parsed = parseFloat(value)
+  return isNaN(parsed) ? fallback : parsed
+}
+
 export type Vec2 = [number, number]
 export type Vec3 = [number, number, number]
 export type Vec4 = [number, number, number, number]

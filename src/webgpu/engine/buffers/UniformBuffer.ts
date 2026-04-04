@@ -21,6 +21,10 @@ export class UniformBuffer {
     })
   }
 
+  destroy(): void {
+    this._gpuBuffer.destroy()
+  }
+
   protected _write(queue: GPUQueue, data: ArrayBuffer): void {
     queue.writeBuffer(this._gpuBuffer, 0, data)
   }
