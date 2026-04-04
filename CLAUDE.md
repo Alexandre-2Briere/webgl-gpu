@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+The main rule : NEVER and i mean NEVER try to access file outside the project
+
 ## Commands
 
 ```bash
