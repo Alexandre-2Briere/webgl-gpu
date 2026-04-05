@@ -49,7 +49,7 @@ export function makeMockRenderableInitArgs(): MockRenderableInitArgs {
     queue: device.queue as unknown as GPUQueue,
     format: 'bgra8unorm' as GPUTextureFormat,
     pipelineCache: { getOrCreateRender: vi.fn().mockReturnValue({}) } as any,
-    layouts: { camera: {}, object: {}, empty: {}, lights: {}, fbxMaterial: {} } as any,
+    layouts: { camera: {}, object: {}, empty: {}, lights: {}, fbxMaterial: {}, gizmo: {} } as any,
     uniformPool: uniformPool as any,
   }
 

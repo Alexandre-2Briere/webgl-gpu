@@ -16,7 +16,7 @@ export interface RenderableInitArgs {
 export interface Renderable {
   readonly id: symbol
   /** 'world' → depth-tested 3D pass. 'overlay' → 2D HUD pass (no depth). */
-  readonly layer: 'world' | 'overlay'
+  readonly layer: 'world' | 'overlay' | 'world-overlay'
   /** Pipeline key used to sort draw calls and minimise setPipeline() calls. */
   readonly pipelineKey: string
   visible: boolean

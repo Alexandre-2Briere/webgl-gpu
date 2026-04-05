@@ -29,4 +29,8 @@ export type {
   PointLightOptions,
   AmbientLightOptions,
   DirectionalLightOptions,
+  ArrowGizmoOptions,
 } from './types'
+
+// Editor renderables
+export { ArrowGizmo } from './gameObject/renderables'

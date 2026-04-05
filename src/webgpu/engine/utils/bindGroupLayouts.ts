@@ -48,6 +48,17 @@ export function createEmptyLayout(device: GPUDevice): GPUBindGroupLayout {
   return device.createBindGroupLayout({ label: 'empty-bgl', entries: [] })
 }
 
+export function createGizmoLayout(device: GPUDevice): GPUBindGroupLayout {
+  return device.createBindGroupLayout({
+    label: 'gizmo-bgl',
+    entries: [{
+      binding:    0,
+      visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+      buffer:     { type: 'uniform' },
+    }],
+  })
+}
+
 export function createEngineLayouts(device: GPUDevice): BindGroupLayouts {
   return {
     camera:      createCameraLayout(device),
@@ -55,5 +66,6 @@ export function createEngineLayouts(device: GPUDevice): BindGroupLayouts {
     fbxMaterial: createFbxMaterialLayout(device),
     lights:      createLightsLayout(device),
     empty:       createEmptyLayout(device),
+    gizmo:       createGizmoLayout(device),
   }
 }

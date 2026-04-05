@@ -28,6 +28,7 @@ async function main(): Promise<void> {
     (index) => controllerRef.current.selectObject(index),
     (index, newName) => controllerRef.current.renameObject(index, newName),
     (index) => controllerRef.current.removeObject(index),
+    () => controllerRef.current.deselectObject(),
   )
 
   const controller = new SceneController(canvas, terminal, propertyPanel, sceneHierarchy)

@@ -20,6 +20,7 @@ A lightweight, modular WebGPU rendering engine with a clean facade API. Supports
   - [Quad2D (Screen-Space)](#quad2d-screen-space)
   - [Quad3D (World-Space)](#quad3d-world-space)
   - [Model3D](#model3d)
+  - [ArrowGizmo](#arrowgizmo)
 - [Vertex Format](#vertex-format)
 - [Render Pipeline](#render-pipeline)
 - [Math Utilities](#math-utilities)
@@ -78,6 +79,8 @@ const engine = await Engine.create(canvas, opts)
 | `engine.createPointLight(opts?)` | `LightGameObject` | Add a point light to the scene |
 | `engine.createAmbientLight(opts?)` | `LightGameObject` | Add an ambient light to the scene |
 | `engine.createDirectionalLight(opts?)` | `LightGameObject` | Add a directional light to the scene |
+| `engine.createArrowGizmo(opts?)` | `ArrowGizmo` | Create a procedural 3-axis translation gizmo (editor tool) |
+| `engine.destroyArrowGizmo(gizmo)` | `void` | Remove gizmo from scene and free its GPU buffer |
 | `engine.createCamera(opts?)` | `Camera` | Create a new camera (not active until `setCamera`) |
 | `engine.setCamera(camera)` | `void` | Switch the active camera |
 | `engine.camera` | `Camera` | Currently active camera |
@@ -491,6 +494,43 @@ asset.destroy()  // Free shared GPU buffers when all instances are done
 
 ---
 
+### ArrowGizmo
+
+Three procedural axis arrows (red X, green Y, blue Z) rendered in world space. Intended as an editor tool — hidden by default, shown while an object is selected. Occluded portions render at 75% opacity (two-pipeline approach: `depthCompare: 'greater'` then `'less-equal'`, neither writes depth).
+
+```typescript
+const gizmo = engine.createArrowGizmo()
+
+gizmo.setPosition([0, 0, 0])
+gizmo.setScale(1, 1, 1)
+gizmo.setAxisVisible(0, false)  // hide X arrow
+gizmo.visible = true
+
+engine.destroyArrowGizmo(gizmo)
+```
+
+#### `ArrowGizmoOptions`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `colorX` | `[r, g, b, a]` | `[1, 0.15, 0.15, 1]` | RGBA color for the X-axis arrow |
+| `colorY` | `[r, g, b, a]` | `[0.15, 1, 0.15, 1]` | RGBA color for the Y-axis arrow |
+| `colorZ` | `[r, g, b, a]` | `[0.15, 0.15, 1, 1]` | RGBA color for the Z-axis arrow |
+| `label` | `string` | — | Debug label |
+
+#### `ArrowGizmo` Methods
+
+| Method | Description |
+|--------|-------------|
+| `setPosition([x, y, z])` | Move gizmo origin in world space |
+| `setQuaternion([x, y, z, w])` | Orient all arrows together |
+| `setScale(x, y, z)` | Uniform scale of arrow length and thickness |
+| `setAxisVisible(axis, visible)` | Show/hide one axis arrow (`0`=X, `1`=Y, `2`=Z) |
+| `visible` | Master show/hide toggle |
+| `destroy()` | Free standalone GPU buffer (called by `engine.destroyArrowGizmo`) |
+
+---
+
 ## Vertex Format
 
 All meshes and OBJ models use the same interleaved 48-byte vertex layout:
@@ -527,7 +567,7 @@ Each frame encodes three passes in order:
 
 | Layer | Renderables | Depth Test | Lighting |
 |-------|-------------|------------|----------|
-| `'world'` | Mesh, ComputedMesh, Quad3D, Model3D | Yes | Diffuse + ambient |
+| `'world'` | Mesh, ComputedMesh, Quad3D, Model3D, ArrowGizmo | Yes | Diffuse + ambient |
 | `'overlay'` | Quad2D | No | None (flat color) |
 
 **Compute pre-pass detail:**

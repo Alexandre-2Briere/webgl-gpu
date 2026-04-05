@@ -1,4 +1,4 @@
-import { Engine }           from '../../../../src/webgpu/engine/index'
+import { Engine, ArrowGizmo } from '../../../../src/webgpu/engine/index'
 import type { IGameObject, ISceneObject, FbxAssetHandle } from '../../../../src/webgpu/engine/index'
 import { LightGameObject } from '../../../../src/webgpu/engine/gameObject/LightGameObject'
 import { applyPhysics, applyCollisions } from '../../../../src/webgpu/engine/gameObject/rigidbody/index'
@@ -68,6 +68,12 @@ export class SceneController {
 
   private _playing = false
 
+  // Gizmo state
+  private _gizmo:               ArrowGizmo | null = null
+  private _selectedIndex:       number = -1
+  private _draggingAxis:        0 | 1 | 2 | null = null
+  private _axisPickedThisClick: boolean = false
+
   // Input state
   private readonly _pressedKeys = new Set<string>()
   private unfocused = true;
@@ -110,6 +116,9 @@ export class SceneController {
     // Render loop always runs so spawned objects are visible immediately.
     this._engine.start()
 
+    // Editor gizmo — hidden until an object is selected.
+    this._gizmo = this._engine.createArrowGizmo()
+
     // Permanent low-level directional light — always on, not shown in hierarchy.
     this._engine.createDirectionalLight({
       direction: [0.577, 0.577, 0.577],
@@ -139,6 +148,8 @@ export class SceneController {
 
     this._canvas.requestPointerLock()
     this._playing = true
+    this._selectedIndex = -1
+    if (this._gizmo) this._gizmo.visible = false
 
     for (const spawnedObject of this._spawnedObjects) {
       if (spawnedObject.gameObject instanceof LightGameObject) {
@@ -232,8 +243,25 @@ export class SceneController {
   selectObject(index: number): void {
     const obj = this._spawnedObjects[index]
     if (!obj) return
+    this._selectedIndex = index
     this._sceneHierarchy.setSelected(index)
     this._propertyPanel.show(obj.gameObject, obj.label, obj.properties, obj.physicsConfig, obj.selectedFbxUrl ?? undefined)
+
+    if (this._gizmo && !this._playing) {
+      const position    = obj.gameObject.position
+      const quaternion  = obj.gameObject.quaternion
+      this._gizmo.setPosition([position[0], position[1], position[2]])
+      this._gizmo.setQuaternion([quaternion[0], quaternion[1], quaternion[2], quaternion[3]])
+      this._gizmo.setScale(1, 1, 1)
+      this._gizmo.visible = true
+    }
+  }
+
+  deselectObject(): void {
+    this._selectedIndex = -1
+    this._sceneHierarchy.setSelected(-1)
+    this._propertyPanel.hide()
+    if (this._gizmo) this._gizmo.visible = false
   }
 
   renameObject(index: number, newName: string): boolean {
@@ -266,6 +294,14 @@ export class SceneController {
       this._propertyPanel.hide()
     }
 
+    // Hide gizmo if the removed object was selected
+    if (this._selectedIndex === index && this._gizmo) {
+      this._gizmo.visible = false
+      this._selectedIndex = -1
+    } else if (this._selectedIndex > index) {
+      this._selectedIndex--
+    }
+
     obj.gameObject.destroy()
     this._spawnedObjects.splice(index, 1)
     this._sceneHierarchy.removeRow(index)
@@ -278,8 +314,35 @@ export class SceneController {
   private _onFrame = (deltaTime: number): void => {
     this._applyCamera(deltaTime)
 
-    // Mouse drag rotation when not playing (no pointer lock)
-    if (this._mouseButtonDown && !this._playing) {
+    // Sync gizmo position with selected object every frame (object may have moved).
+    if (this._gizmo?.visible && this._selectedIndex >= 0 && !this._playing) {
+      const obj = this._spawnedObjects[this._selectedIndex]
+      if (obj) {
+        const position = obj.gameObject.position
+        this._gizmo.setPosition([position[0], position[1], position[2]])
+      }
+    }
+
+    // Axis drag: translate selected object along the dragged axis.
+    if (this._draggingAxis !== null && this._mouseButtonDown &&
+        this._selectedIndex >= 0 && !this._playing) {
+      const obj = this._spawnedObjects[this._selectedIndex]
+      if (obj) {
+        const DRAG_SPEED = 0.01  // world units per pixel
+        const axis  = this._draggingAxis
+        const delta = axis === 1
+          ? -this._mouseDeltaY * DRAG_SPEED
+          :  this._mouseDeltaX * DRAG_SPEED
+        const pos = obj.gameObject.position as [number, number, number]
+        pos[axis] += delta
+        obj.gameObject.setPosition(pos)
+      }
+      this._mouseDeltaX = 0
+      this._mouseDeltaY = 0
+    }
+
+    // Mouse drag rotation when not playing (no pointer lock, no axis drag).
+    if (this._mouseButtonDown && !this._playing && this._draggingAxis === null) {
       this._engine.camera.rotate(
         -this._mouseDeltaX * MOUSE_SENSITIVITY,
         -this._mouseDeltaY * MOUSE_SENSITIVITY,
@@ -288,7 +351,7 @@ export class SceneController {
       this._mouseDeltaY = 0
     }
 
-    // Mouse rotation when pointer is locked (play mode)
+    // Mouse rotation when pointer is locked (play mode).
     if (document.pointerLockElement === this._canvas) {
       this._engine.camera.rotate(
         this._mouseDeltaX * MOUSE_SENSITIVITY,
@@ -504,7 +567,49 @@ export class SceneController {
     })
 
     window.addEventListener('mouseup', (event: MouseEvent) => {
-      if (event.button === 0) this._mouseButtonDown = false
+      if (event.button === 0) {
+        this._mouseButtonDown = false
+        this._draggingAxis = null
+        // _axisPickedThisClick is cleared by the subsequent click handler
+      }
+    })
+
+    // Axis arrow picking on mousedown — must run before the click handler.
+    this._canvas.addEventListener('mousedown', (event: MouseEvent) => {
+      if (event.button !== 0 || this._playing || !this._gizmo?.visible) return
+
+      const canvasRect  = this._canvas.getBoundingClientRect()
+      const clickNdcX   = ((event.clientX - canvasRect.left) / canvasRect.width)  * 2 - 1
+      const clickNdcY   = 1 - ((event.clientY - canvasRect.top) / canvasRect.height) * 2
+      const viewProj    = this._engine.camera.getData()
+      const gizmoPos    = this._gizmo.position
+
+      // Project each axis arrow midpoint (0.5 units along axis) into NDC.
+      const AXIS_DIRECTIONS: [number, number, number][] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+      let bestAxis: 0 | 1 | 2 | null = null
+      let bestDistance = 0.12  // NDC pick threshold
+
+      for (let axisIndex = 0; axisIndex < 3; axisIndex++) {
+        const [axisX, axisY, axisZ] = AXIS_DIRECTIONS[axisIndex]
+        const worldX = gizmoPos[0] + axisX * 0.5
+        const worldY = gizmoPos[1] + axisY * 0.5
+        const worldZ = gizmoPos[2] + axisZ * 0.5
+        const clipX = viewProj[0]*worldX + viewProj[4]*worldY + viewProj[8]*worldZ  + viewProj[12]
+        const clipY = viewProj[1]*worldX + viewProj[5]*worldY + viewProj[9]*worldZ  + viewProj[13]
+        const clipW = viewProj[3]*worldX + viewProj[7]*worldY + viewProj[11]*worldZ + viewProj[15]
+        if (clipW <= 0) continue
+
+        const distance = Math.hypot(clipX / clipW - clickNdcX, clipY / clipW - clickNdcY)
+        if (distance < bestDistance) {
+          bestDistance = distance
+          bestAxis = axisIndex as 0 | 1 | 2
+        }
+      }
+
+      if (bestAxis !== null) {
+        this._draggingAxis        = bestAxis
+        this._axisPickedThisClick = true
+      }
     })
 
     window.addEventListener('mousemove', (event: MouseEvent) => {

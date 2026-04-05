@@ -2,11 +2,13 @@ import type { Renderable } from '../gameObject/renderables/Renderable'
 import { Camera } from './Camera'
 import { Renderer } from './Renderer'
 import type { LightBuffer } from '../buffers/LightBuffer'
+import { logger } from '../utils'
 
 export class Scene {
   private readonly _renderer: Renderer
   private readonly _lightBuffer: LightBuffer
   private readonly _worldRenderables: Renderable[] = []
+  private readonly _worldOverlay: Renderable[] = []
   private readonly _overlayRenderables: Renderable[] = []
 
   constructor(renderer: Renderer, lightBuffer: LightBuffer) {
@@ -17,17 +19,23 @@ export class Scene {
   add(r: Renderable): void {
     if (r.layer === 'world') {
       this._worldRenderables.push(r)
+    } else if (r.layer === 'world-overlay') {
+      this._worldOverlay.push(r)
     } else {
+      logger.warn(`Renderable with unknown layer "${r.layer}" added to scene; defaulting to "overlay".`)
       this._overlayRenderables.push(r)
     }
     // Sort world renderables by pipeline key to minimise setPipeline() calls
     this._worldRenderables.sort((a, b) => a.pipelineKey.localeCompare(b.pipelineKey))
+    this._worldOverlay.sort((a, b) => a.pipelineKey.localeCompare(b.pipelineKey))
   }
 
   destroy(): void {
     for (const r of this._worldRenderables) r.destroy()
+    for (const r of this._worldOverlay) r.destroy()
     for (const r of this._overlayRenderables) r.destroy()
     this._worldRenderables.length = 0
+    this._worldOverlay.length = 0
     this._overlayRenderables.length = 0
   }
 
@@ -37,6 +45,7 @@ export class Scene {
       if (idx !== -1) arr.splice(idx, 1)
     }
     removeFrom(this._worldRenderables)
+    removeFrom(this._worldOverlay)
     removeFrom(this._overlayRenderables)
   }
 
@@ -82,6 +91,10 @@ export class Scene {
       worldPass.setBindGroup(3, this._lightBuffer.bindGroup)
 
       for (const r of this._worldRenderables) {
+        if (!r.visible) continue
+        r.encode(worldPass, camera)
+      }
+      for (const r of this._worldOverlay) {
         if (!r.visible) continue
         r.encode(worldPass, camera)
       }

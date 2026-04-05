@@ -1,10 +1,11 @@
 const NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9]*$/
 
 export class SceneHierarchy {
-  private readonly _list:     HTMLElement
-  private readonly _onSelect: (index: number) => void
-  private readonly _onRename: (index: number, newName: string) => boolean
-  private readonly _onRemove: (index: number) => void
+  private readonly _list:       HTMLElement
+  private readonly _onSelect:   (index: number) => void
+  private readonly _onRename:   (index: number, newName: string) => boolean
+  private readonly _onRemove:   (index: number) => void
+  private readonly _onDeselect: (() => void) | undefined
 
   private _rows:         HTMLElement[] = []
   private _selectedIndex = -1
@@ -14,10 +15,12 @@ export class SceneHierarchy {
     onSelect: (index: number) => void,
     onRename: (index: number, newName: string) => boolean,
     onRemove: (index: number) => void,
+    onDeselect?: () => void,
   ) {
-    this._onSelect = onSelect
-    this._onRename = onRename
-    this._onRemove = onRemove
+    this._onSelect   = onSelect
+    this._onRename   = onRename
+    this._onRemove   = onRemove
+    this._onDeselect = onDeselect
 
     this._list = container.querySelector<HTMLElement>('#scene-list')!
   }
@@ -95,6 +98,14 @@ export class SceneHierarchy {
     span.addEventListener('dblclick', (e: MouseEvent) => {
       e.stopPropagation()
       this._beginRename(row, span)
+    })
+
+    // Double click on the row background (outside the name span) → deselect.
+    // The span's dblclick calls stopPropagation(), so this only fires when the
+    // non-text portion of the row is double-clicked.
+    row.addEventListener('dblclick', () => {
+      this.setSelected(-1)
+      this._onDeselect?.()
     })
 
     // Remove button click

@@ -27,6 +27,7 @@ export interface BindGroupLayouts {
   fbxMaterial: GPUBindGroupLayout  // group 2 — FBX diffuse + normal map textures
   lights:      GPUBindGroupLayout  // group 3 — light buffer (world-pass shaders)
   empty:       GPUBindGroupLayout  // placeholder for unused group slots
+  gizmo:       GPUBindGroupLayout  // group 2 — ArrowGizmo axis colors + visibility
 }
 
 // ── Renderable options (used inside renderable: { ... } when creating GameObjects) ──
@@ -119,6 +120,18 @@ export interface Model3DGameObjectOptions extends GameObjectBaseOptions {
 
 export interface FbxModelGameObjectOptions extends GameObjectBaseOptions {
   renderable: FbxModelOptions
+}
+
+// ── ArrowGizmo creation options ───────────────────────────────────────────────
+
+export interface ArrowGizmoOptions {
+  /** RGBA color for the X axis arrow. Default: [1, 0.15, 0.15, 1] */
+  colorX?: [number, number, number, number]
+  /** RGBA color for the Y axis arrow. Default: [0.15, 1, 0.15, 1] */
+  colorY?: [number, number, number, number]
+  /** RGBA color for the Z axis arrow. Default: [0.15, 0.15, 1, 1] */
+  colorZ?: [number, number, number, number]
+  label?: string
 }
 
 // ── Light creation options ─────────────────────────────────────────────────

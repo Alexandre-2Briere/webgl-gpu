@@ -13,10 +13,11 @@ import type {
   PointLightOptions,
   AmbientLightOptions,
   DirectionalLightOptions,
+  ArrowGizmoOptions,
 } from './types'
 import { Camera, Renderer, Scene, PipelineCache } from './core'
 import { UniformPool, LightBuffer } from './buffers'
-import { Mesh, Quad2D, Quad3D, Model3D, FbxModel } from './gameObject/renderables'
+import { Mesh, Quad2D, Quad3D, Model3D, FbxModel, ArrowGizmo } from './gameObject/renderables'
 import type { Renderable, RenderableInitArgs } from './gameObject/renderables'
 import { loadObjAsset, loadFbxAsset, createEngineLayouts, logger } from './utils'
 import { GameObject } from './gameObject/GameObject'
@@ -121,6 +122,18 @@ export class Engine {
 
   createFbxModel(opts: FbxModelGameObjectOptions): GameObject<FbxModel> {
     return this._spawnGameObject(new FbxModel(opts.renderable), opts)
+  }
+
+  createArrowGizmo(opts: ArrowGizmoOptions = {}): ArrowGizmo {
+    const gizmo = new ArrowGizmo(opts)
+    gizmo.init(this._initArgs())
+    this._scene.add(gizmo)
+    return gizmo
+  }
+
+  destroyArrowGizmo(gizmo: ArrowGizmo): void {
+    this._scene.remove(gizmo)
+    gizmo.destroy()
   }
 
   // ── Light factory methods ────────────────────────────────────────────────────
