@@ -3,7 +3,7 @@ import type { ArrowGizmoOptions } from '../../types'
 import type { Camera } from '../../core/Camera'
 import type { UniformSlot } from '../../buffers/UniformPool'
 import { COMMON } from '../../shaders/common'
-import { ARROW_GIZMO } from '../../shaders/arrowGizmo'
+import { ARROW_GIZMO, ARROW_GIZMO_VISIBLE_KEY, ARROW_GIZMO_OCCLUDED_KEY } from '../../shaders/arrowGizmo'
 import { makeTransformMatrix } from '../../math'
 import type { Vec3, Vec4 } from '../../math'
 import { logger } from '../../utils'
@@ -29,7 +29,7 @@ const DEFAULT_COLOR_Z: [number, number, number, number] = [0.15, 0.15, 1,    1]
 export class ArrowGizmo implements Renderable {
   readonly id = Symbol()
   readonly layer = 'world-overlay'
-  readonly pipelineKey = "ARROW_GIZMO"
+  readonly pipelineKey = ARROW_GIZMO_VISIBLE_KEY
   visible = false
 
   private readonly _opts: ArrowGizmoOptions
@@ -40,7 +40,8 @@ export class ArrowGizmo implements Renderable {
   private _objectBindGroup!:     GPUBindGroup
   private _gizmoBuffer!:         GPUBuffer
   private _gizmoBindGroup!:      GPUBindGroup
-  private _pipeline!:     GPURenderPipeline
+  private _pipeline!:          GPURenderPipeline
+  private _occludedPipeline!:  GPURenderPipeline
   private _initialized = false
 
   // CPU-side uniform data
@@ -155,14 +156,25 @@ export class ArrowGizmo implements Renderable {
       primitive: { topology: 'triangle-list' as GPUPrimitiveTopology, frontFace: 'ccw' as GPUFrontFace, cullMode: 'back' as GPUCullMode },
     }
 
-    // ── Visible pipeline (standard depth test, full opacity) ─────────────────
+    // ── Visible pipeline (draws on top of or co-planar with scene geometry) ────
     this._pipeline = pipelineCache.getOrCreateRender(this.pipelineKey, {
       label: 'arrow-gizmo-visible-pipeline',
       ...sharedConfig,
       depthStencil: {
-        format:             'depth24plus',
-        depthWriteEnabled:  false,
-        depthCompare:       'always',
+        format:            'depth24plus',
+        depthWriteEnabled: false,
+        depthCompare:      'less-equal',
+      },
+    })
+
+    // ── Occluded pipeline (ghosted arrows behind occluding geometry) ──────────
+    this._occludedPipeline = pipelineCache.getOrCreateRender(ARROW_GIZMO_OCCLUDED_KEY, {
+      label: 'arrow-gizmo-occluded-pipeline',
+      ...sharedConfig,
+      depthStencil: {
+        format:            'depth24plus',
+        depthWriteEnabled: false,
+        depthCompare:      'greater',
       },
     })
   }
@@ -170,9 +182,13 @@ export class ArrowGizmo implements Renderable {
   encode(pass: GPURenderPassEncoder, _camera: Camera): void {
     pass.setBindGroup(1, this._objectBindGroup)
     pass.setBindGroup(2, this._gizmoBindGroup)
-
-    // Occluded sub-pass: renders ghosted arrows through occluding geometry.
     this._queue.writeBuffer(this._gizmoBuffer, 0, this._gizmoData32)
+
+    // Occluded sub-pass: ghosted arrows drawn through occluding geometry.
+    pass.setPipeline(this._occludedPipeline)
+    pass.draw(TOTAL_VERTEX_COUNT)
+
+    // Visible sub-pass: solid arrows drawn on top of or co-planar with geometry.
     pass.setPipeline(this._pipeline)
     pass.draw(TOTAL_VERTEX_COUNT)
   }

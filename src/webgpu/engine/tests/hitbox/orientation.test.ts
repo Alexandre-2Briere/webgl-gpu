@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { SphereHitbox } from '../../gameObject/hitbox/SphereHitbox'
-import { yawPitchRollToQuat, rotateByQuat } from '../../math/quat'
+import { yawPitchRollToQuat } from '../../math/quat'
 import type { Vec3, Vec4 } from '../../math/vec'
 
 const IDENTITY_QUAT: Vec4 = [0, 0, 0, 1]

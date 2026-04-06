@@ -1,8 +1,8 @@
-import toolbarHtml          from './components/toolbar.html?raw'
-import itemMenuHtml         from './components/item-menu.html?raw'
-import propertyPanelHtml    from './components/property-panel.html?raw'
-import terminalHtml         from './components/terminal.html?raw'
-import sceneHierarchyHtml   from './components/scene-hierarchy.html?raw'
+import toolbarHtml          from './Toolbar/toolbar.html?raw'
+import itemMenuHtml         from './ItemMenu/item-menu.html?raw'
+import propertyPanelHtml    from './PropertyPanel/property-panel.html?raw'
+import terminalHtml         from './Terminal/terminal.html?raw'
+import sceneHierarchyHtml   from './SceneHierarchy/scene-hierarchy.html?raw'
 
 export function mountComponents(): void {
   document.getElementById('toolbar')!.innerHTML          = toolbarHtml

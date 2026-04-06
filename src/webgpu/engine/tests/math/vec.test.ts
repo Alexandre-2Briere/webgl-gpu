@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { cross3, norm3, dot, addVec, subVec, scaleVec, lenSq, safeNorm3 } from '../../math/vec'
 
-const EPSILON = 1e-5
-
 function expectVec3Close(actual: number[], expected: number[]): void {
   for (let i = 0; i < 3; i++) {
     expect(actual[i]).toBeCloseTo(expected[i], 2)

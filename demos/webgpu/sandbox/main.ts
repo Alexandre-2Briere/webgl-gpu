@@ -1,72 +1,64 @@
 import { mountComponents }  from './ui/loader'
-import { Terminal }          from './ui/Terminal'
-import { ItemMenu }          from './ui/ItemMenu'
-import { PropertyPanel }     from './ui/PropertyPanel'
-import { SceneHierarchy }    from './ui/SceneHierarchy'
-import { SceneController }   from './game/SceneController'
+import { Terminal }          from './ui/Terminal/Terminal'
+import { ItemMenu }          from './ui/ItemMenu/ItemMenu'
+import { PropertyPanel }     from './ui/PropertyPanel/PropertyPanel'
+import { SceneHierarchy }    from './ui/SceneHierarchy/SceneHierarchy'
+import { Toolbar }           from './ui/Toolbar/Toolbar'
+import { SceneManager }      from './game/SceneManager'
 import registryJson          from './items/registry.json'
-import type { ItemRegistry, ItemEntry } from './items/types'
+import type { ItemRegistry } from './items/types'
 
 async function main(): Promise<void> {
   mountComponents()
 
   const registry = registryJson as ItemRegistry
 
-  const tabsContainer   = document.getElementById('terminal-tabs')!
-  const outputContainer = document.getElementById('terminal-output')!
-  const menuContainer   = document.getElementById('item-menu')!
-  const canvas          = document.getElementById('webgpu-canvas') as HTMLCanvasElement
-  const playButton      = document.getElementById('play-btn') as HTMLButtonElement
+  const canvas = document.getElementById('webgpu-canvas') as HTMLCanvasElement
 
-  const terminal      = new Terminal(tabsContainer, outputContainer)
+  const terminal      = new Terminal(
+    document.getElementById('terminal-tabs')!,
+    document.getElementById('terminal-output')!,
+  )
   const propertyPanel = new PropertyPanel(document.getElementById('property-panel')!)
+  const toolbar       = new Toolbar()
 
-  // Use a ref object so the hierarchy callbacks always reach the controller instance.
-  const controllerRef = { current: null as unknown as SceneController }
+  // Use a ref object so hierarchy callbacks reach the SceneManager instance
+  // before it is assigned (they are passed as constructor callbacks).
+  const sceneRef = { current: null as unknown as SceneManager }
+
   const sceneHierarchy = new SceneHierarchy(
     document.getElementById('scene-hierarchy')!,
-    (index) => controllerRef.current.selectObject(index),
-    (index, newName) => controllerRef.current.renameObject(index, newName),
-    (index) => controllerRef.current.removeObject(index),
-    () => controllerRef.current.deselectObject(),
+    (index) => sceneRef.current.selectObject(index),
+    (index, newName) => sceneRef.current.renameObject(index, newName),
+    (index) => sceneRef.current.removeObject(index),
+    () => sceneRef.current.deselectObject(),
   )
 
-  const controller = new SceneController(canvas, terminal, propertyPanel, sceneHierarchy)
-  controllerRef.current = controller
+  const sceneManager = new SceneManager(canvas, terminal, propertyPanel, sceneHierarchy)
+  sceneRef.current   = sceneManager
 
-  const menu = new ItemMenu(
-    menuContainer,
+  const itemMenu = new ItemMenu(
+    document.getElementById('item-menu')!,
     registry,
-    (key: string, entry: ItemEntry) => controller.spawn(key, entry),
+    (key, entry) => sceneManager.spawn(key, entry),
   )
-  menu.setEnabled(false)
+  itemMenu.setEnabled(false)
 
   try {
-    await controller.init()
-    menu.setEnabled(true)
-    playButton.disabled = false
+    await sceneManager.init()
+    sceneManager.startLoop()
+    itemMenu.setEnabled(true)
+    toolbar.setEnabled(true)
   } catch (error) {
     terminal.print(`Engine initialisation failed: ${error}`, 'error')
     return
   }
 
-  playButton.addEventListener('click', () => {
-    if (controller.isPlaying()) {
-      controller.stop()
-      playButton.textContent = 'Play'
-      playButton.classList.remove('playing')
-    } else {
-      controller.play()
-      playButton.textContent = 'Stop'
-      playButton.classList.add('playing')
-    }
-  })
+  toolbar.onPlay = () => sceneManager.play()
+  toolbar.onStop = () => sceneManager.stop()
 
-  // Revert play button when ESC releases the pointer lock
-  document.addEventListener('sandbox:stopped', () => {
-    playButton.textContent = 'Play'
-    playButton.classList.remove('playing')
-  })
+  // ESC releases pointer lock → revert toolbar
+  document.addEventListener('sandbox:stopped', () => toolbar.setPlaying(false))
 }
 
 main()

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { identityMat, zeroMat, mul4x4, makeTransformMatrix } from '../../math/mat'
 
-function expectMatClose(actual: Float32Array, expected: number[], epsilon = 1e-5): void {
+function expectMatClose(actual: Float32Array, expected: number[]): void {
   expect(actual.length).toBe(expected.length)
   for (let i = 0; i < expected.length; i++) {
     expect(actual[i]).toBeCloseTo(expected[i], 5)

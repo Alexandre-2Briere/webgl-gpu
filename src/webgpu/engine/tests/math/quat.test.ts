@@ -144,10 +144,8 @@ describe('applyEulerDelta', () => {
   })
 
   it('applying a 90° yaw delta twice to identity equals a 180° yaw', () => {
-    const q90 = yawPitchRollToQuat(Math.PI / 2, 0, 0)
     const afterFirst = applyEulerDelta(IDENTITY, Math.PI / 2, 0, 0)
     const afterSecond = applyEulerDelta(afterFirst, Math.PI / 2, 0, 0)
-    const dot = afterSecond[0] * q90[1] + afterSecond[1] * q90[1] + afterSecond[2] * q90[2] + afterSecond[3] * q90[3]
     // afterSecond should represent 180° yaw, not 90°
     const q180 = yawPitchRollToQuat(Math.PI, 0, 0)
     const dotWith180 = Math.abs(

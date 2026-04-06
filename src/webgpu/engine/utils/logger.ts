@@ -16,8 +16,8 @@ const prefixes: Record<number, string | string[]> = {
 }
 
 const consoleFns: Record<number, (...args: unknown[]) => void> = {
-  [LogLevel.DEBUG]: console.debug,
-  [LogLevel.INFO]:  console.info,
+  [LogLevel.DEBUG]: console.log,
+  [LogLevel.INFO]:  console.log,
   [LogLevel.WARN]:  console.warn,
   [LogLevel.ERROR]: console.error,
 }

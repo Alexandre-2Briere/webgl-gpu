@@ -1,4 +1,5 @@
-import type { ItemEntry, ItemRegistry } from '../items/types'
+import './item-menu.css'
+import type { ItemEntry, ItemRegistry } from '../../items/types'
 
 interface ButtonRecord {
   button: HTMLButtonElement

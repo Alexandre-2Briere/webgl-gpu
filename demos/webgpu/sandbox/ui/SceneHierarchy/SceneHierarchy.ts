@@ -1,3 +1,5 @@
+import './scene-hierarchy.css'
+
 const NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9]*$/
 
 export class SceneHierarchy {

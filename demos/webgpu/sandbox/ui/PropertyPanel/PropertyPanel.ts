@@ -1,7 +1,8 @@
-import type { ISceneObject } from '../../../../src/webgpu/engine/index'
-import { LightGameObject, LightType } from '../../../../src/webgpu/engine/gameObject/LightGameObject'
-import { safeParseFloat } from '../../../../src/webgpu/engine/math'
-import type { PropertyGroup, PhysicsConfig } from '../items/types'
+import './property-panel.css'
+import type { ISceneObject } from '../../../../../src/webgpu/engine/index'
+import { LightGameObject, LightType } from '../../../../../src/webgpu/engine/gameObject/LightGameObject'
+import { safeParseFloat } from '../../../../../src/webgpu/engine/math'
+import type { PropertyGroup, PhysicsConfig } from '../../items/types'
 
 const DEG = Math.PI / 180
 
@@ -175,6 +176,13 @@ export class PropertyPanel {
   setTitle(label: string): void {
     const titleEl = this._root.querySelector('.prop-panel-title') as HTMLElement
     if (titleEl) titleEl.textContent = label
+  }
+
+  setPosition(x: number, y: number, z: number): void {
+    this._posX.value = x.toFixed(3)
+    this._posY.value = y.toFixed(3)
+    this._posZ.value = z.toFixed(3)
+    this._applyPosition()
   }
 
   // ── Build DOM ───────────────────────────────────────────────────────────────

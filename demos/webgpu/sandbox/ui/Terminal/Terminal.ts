@@ -1,3 +1,5 @@
+import './terminal.css'
+
 type LogLevel = 'log' | 'warn' | 'error'
 
 interface TerminalTab {
