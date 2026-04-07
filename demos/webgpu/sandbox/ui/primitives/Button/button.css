@@ -1,0 +1,98 @@
+/* ── Base button ─────────────────────────────────────────────────────────── */
+
+.sb-btn {
+  padding: 5px 20px;
+  border: none;
+  border-radius: var(--border-radius);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.sb-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Icon button (close, remove, etc.) ───────────────────────────────────── */
+
+.sb-btn--icon {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 0;
+  font-weight: 400;
+}
+
+.sb-btn--icon:hover {
+  color: var(--color-text);
+}
+
+/* ── Sidebar button (spawn menu) ─────────────────────────────────────────── */
+
+.sb-btn--sidebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 14px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.sb-btn--sidebar:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.sb-btn--sidebar:active:not(:disabled) {
+  background: var(--color-surface);
+}
+
+.sb-btn--sidebar:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sb-btn-label {
+  flex: 1;
+}
+
+/* ── Tab button (terminal tabs, etc.) ────────────────────────────────────── */
+
+.sb-btn--tab {
+  padding: 4px 14px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.1s, border-color 0.1s;
+  height: 100%;
+  border-radius: 0;
+  font-weight: 400;
+}
+
+.sb-btn--tab:hover {
+  color: var(--color-text);
+}
+
+.sb-btn--tab.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}

@@ -3,6 +3,7 @@ import type { ISceneObject } from '../../../../../src/webgpu/engine/index'
 import { LightGameObject, LightType } from '../../../../../src/webgpu/engine/gameObject/LightGameObject'
 import { safeParseFloat } from '../../../../../src/webgpu/engine/math'
 import type { PropertyGroup, PhysicsConfig } from '../../items/types'
+import { buildPropertyPanelElements } from './property-panel-elements'
 
 const DEG = Math.PI / 180
 
@@ -15,6 +16,8 @@ export class PropertyPanel {
   onScaleChange:     ((x: number, y: number, z: number) => void) | null = null
   onRadiusChange:    ((radius: number) => void) | null = null
   onLightTypeChange: ((type: LightType) => void) | null = null
+  onAssetChange:     ((url: string) => void) | null = null
+  onPowerChange:     ((power: number) => void) | null = null
 
   // Position inputs
   private _posX!: HTMLInputElement
@@ -36,18 +39,16 @@ export class PropertyPanel {
   private _scaleZ!: HTMLInputElement
 
   // Physics inputs
-  private _rbCheckbox!:    HTMLInputElement
+  private _rbCheckbox!:     HTMLInputElement
   private _staticCheckbox!: HTMLInputElement
-  private _staticRow!:     HTMLElement
-  private _hbCheckbox!:    HTMLInputElement
-  private _layerInput!:    HTMLInputElement
-  private _layerRow!:      HTMLElement
+  private _staticRow!:      HTMLElement
+  private _hbCheckbox!:     HTMLInputElement
+  private _layerInput!:     HTMLInputElement
+  private _layerRow!:       HTMLElement
 
   // Asset dropdown
   private _assetSection!: HTMLElement
   private _assetSelect!:  HTMLSelectElement
-  onAssetChange:  ((url: string) => void) | null = null
-  onPowerChange:  ((power: number) => void) | null = null
 
   // Light section
   private _lightSection!:    HTMLElement
@@ -66,7 +67,28 @@ export class PropertyPanel {
 
   constructor(root: HTMLElement) {
     this._root = root
-    this._build()
+    this._queryElements()
+    const elements = buildPropertyPanelElements(root, () => this.hide())
+    this._posX  = elements.posX
+    this._posY  = elements.posY
+    this._posZ  = elements.posZ
+    this._rotYaw   = elements.rotYaw
+    this._rotPitch = elements.rotPitch
+    this._rotRoll  = elements.rotRoll
+    this._colorInput  = elements.colorInput
+    this._colorSwatch = elements.colorSwatch
+    this._scaleX = elements.scaleX
+    this._scaleY = elements.scaleY
+    this._scaleZ = elements.scaleZ
+    this._rbCheckbox     = elements.rbCheckbox
+    this._staticCheckbox = elements.staticCheckbox
+    this._hbCheckbox     = elements.hbCheckbox
+    this._layerInput     = elements.layerInput
+    this._assetSelect    = elements.assetSelect
+    this._lightTypeSelect = elements.lightTypeSelect
+    this._radiusInput     = elements.radiusInput
+    this._powerInput      = elements.powerInput
+    this._attachListeners()
   }
 
   // ── Public API ──────────────────────────────────────────────────────────────
@@ -90,8 +112,8 @@ export class PropertyPanel {
 
     this._currentObject = gameObject
 
-    const titleEl = this._root.querySelector('.prop-panel-title') as HTMLElement
-    titleEl.textContent = label
+    const titleElement = this._root.querySelector<HTMLElement>('#prop-title')!
+    titleElement.textContent = label
 
     // Populate position
     const [posX, posY, posZ] = gameObject.position
@@ -100,36 +122,36 @@ export class PropertyPanel {
     this._posZ.value = posZ.toFixed(3)
 
     // Populate rotation from quaternion
-    const [qx, qy, qz, qw] = gameObject.quaternion
-    const yawDeg   = Math.atan2(2*(qw*qy + qz*qx), 1 - 2*(qy*qy + qz*qz)) / DEG
-    const pitchDeg = Math.asin(Math.max(-1, Math.min(1, 2*(qw*qx - qy*qz)))) / DEG
-    const rollDeg  = Math.atan2(2*(qw*qz + qx*qy), 1 - 2*(qz*qz + qx*qx)) / DEG
+    const [quaternionX, quaternionY, quaternionZ, quaternionW] = gameObject.quaternion
+    const yawDeg   = Math.atan2(2*(quaternionW*quaternionY + quaternionZ*quaternionX), 1 - 2*(quaternionY*quaternionY + quaternionZ*quaternionZ)) / DEG
+    const pitchDeg = Math.asin(Math.max(-1, Math.min(1, 2*(quaternionW*quaternionX - quaternionY*quaternionZ)))) / DEG
+    const rollDeg  = Math.atan2(2*(quaternionW*quaternionZ + quaternionX*quaternionY), 1 - 2*(quaternionZ*quaternionZ + quaternionX*quaternionX)) / DEG
     this._rotYaw.value   = yawDeg.toFixed(1)
     this._rotPitch.value = pitchDeg.toFixed(1)
     this._rotRoll.value  = rollDeg.toFixed(1)
 
     // Populate scale
-    const [sx, sy, sz] = gameObject.scale
-    this._scaleX.value = sx.toFixed(3)
-    this._scaleY.value = sy.toFixed(3)
-    this._scaleZ.value = sz.toFixed(3)
+    const [scaleX, scaleY, scaleZ] = gameObject.scale
+    this._scaleX.value = scaleX.toFixed(3)
+    this._scaleY.value = scaleY.toFixed(3)
+    this._scaleZ.value = scaleZ.toFixed(3)
 
     // Populate color from current object tint
     if (properties.includes('color')) {
-      const [cr, cg, cb] = gameObject.color
-      const toHex = (v: number) => Math.round(v * 255).toString(16).padStart(2, '0').toUpperCase()
-      this._colorInput.value = `${toHex(cr)}${toHex(cg)}${toHex(cb)}`
+      const [colorRed, colorGreen, colorBlue] = gameObject.color
+      const toHex = (value: number) => Math.round(value * 255).toString(16).padStart(2, '0').toUpperCase()
+      this._colorInput.value = `${toHex(colorRed)}${toHex(colorGreen)}${toHex(colorBlue)}`
       this._updateSwatch()
     }
 
     // Populate physics section
     const showPhysics = properties.includes('rigidbody') || properties.includes('hitbox')
     if (showPhysics && physicsConfig) {
-      this._rbCheckbox.checked     = physicsConfig.hasRigidbody
-      this._staticCheckbox.checked = physicsConfig.isStatic
+      this._rbCheckbox.checked      = physicsConfig.hasRigidbody
+      this._staticCheckbox.checked  = physicsConfig.isStatic
       this._staticRow.style.display = physicsConfig.hasRigidbody ? '' : 'none'
-      this._hbCheckbox.checked     = physicsConfig.hasHitbox
-      this._layerInput.value       = physicsConfig.layer
+      this._hbCheckbox.checked      = physicsConfig.hasHitbox
+      this._layerInput.value        = physicsConfig.layer
       this._layerRow.style.display  = physicsConfig.hasHitbox ? '' : 'none'
     }
 
@@ -174,8 +196,8 @@ export class PropertyPanel {
   }
 
   setTitle(label: string): void {
-    const titleEl = this._root.querySelector('.prop-panel-title') as HTMLElement
-    if (titleEl) titleEl.textContent = label
+    const titleElement = this._root.querySelector<HTMLElement>('#prop-title')
+    if (titleElement) titleElement.textContent = label
   }
 
   setPosition(x: number, y: number, z: number): void {
@@ -185,180 +207,62 @@ export class PropertyPanel {
     this._applyPosition()
   }
 
-  // ── Build DOM ───────────────────────────────────────────────────────────────
+  // ── Query structural elements ───────────────────────────────────────────────
 
-  private _build(): void {
-    const inner = document.createElement('div')
-    inner.className = 'prop-panel-inner'
+  private _queryElements(): void {
+    const root = this._root
 
-    // Header
-    const header = document.createElement('div')
-    header.className = 'prop-panel-header'
-    const title = document.createElement('h2')
-    title.className   = 'prop-panel-title'
-    title.textContent = ''
-    const closeBtn = document.createElement('button')
-    closeBtn.className   = 'prop-panel-close'
-    closeBtn.textContent = '×'
-    closeBtn.addEventListener('click', () => this.hide())
-    header.append(title, closeBtn)
+    this._staticRow = root.querySelector<HTMLElement>('#prop-static-row')!
+    this._layerRow  = root.querySelector<HTMLElement>('#prop-layer-row')!
 
-    // Body
-    const body = document.createElement('div')
-    body.className = 'prop-panel-body'
+    this._assetSection = root.querySelector<HTMLElement>('#prop-section-asset')!
 
-    this._positionSection = this._buildPositionSection()
-    this._rotationSection = this._buildRotationSection()
-    this._colorSection    = this._buildColorSection()
-    this._scaleSection    = this._buildScaleSection()
-    this._physicsSection  = this._buildPhysicsSection()
-    this._assetSection    = this._buildAssetSection()
-    this._lightSection    = this._buildLightSection()
+    this._lightSection  = root.querySelector<HTMLElement>('#prop-section-light')!
+    this._radiusSection = root.querySelector<HTMLElement>('#prop-radius-row')!
+    this._powerSection  = root.querySelector<HTMLElement>('#prop-power-row')!
 
-    body.appendChild(this._positionSection)
-    body.appendChild(this._rotationSection)
-    body.appendChild(this._colorSection)
-    body.appendChild(this._scaleSection)
-    body.appendChild(this._physicsSection)
-    body.appendChild(this._assetSection)
-    body.appendChild(this._lightSection)
-
-    inner.append(header, body)
-    this._root.appendChild(inner)
+    this._positionSection = root.querySelector<HTMLElement>('#prop-section-position')!
+    this._rotationSection = root.querySelector<HTMLElement>('#prop-section-rotation')!
+    this._colorSection    = root.querySelector<HTMLElement>('#prop-section-color')!
+    this._scaleSection    = root.querySelector<HTMLElement>('#prop-section-scale')!
+    this._physicsSection  = root.querySelector<HTMLElement>('#prop-section-physics')!
   }
 
-  private _buildPositionSection(): HTMLElement {
-    const section = document.createElement('div')
+  private _attachListeners(): void {
+    this._posX.addEventListener('change', () => this._applyPosition())
+    this._posY.addEventListener('change', () => this._applyPosition())
+    this._posZ.addEventListener('change', () => this._applyPosition())
 
-    const sectionLabel = document.createElement('div')
-    sectionLabel.className   = 'prop-section-label'
-    sectionLabel.textContent = 'Position'
-    section.appendChild(sectionLabel)
+    this._rotYaw.addEventListener('change',   () => this._applyRotation())
+    this._rotPitch.addEventListener('change', () => this._applyRotation())
+    this._rotRoll.addEventListener('change',  () => this._applyRotation())
 
-    for (const axis of ['X', 'Y', 'Z'] as const) {
-      const row = document.createElement('div')
-      row.className = 'prop-row'
+    this._colorInput.addEventListener('change', () => this._applyColor())
+    this._colorInput.addEventListener('input',  () => this._updateSwatch())
 
-      const axisLabel = document.createElement('span')
-      axisLabel.className   = 'prop-axis-label'
-      axisLabel.textContent = axis
+    this._scaleX.addEventListener('change', () => this._applyScale())
+    this._scaleY.addEventListener('change', () => this._applyScale())
+    this._scaleZ.addEventListener('change', () => this._applyScale())
 
-      const input = document.createElement('input')
-      input.type      = 'number'
-      input.step      = '0.1'
-      input.className = 'prop-input'
-      input.addEventListener('change', () => this._applyPosition())
+    this._rbCheckbox.addEventListener('change', () => {
+      this._staticRow.style.display = this._rbCheckbox.checked ? '' : 'none'
+      this._applyPhysics()
+    })
+    this._staticCheckbox.addEventListener('change', () => this._applyPhysics())
+    this._hbCheckbox.addEventListener('change', () => {
+      this._layerRow.style.display = this._hbCheckbox.checked ? '' : 'none'
+      this._applyPhysics()
+    })
+    this._layerInput.addEventListener('change', () => this._applyPhysics())
 
-      if (axis === 'X')      this._posX = input
-      else if (axis === 'Y') this._posY = input
-      else                   this._posZ = input
+    this._assetSelect.addEventListener('change', () => this.onAssetChange?.(this._assetSelect.value))
 
-      row.append(axisLabel, input)
-      section.appendChild(row)
-    }
-
-    return section
-  }
-
-  private _buildRotationSection(): HTMLElement {
-    const section = document.createElement('div')
-
-    const sectionLabel = document.createElement('div')
-    sectionLabel.className   = 'prop-section-label'
-    sectionLabel.textContent = 'Rotation (deg)'
-    section.appendChild(sectionLabel)
-
-    const axes = [['Y', 'Yaw'], ['P', 'Pitch'], ['R', 'Roll']] as const
-    for (const [axis, key] of axes) {
-      const row = document.createElement('div')
-      row.className = 'prop-row'
-
-      const axisLabel = document.createElement('span')
-      axisLabel.className   = 'prop-axis-label'
-      axisLabel.textContent = axis
-
-      const input = document.createElement('input')
-      input.type      = 'number'
-      input.step      = '1'
-      input.className = 'prop-input'
-      input.addEventListener('change', () => this._applyRotation())
-
-      if (key === 'Yaw')        this._rotYaw   = input
-      else if (key === 'Pitch') this._rotPitch = input
-      else                      this._rotRoll  = input
-
-      row.append(axisLabel, input)
-      section.appendChild(row)
-    }
-
-    return section
-  }
-
-  private _buildColorSection(): HTMLElement {
-    const section = document.createElement('div')
-
-    const sectionLabel = document.createElement('div')
-    sectionLabel.className   = 'prop-section-label'
-    sectionLabel.textContent = 'Color (hex)'
-    section.appendChild(sectionLabel)
-
-    const colorRow = document.createElement('div')
-    colorRow.className = 'prop-color-row'
-
-    const prefix = document.createElement('span')
-    prefix.className   = 'prop-color-prefix'
-    prefix.textContent = '#'
-
-    const colorInput = document.createElement('input')
-    colorInput.type      = 'text'
-    colorInput.maxLength = 6
-    colorInput.placeholder = 'RRGGBB'
-    colorInput.className = 'prop-color-input'
-    colorInput.addEventListener('change', () => this._applyColor())
-    colorInput.addEventListener('input',  () => this._updateSwatch())
-    this._colorInput = colorInput
-
-    const swatch = document.createElement('div')
-    swatch.className    = 'prop-color-swatch'
-    this._colorSwatch   = swatch
-
-    colorRow.append(prefix, colorInput, swatch)
-    section.appendChild(colorRow)
-
-    return section
-  }
-
-  private _buildScaleSection(): HTMLElement {
-    const section = document.createElement('div')
-
-    const sectionLabel = document.createElement('div')
-    sectionLabel.className   = 'prop-section-label'
-    sectionLabel.textContent = 'Scale'
-    section.appendChild(sectionLabel)
-
-    for (const axis of ['X', 'Y', 'Z'] as const) {
-      const row = document.createElement('div')
-      row.className = 'prop-row'
-
-      const axisLabel = document.createElement('span')
-      axisLabel.className   = 'prop-axis-label'
-      axisLabel.textContent = axis
-
-      const input = document.createElement('input')
-      input.type      = 'number'
-      input.step      = '0.1'
-      input.className = 'prop-input'
-      input.addEventListener('change', () => this._applyScale())
-
-      if (axis === 'X')      this._scaleX = input
-      else if (axis === 'Y') this._scaleY = input
-      else                   this._scaleZ = input
-
-      row.append(axisLabel, input)
-      section.appendChild(row)
-    }
-
-    return section
+    this._lightTypeSelect.addEventListener('change', () => {
+      this._radiusSection.style.display = this._lightTypeSelect.value === String(LightType.Point) ? '' : 'none'
+      this.onLightTypeChange?.(parseInt(this._lightTypeSelect.value) as LightType)
+    })
+    this._radiusInput.addEventListener('change', () => this.onRadiusChange?.(safeParseFloat(this._radiusInput.value)))
+    this._powerInput.addEventListener('change',  () => this.onPowerChange?.(safeParseFloat(this._powerInput.value)))
   }
 
   // ── Apply handlers ──────────────────────────────────────────────────────────
@@ -383,10 +287,10 @@ export class PropertyPanel {
     if (!this._currentObject) return
     const hex = this._colorInput.value.trim().toUpperCase()
     if (!/^[0-9A-F]{6}$/.test(hex)) return
-    const r = parseInt(hex.slice(0, 2), 16) / 255
-    const g = parseInt(hex.slice(2, 4), 16) / 255
-    const b = parseInt(hex.slice(4, 6), 16) / 255
-    this._currentObject.setColor(r, g, b, 1.0)
+    const red   = parseInt(hex.slice(0, 2), 16) / 255
+    const green = parseInt(hex.slice(2, 4), 16) / 255
+    const blue  = parseInt(hex.slice(4, 6), 16) / 255
+    this._currentObject.setColor(red, green, blue, 1.0)
     this._updateSwatch()
   }
 
@@ -397,186 +301,6 @@ export class PropertyPanel {
     const z = safeParseFloat(this._scaleZ.value, 1)
     this._currentObject.setScale(x, y, z)
     this.onScaleChange?.(x, y, z)
-  }
-
-  private _buildPhysicsSection(): HTMLElement {
-    const section = document.createElement('div')
-
-    const sectionLabel = document.createElement('div')
-    sectionLabel.className   = 'prop-section-label'
-    sectionLabel.textContent = 'Physics'
-    section.appendChild(sectionLabel)
-
-    // Rigidbody row
-    const rbRow = document.createElement('div')
-    rbRow.className = 'prop-row'
-    const rbLabel = document.createElement('span')
-    rbLabel.className   = 'prop-label'
-    rbLabel.textContent = 'Rigidbody'
-    const rbCheckbox = document.createElement('input')
-    rbCheckbox.type      = 'checkbox'
-    rbCheckbox.className = 'prop-checkbox'
-    rbCheckbox.addEventListener('change', () => {
-      this._staticRow.style.display = rbCheckbox.checked ? '' : 'none'
-      this._applyPhysics()
-    })
-    this._rbCheckbox = rbCheckbox
-    rbRow.append(rbLabel, rbCheckbox)
-    section.appendChild(rbRow)
-
-    // Static sub-row
-    const staticRow = document.createElement('div')
-    staticRow.className    = 'prop-row prop-subrow'
-    staticRow.style.display = 'none'
-    const staticLabel = document.createElement('span')
-    staticLabel.className   = 'prop-label'
-    staticLabel.textContent = 'Static'
-    const staticCheckbox = document.createElement('input')
-    staticCheckbox.type      = 'checkbox'
-    staticCheckbox.className = 'prop-checkbox'
-    staticCheckbox.addEventListener('change', () => this._applyPhysics())
-    this._staticCheckbox = staticCheckbox
-    this._staticRow      = staticRow
-    staticRow.append(staticLabel, staticCheckbox)
-    section.appendChild(staticRow)
-
-    // Hitbox row
-    const hbRow = document.createElement('div')
-    hbRow.className = 'prop-row'
-    const hbLabel = document.createElement('span')
-    hbLabel.className   = 'prop-label'
-    hbLabel.textContent = 'Hitbox'
-    const hbCheckbox = document.createElement('input')
-    hbCheckbox.type      = 'checkbox'
-    hbCheckbox.className = 'prop-checkbox'
-    hbCheckbox.addEventListener('change', () => {
-      this._layerRow.style.display = hbCheckbox.checked ? '' : 'none'
-      this._applyPhysics()
-    })
-    this._hbCheckbox = hbCheckbox
-    hbRow.append(hbLabel, hbCheckbox)
-    section.appendChild(hbRow)
-
-    // Layer sub-row
-    const layerRow = document.createElement('div')
-    layerRow.className    = 'prop-row prop-subrow'
-    layerRow.style.display = 'none'
-    const layerLabel = document.createElement('span')
-    layerLabel.className   = 'prop-label'
-    layerLabel.textContent = 'Layer'
-    const layerInput = document.createElement('input')
-    layerInput.type      = 'text'
-    layerInput.className = 'prop-input'
-    layerInput.value     = 'default'
-    layerInput.addEventListener('change', () => this._applyPhysics())
-    this._layerInput = layerInput
-    this._layerRow   = layerRow
-    layerRow.append(layerLabel, layerInput)
-    section.appendChild(layerRow)
-
-    return section
-  }
-
-  private _buildAssetSection(): HTMLElement {
-    const section = document.createElement('div')
-
-    const sectionLabel = document.createElement('div')
-    sectionLabel.className   = 'prop-section-label'
-    sectionLabel.textContent = 'Asset'
-    section.appendChild(sectionLabel)
-
-    const row = document.createElement('div')
-    row.className = 'prop-row'
-
-    const select = document.createElement('select')
-    select.className = 'prop-input'
-    select.addEventListener('change', () => this.onAssetChange?.(select.value))
-    this._assetSelect = select
-
-    row.appendChild(select)
-    section.appendChild(row)
-
-    return section
-  }
-
-  private _buildLightSection(): HTMLElement {
-    const section = document.createElement('div')
-
-    const sectionLabel = document.createElement('div')
-    sectionLabel.className   = 'prop-section-label'
-    sectionLabel.textContent = 'Light'
-    section.appendChild(sectionLabel)
-
-    // Type row
-    const typeRow = document.createElement('div')
-    typeRow.className = 'prop-row'
-
-    const typeLabel = document.createElement('span')
-    typeLabel.className   = 'prop-label'
-    typeLabel.textContent = 'Type'
-
-    const select = document.createElement('select')
-    select.className = 'prop-input'
-
-    const ambientOption = document.createElement('option')
-    ambientOption.value       = String(LightType.Ambient)
-    ambientOption.textContent = 'Ambient'
-
-    const pointOption = document.createElement('option')
-    pointOption.value       = String(LightType.Point)
-    pointOption.textContent = 'Point'
-
-    select.append(ambientOption, pointOption)
-    select.addEventListener('change', () => {
-      this._radiusSection.style.display = select.value === String(LightType.Point) ? '' : 'none'
-      this.onLightTypeChange?.(parseInt(select.value) as LightType)
-    })
-    this._lightTypeSelect = select
-
-    typeRow.append(typeLabel, select)
-    section.appendChild(typeRow)
-
-    // Radius sub-row
-    const radiusRow = document.createElement('div')
-    radiusRow.className = 'prop-row prop-subrow'
-
-    const radiusLabel = document.createElement('span')
-    radiusLabel.className   = 'prop-label'
-    radiusLabel.textContent = 'Radius'
-
-    const radiusInput = document.createElement('input')
-    radiusInput.type      = 'number'
-    radiusInput.step      = '0.5'
-    radiusInput.min       = '0'
-    radiusInput.className = 'prop-input'
-    radiusInput.addEventListener('change', () => this.onRadiusChange?.(safeParseFloat(radiusInput.value)))
-    this._radiusInput = radiusInput
-
-    this._radiusSection = radiusRow
-    radiusRow.append(radiusLabel, radiusInput)
-    section.appendChild(radiusRow)
-
-    // Power row (for directional lights)
-    const powerRow = document.createElement('div')
-    powerRow.className = 'prop-row'
-
-    const powerLabel = document.createElement('span')
-    powerLabel.className   = 'prop-label'
-    powerLabel.textContent = 'Power'
-
-    const powerInput = document.createElement('input')
-    powerInput.type      = 'number'
-    powerInput.step      = '0.1'
-    powerInput.min       = '0'
-    powerInput.className = 'prop-input'
-    powerInput.addEventListener('change', () => this.onPowerChange?.(safeParseFloat(powerInput.value)))
-    this._powerInput = powerInput
-
-    this._powerSection = powerRow
-    powerRow.append(powerLabel, powerInput)
-    section.appendChild(powerRow)
-
-    return section
   }
 
   private _applyPhysics(): void {

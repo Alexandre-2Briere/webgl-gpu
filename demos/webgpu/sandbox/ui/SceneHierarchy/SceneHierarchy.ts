@@ -1,4 +1,6 @@
 import './scene-hierarchy.css'
+import { createIconButton } from '../primitives/index'
+import { createInput }      from '../primitives/index'
 
 const NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9]*$/
 
@@ -72,61 +74,52 @@ export class SceneHierarchy {
   // ── Private ───────────────────────────────────────────────────────────────
 
   private _buildRow(index: number, name: string): HTMLElement {
-    const row = document.createElement('div')
-    row.className    = 'hier-row'
-    row.dataset.index = String(index)
+    const template = document.querySelector<HTMLTemplateElement>('#hier-row-tpl')!
+    const rowElement = (template.content.cloneNode(true) as DocumentFragment)
+      .querySelector<HTMLElement>('.hier-row')!
 
-    const span = document.createElement('span')
-    span.className   = 'hier-name'
+    rowElement.dataset.index = String(index)
+
+    const span = rowElement.querySelector<HTMLElement>('.hier-name')!
     span.textContent = name
 
-    const removeBtn = document.createElement('button')
-    removeBtn.className = 'hier-remove'
-    removeBtn.title     = 'Remove'
-    removeBtn.textContent = '×'
-
-    row.appendChild(span)
-    row.appendChild(removeBtn)
+    const removeButton = createIconButton('×', () => {
+      const currentIndex = Number(rowElement.dataset.index)
+      this._onRemove(currentIndex)
+    }, { title: 'Remove' })
+    removeButton.classList.add('hier-remove')
+    rowElement.appendChild(removeButton)
 
     // Single click on row (not remove button) → select
-    row.addEventListener('click', (e: MouseEvent) => {
-      if ((e.target as HTMLElement).closest('.hier-remove')) return
-      const idx = Number(row.dataset.index)
-      this.setSelected(idx)
-      this._onSelect(idx)
+    rowElement.addEventListener('click', (event: MouseEvent) => {
+      if ((event.target as HTMLElement).closest('.hier-remove')) return
+      const currentIndex = Number(rowElement.dataset.index)
+      this.setSelected(currentIndex)
+      this._onSelect(currentIndex)
     })
 
     // Double click on name → inline rename
-    span.addEventListener('dblclick', (e: MouseEvent) => {
-      e.stopPropagation()
-      this._beginRename(row, span)
+    span.addEventListener('dblclick', (event: MouseEvent) => {
+      event.stopPropagation()
+      this._beginRename(rowElement, span)
     })
 
     // Double click on the row background (outside the name span) → deselect.
     // The span's dblclick calls stopPropagation(), so this only fires when the
     // non-text portion of the row is double-clicked.
-    row.addEventListener('dblclick', () => {
+    rowElement.addEventListener('dblclick', () => {
       this.setSelected(-1)
       this._onDeselect?.()
     })
 
-    // Remove button click
-    removeBtn.addEventListener('click', (e: MouseEvent) => {
-      e.stopPropagation()
-      const idx = Number(row.dataset.index)
-      this._onRemove(idx)
-    })
-
-    return row
+    return rowElement
   }
 
   private _beginRename(row: HTMLElement, span: HTMLElement): void {
     const currentName = span.textContent ?? ''
 
-    const input = document.createElement('input')
-    input.className   = 'hier-rename-input'
-    input.value       = currentName
-    input.spellcheck  = false
+    const input = createInput({ type: 'text', value: currentName, spellcheck: false })
+    input.classList.add('hier-rename-input')
 
     row.replaceChild(input, span)
     input.focus()
@@ -135,9 +128,8 @@ export class SceneHierarchy {
     const commit = (): void => {
       const newName = input.value.trim()
       if (!NAME_REGEX.test(newName)) {
-        // Flash invalid style then restore
-        input.classList.add('invalid')
-        setTimeout(() => input.classList.remove('invalid'), 600)
+        input.classList.add('sb-input--invalid')
+        setTimeout(() => input.classList.remove('sb-input--invalid'), 600)
         return
       }
       const idx = Number(row.dataset.index)
@@ -151,13 +143,12 @@ export class SceneHierarchy {
       row.replaceChild(span, input)
     }
 
-    input.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (e.key === 'Enter')  { e.preventDefault(); commit() }
-      if (e.key === 'Escape') { e.preventDefault(); cancel() }
+    input.addEventListener('keydown', (event: KeyboardEvent) => {
+      if (event.key === 'Enter')  { event.preventDefault(); commit() }
+      if (event.key === 'Escape') { event.preventDefault(); cancel() }
     })
 
     input.addEventListener('blur', () => {
-      // Only cancel if input is still in the DOM (commit() may have already removed it)
       if (input.parentElement) cancel()
     })
   }

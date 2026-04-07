@@ -1,0 +1,8 @@
+/* ── Checkbox ────────────────────────────────────────────────────────────── */
+
+.sb-checkbox {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}

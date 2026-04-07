@@ -17,16 +17,8 @@
 }
 
 #play-btn {
-  padding: 5px 20px;
-  border: none;
-  border-radius: var(--border-radius);
-  font-family: var(--font-ui);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
   background: var(--color-play);
   color: #fff;
-  transition: background 0.12s;
 }
 
 #play-btn:hover {

@@ -1,6 +1,12 @@
 import './terminal.css'
+import { createTabButton } from '../primitives/index'
 
 type LogLevel = 'log' | 'warn' | 'error'
+
+function _clone<T extends Element>(templateId: string, selector: string): T {
+  const template = document.querySelector<HTMLTemplateElement>(templateId)!
+  return (template.content.cloneNode(true) as DocumentFragment).querySelector<T>(selector)!
+}
 
 interface TerminalTab {
   button: HTMLButtonElement
@@ -30,14 +36,10 @@ export class Terminal {
   // ── Tab management ───────────────────────────────────────────────────────────
 
   addTab(tabId: string, label: string): HTMLElement {
-    const button = document.createElement('button')
-    button.className = 'terminal-tab-btn'
-    button.textContent = label
-    button.addEventListener('click', () => this.activateTab(tabId))
-    this._tabsContainer.appendChild(button)
+    const button = createTabButton(label, () => this.activateTab(tabId))
+    const body   = _clone<HTMLDivElement>('#terminal-tab-body-tpl', '.terminal-tab-body')
 
-    const body = document.createElement('div')
-    body.className = 'terminal-tab-body'
+    this._tabsContainer.appendChild(button)
     this._outputContainer.appendChild(body)
 
     this._tabs.set(tabId, { button, body })
@@ -64,17 +66,10 @@ export class Terminal {
 
     const time = new Date().toTimeString().slice(0, 8)
 
-    const entry = document.createElement('div')
-    entry.className = `log-entry log-${level}`
-
-    const timeSpan = document.createElement('span')
-    timeSpan.className = 'log-time'
-    timeSpan.textContent = time
-
-    const textNode = document.createTextNode(text)
-
-    entry.appendChild(timeSpan)
-    entry.appendChild(textNode)
+    const entry = _clone<HTMLDivElement>('#log-entry-tpl', '.log-entry')
+    entry.classList.add(`log-${level}`)
+    entry.querySelector<HTMLElement>('.log-time')!.textContent = time
+    entry.appendChild(document.createTextNode(text))
     tab.body.appendChild(entry)
 
     // Cap at 500 entries

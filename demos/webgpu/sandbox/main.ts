@@ -4,61 +4,60 @@ import { ItemMenu }          from './ui/ItemMenu/ItemMenu'
 import { PropertyPanel }     from './ui/PropertyPanel/PropertyPanel'
 import { SceneHierarchy }    from './ui/SceneHierarchy/SceneHierarchy'
 import { Toolbar }           from './ui/Toolbar/Toolbar'
-import { SceneManager }      from './game/SceneManager'
+import { SceneManager }   from './game/SceneManager'
 import registryJson          from './items/registry.json'
-import type { ItemRegistry } from './items/types'
+import type { ItemRegistry, ItemEntry } from './items/types'
 
 async function main(): Promise<void> {
   mountComponents()
 
   const registry = registryJson as ItemRegistry
 
-  const canvas = document.getElementById('webgpu-canvas') as HTMLCanvasElement
+  const tabsContainer   = document.getElementById('terminal-tabs')!
+  const outputContainer = document.getElementById('terminal-output')!
+  const menuContainer   = document.getElementById('item-menu')!
+  const canvas          = document.getElementById('webgpu-canvas') as HTMLCanvasElement
+  const toolbar         = new Toolbar()
 
-  const terminal      = new Terminal(
-    document.getElementById('terminal-tabs')!,
-    document.getElementById('terminal-output')!,
-  )
+  const terminal      = new Terminal(tabsContainer, outputContainer)
   const propertyPanel = new PropertyPanel(document.getElementById('property-panel')!)
-  const toolbar       = new Toolbar()
 
-  // Use a ref object so hierarchy callbacks reach the SceneManager instance
-  // before it is assigned (they are passed as constructor callbacks).
-  const sceneRef = { current: null as unknown as SceneManager }
-
+  // Use a ref object so the hierarchy callbacks always reach the controller instance.
+  const controllerRef = { current: null as unknown as SceneManager }
   const sceneHierarchy = new SceneHierarchy(
     document.getElementById('scene-hierarchy')!,
-    (index) => sceneRef.current.selectObject(index),
-    (index, newName) => sceneRef.current.renameObject(index, newName),
-    (index) => sceneRef.current.removeObject(index),
-    () => sceneRef.current.deselectObject(),
+    (index) => controllerRef.current.selectObject(index),
+    (index, newName) => controllerRef.current.renameObject(index, newName),
+    (index) => controllerRef.current.removeObject(index),
   )
 
-  const sceneManager = new SceneManager(canvas, terminal, propertyPanel, sceneHierarchy)
-  sceneRef.current   = sceneManager
+  const controller = new SceneManager(canvas, terminal, propertyPanel, sceneHierarchy)
+  controllerRef.current = controller
 
-  const itemMenu = new ItemMenu(
-    document.getElementById('item-menu')!,
+  const menu = new ItemMenu(
+    menuContainer,
     registry,
-    (key, entry) => sceneManager.spawn(key, entry),
+    (key: string, entry: ItemEntry) => controller.spawn(key, entry),
   )
-  itemMenu.setEnabled(false)
+  menu.setEnabled(false)
+
+  toolbar.onPlay  = () => controller.play()
+  toolbar.onStop  = () => controller.stop()
 
   try {
-    await sceneManager.init()
-    sceneManager.startLoop()
-    itemMenu.setEnabled(true)
+    await controller.init()
+    controller.startLoop()
+    menu.setEnabled(true)
     toolbar.setEnabled(true)
   } catch (error) {
     terminal.print(`Engine initialisation failed: ${error}`, 'error')
     return
   }
 
-  toolbar.onPlay = () => sceneManager.play()
-  toolbar.onStop = () => sceneManager.stop()
-
-  // ESC releases pointer lock → revert toolbar
-  document.addEventListener('sandbox:stopped', () => toolbar.setPlaying(false))
+  // Revert play button when ESC releases the pointer lock
+  document.addEventListener('sandbox:stopped', () => {
+    toolbar.setPlaying(false)
+  })
 }
 
 main()

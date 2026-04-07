@@ -1,16 +1,12 @@
 import './item-menu.css'
+import { createSidebarButton } from '../primitives/index'
 import type { ItemEntry, ItemRegistry } from '../../items/types'
-
-interface ButtonRecord {
-  button: HTMLButtonElement
-  entry:  ItemEntry
-}
 
 export class ItemMenu {
   private readonly _container: HTMLElement
   private readonly _onSpawn:   (key: string, entry: ItemEntry) => void
 
-  private _buttonRecords: ButtonRecord[] = []
+  private _buttons: HTMLButtonElement[] = []
   private _enabled = false
 
   constructor(
@@ -27,42 +23,46 @@ export class ItemMenu {
 
   setEnabled(enabled: boolean): void {
     this._enabled = enabled
-    for (const { button, entry } of this._buttonRecords) {
-      button.disabled = !enabled || !entry.isReady
+    for (const button of this._buttons) {
+      if (!button.dataset.unavailable) {
+        button.disabled = !enabled
+      }
     }
   }
 
   // ── Private ─────────────────────────────────────────────────────────────────
 
   private _render(registry: ItemRegistry): void {
+    const sectionTemplate = document.querySelector<HTMLTemplateElement>('#menu-section-tpl')!
+
     for (const [sectionName, entries] of Object.entries(registry)) {
-      const sectionLabel = document.createElement('h2')
-      sectionLabel.className = 'menu-section-label'
+      const fragment = new DocumentFragment()
+
+      const sectionLabel = (sectionTemplate.content.cloneNode(true) as DocumentFragment)
+        .querySelector<HTMLElement>('.menu-section-label')!
       sectionLabel.textContent = sectionName
-      this._container.appendChild(sectionLabel)
+      fragment.appendChild(sectionLabel)
 
       for (const entry of entries) {
-        const button = document.createElement('button')
-        button.className = 'item-category-btn'
-        button.disabled  = !this._enabled || !entry.isReady
+        const isUnavailable = !entry.isReady
+        const button = createSidebarButton(
+          entry.label,
+          () => this._onSpawn(entry.key, entry),
+          {
+            badge:    isUnavailable ? 'soon' : undefined,
+            disabled: isUnavailable || !this._enabled,
+          },
+        )
 
-        const labelSpan = document.createElement('span')
-        labelSpan.className   = 'item-label'
-        labelSpan.textContent = entry.label
-        button.appendChild(labelSpan)
-
-        if (!entry.isReady) {
-          const badge = document.createElement('span')
-          badge.className   = 'item-badge'
-          badge.textContent = 'soon'
-          button.appendChild(badge)
-        } else {
-          button.addEventListener('click', () => this._onSpawn(entry.key, entry))
+        if (isUnavailable) {
+          button.dataset.unavailable = 'true'
         }
 
-        this._container.appendChild(button)
-        this._buttonRecords.push({ button, entry })
+        fragment.appendChild(button)
+        this._buttons.push(button)
       }
+
+      this._container.appendChild(fragment)
     }
   }
 }

@@ -1,0 +1,20 @@
+/* ── Select ──────────────────────────────────────────────────────────────── */
+
+.sb-select {
+  flex: 1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 4px 7px;
+  width: 0;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.sb-select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}

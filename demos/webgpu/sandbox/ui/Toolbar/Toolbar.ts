@@ -1,4 +1,5 @@
 import './toolbar.css'
+import { createButton } from '../primitives/index'
 
 export class Toolbar {
   private readonly _playButton: HTMLButtonElement
@@ -7,8 +8,8 @@ export class Toolbar {
   onStop: (() => void) | null = null
 
   constructor() {
-    this._playButton = document.getElementById('play-btn') as HTMLButtonElement
-    this._playButton.addEventListener('click', () => {
+    const toolbar = document.getElementById('toolbar')!
+    this._playButton = createButton('Play', () => {
       if (this._isPlaying()) {
         this.onStop?.()
         this.setPlaying(false)
@@ -16,7 +17,9 @@ export class Toolbar {
         this.onPlay?.()
         this.setPlaying(true)
       }
-    })
+    }, { disabled: true })
+    this._playButton.id = 'play-btn'
+    toolbar.appendChild(this._playButton)
   }
 
   setPlaying(playing: boolean): void {

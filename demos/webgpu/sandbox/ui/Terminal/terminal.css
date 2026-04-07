@@ -16,28 +16,6 @@
   flex-shrink: 0;
 }
 
-.terminal-tab-btn {
-  padding: 4px 14px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--color-text-muted);
-  font-family: var(--font-ui);
-  font-size: 12px;
-  cursor: pointer;
-  transition: color 0.1s, border-color 0.1s;
-  height: 100%;
-}
-
-.terminal-tab-btn:hover {
-  color: var(--color-text);
-}
-
-.terminal-tab-btn.active {
-  color: var(--color-accent);
-  border-bottom-color: var(--color-accent);
-}
-
 #terminal-output {
   flex: 1;
   overflow-y: auto;
