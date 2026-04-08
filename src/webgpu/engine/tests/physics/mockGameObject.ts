@@ -1,5 +1,6 @@
 import { Rigidbody3D } from '../../gameObject/rigidbody/Rigidbody3D'
 import type { IGameObject } from '../../gameObject/GameObject'
+import type { Renderable } from '../../gameObject/renderables/Renderable'
 import type { Vec3, Vec4 } from '../../math/vec'
 
 /**
@@ -12,7 +13,7 @@ export function makeMockGameObject(rigidbody: Rigidbody3D, position: Vec3 = [0, 
     quaternion: [0, 0, 0, 1] as Vec4,
     scale: [1, 1, 1] as Vec3,
     color: [1, 1, 1, 1] as [number, number, number, number],
-    renderable: null as any,
+    renderable: null as unknown as Renderable,
     hitbox: rigidbody.hitbox,
     rigidbody,
 

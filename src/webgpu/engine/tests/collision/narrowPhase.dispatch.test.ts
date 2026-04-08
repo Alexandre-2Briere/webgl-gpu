@@ -87,7 +87,7 @@ describe('narrowPhase — normal symmetry', () => {
 
 describe('narrowPhase — unknown type returns NO_HIT', () => {
   it('unknown hitbox type returns a non-hit result without throwing', () => {
-    const fakeHitbox = { type: 'unknown', worldCenter: [0, 0, 0], orientation: new Float32Array(16), offsetTranslation: [0, 0, 0], offsetRotation: [0, 0], updateOrientation: () => {}, clone: () => fakeHitbox } as any
+    const fakeHitbox = { type: 'unknown', worldCenter: [0, 0, 0], orientation: new Float32Array(16), offsetTranslation: [0, 0, 0], offsetRotation: [0, 0], updateOrientation: () => {}, clone: () => fakeHitbox } as unknown as import('../../gameObject/hitbox/Hitbox3D').Hitbox3D
     const result = narrowPhase(fakeHitbox, makeSphere())
     expect(result.hit).toBe(false)
   })

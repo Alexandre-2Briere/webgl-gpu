@@ -83,7 +83,7 @@ describe('Model3D — init() GPU setup', () => {
   it('calls pipelineCache.getOrCreateRender with key "mesh"', () => {
     const model = new Model3D({ asset })
     model.init(mock.args)
-    const getOrCreate = (mock.args.pipelineCache as any).getOrCreateRender
+    const getOrCreate = mock.pipelineCache.getOrCreateRender
     expect(getOrCreate).toHaveBeenCalledWith('mesh', expect.anything())
   })
 
@@ -199,7 +199,7 @@ describe('Model3D — clone()', () => {
   it('shares the same asset reference as the original', () => {
     const model = new Model3D({ asset })
     const cloned = model.clone()
-    expect((cloned as any)._asset).toBe((model as any)._asset)
+    expect((cloned as unknown as { _asset: unknown })._asset).toBe((model as unknown as { _asset: unknown })._asset)
   })
 
   it('preserves the default tint color', () => {

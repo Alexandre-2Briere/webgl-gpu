@@ -217,7 +217,7 @@ describe('applyCollisions — edge cases', () => {
     applyCollisions(layerMap, [objA, objB])
 
     // After applyCollisions, obj positions should reflect the corrected rigidbody positions
-    expect((objA as any).position[0]).toBeCloseTo(rbA.position[0], 4)
-    expect((objB as any).position[0]).toBeCloseTo(rbB.position[0], 4)
+    expect(objA.position[0]).toBeCloseTo(rbA.position[0], 4)
+    expect(objB.position[0]).toBeCloseTo(rbB.position[0], 4)
   })
 })

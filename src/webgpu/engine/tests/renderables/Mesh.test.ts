@@ -87,7 +87,7 @@ describe('Mesh — init() GPU setup', () => {
   it('calls pipelineCache.getOrCreateRender with key "mesh"', () => {
     const mesh = new Mesh({ vertices: VERTEX_FIXTURE })
     mesh.init(mock.args)
-    const getOrCreate = (mock.args.pipelineCache as any).getOrCreateRender
+    const getOrCreate = mock.pipelineCache.getOrCreateRender
     expect(getOrCreate).toHaveBeenCalledWith('mesh', expect.anything())
   })
 

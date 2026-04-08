@@ -34,3 +34,17 @@ export type {
 
 // Editor renderables
 export { ArrowGizmo } from './gameObject/renderables'
+
+// Save / load
+export { SaveManager } from './saveManager'
+export type {
+  SceneSnapshot,
+  CameraSnapshot,
+  ObjectSnapshot,
+  PhysicsConfigSnapshot,
+  CubeSnapshot,
+  QuadSnapshot,
+  FbxObjectSnapshot,
+  LightSnapshot,
+  DirectionalLightSnapshot,
+} from './saveManager'

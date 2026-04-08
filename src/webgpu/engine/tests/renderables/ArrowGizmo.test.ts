@@ -18,9 +18,9 @@ describe('ArrowGizmo — pre-init identity', () => {
     expect(typeof gizmo.id).toBe('symbol')
   })
 
-  it('layer is "world"', () => {
+  it('layer is "world-overlay"', () => {
     const gizmo = new ArrowGizmo()
-    expect(gizmo.layer).toBe('world')
+    expect(gizmo.layer).toBe('world-overlay')
   })
 
   it('pipelineKey is the visible pipeline key', () => {
@@ -88,21 +88,21 @@ describe('ArrowGizmo — init() GPU setup', () => {
   it('calls pipelineCache.getOrCreateRender with the visible key', () => {
     const gizmo = new ArrowGizmo()
     gizmo.init(mock.args)
-    const getOrCreate = (mock.args.pipelineCache as any).getOrCreateRender
+    const getOrCreate = mock.pipelineCache.getOrCreateRender
     expect(getOrCreate).toHaveBeenCalledWith(ARROW_GIZMO_VISIBLE_KEY, expect.anything())
   })
 
   it('calls pipelineCache.getOrCreateRender with the occluded key', () => {
     const gizmo = new ArrowGizmo()
     gizmo.init(mock.args)
-    const getOrCreate = (mock.args.pipelineCache as any).getOrCreateRender
+    const getOrCreate = mock.pipelineCache.getOrCreateRender
     expect(getOrCreate).toHaveBeenCalledWith(ARROW_GIZMO_OCCLUDED_KEY, expect.anything())
   })
 
   it('calls pipelineCache.getOrCreateRender exactly twice', () => {
     const gizmo = new ArrowGizmo()
     gizmo.init(mock.args)
-    const getOrCreate = (mock.args.pipelineCache as any).getOrCreateRender
+    const getOrCreate = mock.pipelineCache.getOrCreateRender
     expect(getOrCreate).toHaveBeenCalledTimes(2)
   })
 

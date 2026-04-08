@@ -1,6 +1,9 @@
 import { vi } from 'vitest'
 import { makeMockDevice, type MockGPUDevice, type MockGPUBuffer } from '../buffers/mockDevice'
 import type { RenderableInitArgs } from '../../gameObject/renderables/Renderable'
+import type { PipelineCache } from '../../core/PipelineCache'
+import type { BindGroupLayouts } from '../../types'
+import type { UniformPool } from '../../buffers/UniformPool'
 
 export interface MockUniformSlot {
   buffer: MockGPUBuffer
@@ -11,6 +14,10 @@ export interface MockUniformSlot {
 export interface MockUniformPool {
   allocate: ReturnType<typeof vi.fn>
   write: ReturnType<typeof vi.fn>
+}
+
+export interface MockPipelineCache {
+  getOrCreateRender: ReturnType<typeof vi.fn>
 }
 
 export interface MockRenderableDevice extends MockGPUDevice {
@@ -24,6 +31,7 @@ export interface MockRenderableInitArgs {
   device: MockRenderableDevice
   uniformPool: MockUniformPool
   uniformSlot: MockUniformSlot
+  pipelineCache: MockPipelineCache
 }
 
 export function makeMockRenderableInitArgs(): MockRenderableInitArgs {
@@ -44,14 +52,18 @@ export function makeMockRenderableInitArgs(): MockRenderableInitArgs {
     write: vi.fn(),
   }
 
+  const pipelineCache: MockPipelineCache = {
+    getOrCreateRender: vi.fn().mockReturnValue({}),
+  }
+
   const args: RenderableInitArgs = {
     device: device as unknown as GPUDevice,
     queue: device.queue as unknown as GPUQueue,
     format: 'bgra8unorm' as GPUTextureFormat,
-    pipelineCache: { getOrCreateRender: vi.fn().mockReturnValue({}) } as any,
-    layouts: { camera: {}, object: {}, empty: {}, lights: {}, fbxMaterial: {}, gizmo: {} } as any,
-    uniformPool: uniformPool as any,
+    pipelineCache: pipelineCache as unknown as PipelineCache,
+    layouts: { camera: {}, object: {}, empty: {}, lights: {}, fbxMaterial: {}, gizmo: {} } as unknown as BindGroupLayouts,
+    uniformPool: uniformPool as unknown as UniformPool,
   }
 
-  return { args, device, uniformPool, uniformSlot }
+  return { args, device, uniformPool, uniformSlot, pipelineCache }
 }

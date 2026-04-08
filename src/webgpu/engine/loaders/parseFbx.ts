@@ -99,6 +99,7 @@ async function extractScene(reader: FBXReader): Promise<ParsedFbxData> {
   const meshes: ParsedFbxMesh[] = []
 
   for (const [geoId, geoNode] of geometryById) {
+    // eslint-disable-next-line no-control-regex
     const name = (geoNode.prop(1, 'string') ?? 'unnamed').replace(/\x00.*$/, '').replace(/::.*$/, '')
 
     // Find the material connected to this geometry's parent model node
@@ -360,6 +361,7 @@ async function extractMaterial(
   textureById: Map<string, FBXReaderNode>,
 ): Promise<ParsedFbxMaterial> {
   const rawName = matNode.prop(1, 'string') ?? 'material'
+  // eslint-disable-next-line no-control-regex
   const name = rawName.replace(/\x00.*$/, '').replace(/::.*$/, '')
 
   // Diffuse color from Properties70

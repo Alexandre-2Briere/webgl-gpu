@@ -109,7 +109,7 @@ describe('applyPhysics — edge cases', () => {
     const rbNull = new Rigidbody3D({ layer: 'test', useGravity: true })
     const obj = makeMockGameObject(rbNull)
     // Override getRigidbody to simulate no rigidbody
-    ;(obj as any).getRigidbody = () => null
+    ;(obj as { getRigidbody(): null }).getRigidbody = () => null
     expect(() => applyPhysics([obj], 1)).not.toThrow()
   })
 

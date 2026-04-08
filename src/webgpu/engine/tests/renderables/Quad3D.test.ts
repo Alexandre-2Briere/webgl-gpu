@@ -79,7 +79,7 @@ describe('Quad3D — init() GPU setup', () => {
   it('calls pipelineCache.getOrCreateRender with key "quad3d"', () => {
     const quad = new Quad3D(QUAD_OPTIONS)
     quad.init(mock.args)
-    const getOrCreate = (mock.args.pipelineCache as any).getOrCreateRender
+    const getOrCreate = mock.pipelineCache.getOrCreateRender
     expect(getOrCreate).toHaveBeenCalledWith('quad3d', expect.anything())
   })
 

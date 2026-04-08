@@ -243,6 +243,7 @@ export class Engine {
     renderable.init(this._initArgs())
     this._scene.add(renderable)
 
+    // eslint-disable-next-line prefer-const
     let go!: GameObject<R>
 
     const _destroy = (): void => {

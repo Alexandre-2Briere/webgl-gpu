@@ -12,6 +12,7 @@ import { PhysicsManager } from './managers/PhysicsManager'
 import { PlayStateManager } from './managers/PlayStateManager'
 import { CameraController } from './controllers/CameraController'
 import { GizmoController } from './controllers/GizmoController'
+import { SaveLoadManager } from './managers/SaveLoadManager'
 
 export class SceneManager {
   private readonly _canvas:          HTMLCanvasElement
@@ -19,14 +20,15 @@ export class SceneManager {
   private readonly _propertyPanel:   PropertyPanel
   private readonly _sceneHierarchy:  SceneHierarchy
 
-  private _engine!:           Engine
-  private _inputManager!:     InputManager
-  private _spawnManager!:     SpawnManager
-  private _selectionManager!: SelectionManager
-  private _physicsManager!:   PhysicsManager
-  private _playStateManager!: PlayStateManager
-  private _cameraController!: CameraController
-  private _gizmoController!:  GizmoController
+  private _engine!:            Engine
+  private _inputManager!:      InputManager
+  private _spawnManager!:      SpawnManager
+  private _selectionManager!:  SelectionManager
+  private _physicsManager!:    PhysicsManager
+  private _playStateManager!:  PlayStateManager
+  private _cameraController!:  CameraController
+  private _gizmoController!:   GizmoController
+  private _saveLoadManager!:   SaveLoadManager
 
   constructor(
     canvas:         HTMLCanvasElement,
@@ -87,6 +89,7 @@ export class SceneManager {
       () => this._playStateManager.isPlaying(),
     )
     this._gizmoController.create()
+    this._saveLoadManager = new SaveLoadManager(engine, this._spawnManager, this._physicsManager, this._terminal)
 
     // Wire SelectionManager with play-state context for picking
     this._selectionManager.setPickingDisabled(() => this._playStateManager.isPlaying())
@@ -179,6 +182,19 @@ export class SceneManager {
       }
       this._selectionManager.updateSelectedIndex(newSelectedIndex)
     }
+  }
+
+  async saveScene(): Promise<string> {
+    return this._saveLoadManager.saveScene()
+  }
+
+  async loadScene(encodedString: string): Promise<boolean> {
+    if (this._playStateManager.isPlaying()) {
+      this._playStateManager.stop()
+      this._gizmoController.sync()
+    }
+    this._selectionManager.deselect()
+    return this._saveLoadManager.loadScene(encodedString)
   }
 
 }
