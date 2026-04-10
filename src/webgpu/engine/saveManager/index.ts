@@ -1,4 +1,5 @@
 export { SaveManager } from './SaveManager'
+export { restoreFromSnapshot } from './restoreScene'
 export type {
   SceneSnapshot,
   CameraSnapshot,

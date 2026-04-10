@@ -36,7 +36,7 @@ export type {
 export { ArrowGizmo } from './gameObject/renderables'
 
 // Save / load
-export { SaveManager } from './saveManager'
+export { SaveManager, restoreFromSnapshot } from './saveManager'
 export type {
   SceneSnapshot,
   CameraSnapshot,

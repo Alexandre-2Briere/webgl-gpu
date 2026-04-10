@@ -25,6 +25,8 @@ import type { IGameObject } from './gameObject/GameObject'
 import { LightGameObject, LightType } from './gameObject/LightGameObject'
 import { Rigidbody3D } from './gameObject/rigidbody/Rigidbody3D'
 import type { Hitbox3D } from './gameObject/hitbox/Hitbox3D'
+import { SaveManager } from './saveManager/SaveManager'
+import { restoreFromSnapshot } from './saveManager/restoreScene'
 
 /** Pool size for per-object uniforms: supports up to 512 renderables. */
 const UNIFORM_POOL_SIZE = 512 * 256
@@ -193,6 +195,12 @@ export class Engine {
 
   createCamera(opts: CameraOptions = {}): Camera {
     return new Camera(this._renderer.device, this._layouts.camera, opts)
+  }
+
+  async loadScene(saveString: string): Promise<void> {
+    const snapshot = await new SaveManager().load(saveString)
+    if (snapshot === null) throw new Error('[Engine] loadScene: invalid or corrupt save string')
+    await restoreFromSnapshot(this, snapshot)
   }
 
   // ── RAF loop ────────────────────────────────────────────────────────────────
