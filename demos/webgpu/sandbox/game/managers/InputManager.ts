@@ -1,14 +1,17 @@
+import { SANDBOX_EVENTS } from '../events';
+import type { PubSubManager } from '../events';
+
 export class InputManager {
   private readonly _canvas:    HTMLCanvasElement;
+  private readonly _pubSub:    PubSubManager;
   private readonly _pressedKeys = new Set<string>();
   private _mouseButtonDown = false;
   private _mouseDeltaX     = 0;
   private _mouseDeltaY     = 0;
 
-  onPointerLockReleased: (() => void) | null = null;
-
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, pubSub: PubSubManager) {
     this._canvas = canvas;
+    this._pubSub = pubSub;
     this._attach();
   }
 
@@ -59,7 +62,7 @@ export class InputManager {
 
     document.addEventListener('pointerlockchange', () => {
       if (document.pointerLockElement !== this._canvas) {
-        this.onPointerLockReleased?.();
+        this._pubSub.publish(SANDBOX_EVENTS.INPUT_POINTER_LOCK_RELEASED);
       }
     });
   }

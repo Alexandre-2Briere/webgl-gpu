@@ -3,6 +3,8 @@ import type { InputManager } from '../managers/InputManager';
 import type { SelectionManager } from '../managers/SelectionManager';
 import type { SpawnManager } from '../managers/SpawnManager';
 import type { PropertyPanel } from '../../ui/PropertyPanel/PropertyPanel';
+import { SANDBOX_EVENTS } from '../events';
+import type { PubSubManager } from '../events';
 
 const DRAG_SPEED = 0.01;  // world units per pixel
 
@@ -13,6 +15,7 @@ export class GizmoController {
   private readonly _spawnManager:      SpawnManager;
   private readonly _propertyPanel:     PropertyPanel;
   private readonly _isPlaying:         () => boolean;
+  private readonly _pubSub:            PubSubManager;
 
   private _gizmo:               ArrowGizmo | null = null;
   private _draggingAxis: 0 | 1 | 2 | null = null;
@@ -24,6 +27,7 @@ export class GizmoController {
     spawnManager:     SpawnManager,
     propertyPanel:    PropertyPanel,
     isPlaying:        () => boolean,
+    pubSub:           PubSubManager,
   ) {
     this._engine           = engine;
     this._inputManager     = inputManager;
@@ -31,6 +35,7 @@ export class GizmoController {
     this._spawnManager     = spawnManager;
     this._propertyPanel    = propertyPanel;
     this._isPlaying        = isPlaying;
+    this._pubSub           = pubSub;
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────────
@@ -39,6 +44,10 @@ export class GizmoController {
     this._gizmo = this._engine.createArrowGizmo();
     this._selectionManager.setGizmo(this._gizmo);
     this._attachMouseListeners();
+
+    this._pubSub.subscribe(SANDBOX_EVENTS.PLAY_STOPPED, () => {
+      this.sync();
+    });
   }
 
   getGizmo(): ArrowGizmo | null {

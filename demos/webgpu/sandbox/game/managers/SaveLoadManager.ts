@@ -160,7 +160,7 @@ export class SaveLoadManager {
     const objects = this._spawnManager.getObjects();
     for (let index = objects.length - 1; index >= 0; index--) {
       if (predicate(objects[index].key)) {
-        this._spawnManager.removeObject(index, -1);
+        this._spawnManager.removeObject(index);
       }
     }
   }

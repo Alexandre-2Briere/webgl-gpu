@@ -2,6 +2,8 @@ import type { SpawnManager } from './SpawnManager';
 import type { PropertyPanel } from '../../ui/PropertyPanel/PropertyPanel';
 import type { SceneHierarchy } from '../../ui/SceneHierarchy/SceneHierarchy';
 import type { ArrowGizmo } from '../../../../../src/webgpu/engine/index';
+import { SANDBOX_EVENTS } from '../events';
+import type { PubSubManager, ObjectSpawnedPayload, ObjectRemovedPayload } from '../events';
 
 export class SelectionManager {
   private readonly _spawnManager:   SpawnManager;
@@ -17,11 +19,32 @@ export class SelectionManager {
     propertyPanel:  PropertyPanel,
     sceneHierarchy: SceneHierarchy,
     canvas:         HTMLCanvasElement,
+    pubSub:         PubSubManager,
   ) {
     this._spawnManager   = spawnManager;
     this._propertyPanel  = propertyPanel;
     this._sceneHierarchy = sceneHierarchy;
     this._canvas         = canvas;
+
+    pubSub.subscribe(SANDBOX_EVENTS.OBJECT_SPAWNED, (data: unknown) => {
+      const { index } = data as ObjectSpawnedPayload;
+      this.select(index, false);
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.OBJECT_REMOVED, (data: unknown) => {
+      const { removedIndex } = data as ObjectRemovedPayload;
+      if (this._selectedIndex === removedIndex) {
+        this._selectedIndex = -1;
+        if (this._gizmo) this._gizmo.visible = false;
+      } else if (this._selectedIndex > removedIndex) {
+        this._selectedIndex--;
+      }
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.PLAY_STARTED, () => {
+      this.deselect();
+    });
+
     this._attachClickPicker();
   }
 
@@ -65,18 +88,10 @@ export class SelectionManager {
     if (this._gizmo) this._gizmo.visible = false;
   }
 
-  updateSelectedIndex(newIndex: number): void {
-    this._selectedIndex = newIndex;
-  }
-
   // ── Screen-space object picking ───────────────────────────────────────────────
 
   private _attachClickPicker(): void {
     this._canvas.addEventListener('click', (event: MouseEvent) => {
-      // Picking is driven by the frame state — only active when not playing.
-      // SceneManager passes isPlaying via the gizmo being null-able, but we
-      // check gizmo visibility as a proxy. A simpler approach: expose isPlaying
-      // via a callback set by SceneManager after init.
       if (this._pickingDisabled?.()) return;
 
       const canvasRect = this._canvas.getBoundingClientRect();

@@ -10,6 +10,8 @@ import { spawn as spawnCube } from '../../items/cube';
 import { spawn as spawnFBX, FBX_CATALOG } from '../../items/fbx';
 import { spawn as spawnLight } from '../../items/lights';
 import { spawn as spawnDirectionalLight } from '../../items/directionalLight';
+import { SANDBOX_EVENTS } from '../events';
+import type { PubSubManager } from '../events';
 
 const DEFAULT_PHYSICS: PhysicsConfig = {
   hasRigidbody: false,
@@ -42,6 +44,7 @@ export class SpawnManager {
   private readonly _propertyPanel:   PropertyPanel;
   private readonly _sceneHierarchy:  SceneHierarchy;
   private readonly _fbxCache:        Map<string, FbxAssetHandle>;
+  private readonly _pubSub:          PubSubManager;
   private readonly _rigidbodyLayerMap: Map<string, Rigidbody3D[]> = new Map();
   private readonly _spawnedObjects:  SpawnedObject[] = [];
 
@@ -51,12 +54,14 @@ export class SpawnManager {
     propertyPanel:  PropertyPanel,
     sceneHierarchy: SceneHierarchy,
     fbxCache:       Map<string, FbxAssetHandle>,
+    pubSub:         PubSubManager,
   ) {
     this._engine         = engine;
     this._terminal       = terminal;
     this._propertyPanel  = propertyPanel;
     this._sceneHierarchy = sceneHierarchy;
     this._fbxCache       = fbxCache;
+    this._pubSub         = pubSub;
   }
 
   // ── Read ──────────────────────────────────────────────────────────────────────
@@ -122,16 +127,15 @@ export class SpawnManager {
 
     const index = this._spawnedObjects.length - 1;
     this._sceneHierarchy.addObject(label);
-    this._sceneHierarchy.setSelected(index);
-    this._propertyPanel.show(gameObject, label, entry.properties, physicsConfig, selectedFbxUrl ?? undefined);
     this._terminal.print(`Spawned ${label} at (0, 0, 0).`, 'log');
+    this._pubSub.publish(SANDBOX_EVENTS.OBJECT_SPAWNED, { index });
   }
 
   // ── Remove ────────────────────────────────────────────────────────────────────
 
-  removeObject(index: number, selectedIndex: number): number {
+  removeObject(index: number): void {
     const obj = this._spawnedObjects[index];
-    if (!obj) return selectedIndex;
+    if (!obj) return;
 
     const rb = obj.gameObject.getRigidbody();
     if (rb) {
@@ -151,13 +155,7 @@ export class SpawnManager {
     this._sceneHierarchy.removeRow(index);
 
     this._terminal.print(`Removed ${obj.label}.`, 'log');
-
-    if (selectedIndex === index) {
-      return -1;
-    } else if (selectedIndex > index) {
-      return selectedIndex - 1;
-    }
-    return selectedIndex;
+    this._pubSub.publish(SANDBOX_EVENTS.OBJECT_REMOVED, { removedIndex: index });
   }
 
   // ── Rename ────────────────────────────────────────────────────────────────────

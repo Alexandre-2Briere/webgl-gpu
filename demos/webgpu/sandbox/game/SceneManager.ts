@@ -13,6 +13,7 @@ import { PlayStateManager } from './managers/PlayStateManager';
 import { CameraController } from './controllers/CameraController';
 import { GizmoController } from './controllers/GizmoController';
 import { SaveLoadManager } from './managers/SaveLoadManager';
+import { SANDBOX_EVENTS } from './events';
 
 export class SceneManager {
   private readonly _canvas:          HTMLCanvasElement;
@@ -47,6 +48,7 @@ export class SceneManager {
   async init(): Promise<void> {
     this._engine = await Engine.create(this._canvas);
     const engine = this._engine;
+    const pubSub = engine.PubSubManager;
 
     const camera = engine.createCamera({
       fovY:     Math.PI / 3,
@@ -74,11 +76,11 @@ export class SceneManager {
     });
 
     // Construct managers and controllers
-    this._inputManager     = new InputManager(this._canvas);
-    this._spawnManager     = new SpawnManager(engine, this._terminal, this._propertyPanel, this._sceneHierarchy, fbxCache);
-    this._selectionManager = new SelectionManager(this._spawnManager, this._propertyPanel, this._sceneHierarchy, this._canvas);
+    this._inputManager     = new InputManager(this._canvas, pubSub);
+    this._spawnManager     = new SpawnManager(engine, this._terminal, this._propertyPanel, this._sceneHierarchy, fbxCache, pubSub);
+    this._selectionManager = new SelectionManager(this._spawnManager, this._propertyPanel, this._sceneHierarchy, this._canvas, pubSub);
     this._physicsManager   = new PhysicsManager(engine, this._spawnManager);
-    this._playStateManager = new PlayStateManager(this._canvas, this._spawnManager, this._physicsManager, this._terminal);
+    this._playStateManager = new PlayStateManager(this._canvas, this._spawnManager, this._physicsManager, this._terminal, pubSub);
     this._cameraController = new CameraController(engine, this._inputManager, () => this._playStateManager.isPlaying());
     this._gizmoController  = new GizmoController(
       engine,
@@ -87,6 +89,7 @@ export class SceneManager {
       this._spawnManager,
       this._propertyPanel,
       () => this._playStateManager.isPlaying(),
+      pubSub,
     );
     this._gizmoController.create();
     this._saveLoadManager = new SaveLoadManager(engine, this._spawnManager, this._physicsManager, this._terminal);
@@ -98,14 +101,10 @@ export class SceneManager {
     // Wire PropertyPanel physics callbacks into PhysicsManager
     this._physicsManager.wirePropertyPanel(this._propertyPanel);
 
-    // Pointer lock release → stop play
-    this._inputManager.onPointerLockReleased = () => {
-      if (this._playStateManager.isPlaying()) {
-        this._playStateManager.stop();
-        this._gizmoController.sync();
-        document.dispatchEvent(new CustomEvent('sandbox:stopped'));
-      }
-    };
+    // Bridge internal pointer-lock event to the DOM for UI consumers outside the game folder
+    pubSub.subscribe(SANDBOX_EVENTS.INPUT_POINTER_LOCK_RELEASED, () => {
+      document.dispatchEvent(new CustomEvent('sandbox:stopped'));
+    });
 
     this._terminal.print('Engine initialised.', 'log');
     this._terminal.print('Press Play to start | Click an object to inspect it.', 'log');
@@ -146,7 +145,6 @@ export class SceneManager {
 
   play(): void {
     this._playStateManager.play();
-    this._selectionManager.deselect();
   }
 
   stop(): void {
@@ -174,14 +172,7 @@ export class SceneManager {
   }
 
   removeObject(index: number): void {
-    const newSelectedIndex = this._spawnManager.removeObject(index, this._selectionManager.getSelectedIndex());
-    if (newSelectedIndex !== this._selectionManager.getSelectedIndex()) {
-      if (newSelectedIndex === -1 && this._gizmoController.getGizmo()) {
-        const gizmo = this._gizmoController.getGizmo()!;
-        gizmo.visible = false;
-      }
-      this._selectionManager.updateSelectedIndex(newSelectedIndex);
-    }
+    this._spawnManager.removeObject(index);
   }
 
   async saveScene(): Promise<string> {
@@ -191,7 +182,6 @@ export class SceneManager {
   async loadScene(encodedString: string): Promise<boolean> {
     if (this._playStateManager.isPlaying()) {
       this._playStateManager.stop();
-      this._gizmoController.sync();
     }
     this._selectionManager.deselect();
     return this._saveLoadManager.loadScene(encodedString);
