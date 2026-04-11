@@ -1,4 +1,4 @@
-import type { BindGroupLayouts } from '../types'
+import type { BindGroupLayouts } from '../types';
 
 export function createCameraLayout(device: GPUDevice): GPUBindGroupLayout {
   return device.createBindGroupLayout({
@@ -8,7 +8,7 @@ export function createCameraLayout(device: GPUDevice): GPUBindGroupLayout {
       visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
       buffer: { type: 'uniform' },
     }],
-  })
+  });
 }
 
 export function createObjectLayout(device: GPUDevice): GPUBindGroupLayout {
@@ -19,7 +19,7 @@ export function createObjectLayout(device: GPUDevice): GPUBindGroupLayout {
       visibility: GPUShaderStage.VERTEX,
       buffer: { type: 'uniform', hasDynamicOffset: false },
     }],
-  })
+  });
 }
 
 export function createFbxMaterialLayout(device: GPUDevice): GPUBindGroupLayout {
@@ -30,7 +30,7 @@ export function createFbxMaterialLayout(device: GPUDevice): GPUBindGroupLayout {
       { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float', viewDimension: '2d' } },
       { binding: 2, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
     ],
-  })
+  });
 }
 
 export function createLightsLayout(device: GPUDevice): GPUBindGroupLayout {
@@ -41,11 +41,11 @@ export function createLightsLayout(device: GPUDevice): GPUBindGroupLayout {
       visibility: GPUShaderStage.FRAGMENT,
       buffer:     { type: 'uniform' },
     }],
-  })
+  });
 }
 
 export function createEmptyLayout(device: GPUDevice): GPUBindGroupLayout {
-  return device.createBindGroupLayout({ label: 'empty-bgl', entries: [] })
+  return device.createBindGroupLayout({ label: 'empty-bgl', entries: [] });
 }
 
 export function createGizmoLayout(device: GPUDevice): GPUBindGroupLayout {
@@ -56,7 +56,7 @@ export function createGizmoLayout(device: GPUDevice): GPUBindGroupLayout {
       visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
       buffer:     { type: 'uniform' },
     }],
-  })
+  });
 }
 
 export function createEngineLayouts(device: GPUDevice): BindGroupLayouts {
@@ -67,5 +67,5 @@ export function createEngineLayouts(device: GPUDevice): BindGroupLayouts {
     lights:      createLightsLayout(device),
     empty:       createEmptyLayout(device),
     gizmo:       createGizmoLayout(device),
-  }
+  };
 }

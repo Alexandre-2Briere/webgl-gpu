@@ -1,5 +1,5 @@
-import type { ProjectMeta } from '@lib/projects/types'
-import styles from './ProjectCard.module.css'
+import type { ProjectMeta } from '@lib/projects/types';
+import styles from './ProjectCard.module.css';
 
 interface Props {
   project: ProjectMeta
@@ -7,7 +7,7 @@ interface Props {
 }
 
 export default function ProjectCard({ project, index }: Props) {
-  const reversed = index % 2 !== 0
+  const reversed = index % 2 !== 0;
 
   return (
     <article className={`${styles.card} ${reversed ? styles.reversed : ''}`}>
@@ -35,5 +35,5 @@ export default function ProjectCard({ project, index }: Props) {
         </a>
       </div>
     </article>
-  )
+  );
 }

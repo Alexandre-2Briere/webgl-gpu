@@ -1,13 +1,17 @@
-export { SaveManager } from './SaveManager'
-export { restoreFromSnapshot } from './restoreScene'
+export { SaveManager } from './SaveManager';
+export { restoreFromSnapshot } from './restoreScene';
 export type {
-  SceneSnapshot,
+  SaveSegments,
+  SceneConstantsSnapshot,
+  GameObjectsSnapshot,
+  LightObjectsSnapshot,
+  GameObjectSnapshot,
+  LightObjectSnapshot,
   CameraSnapshot,
-  ObjectSnapshot,
   PhysicsConfigSnapshot,
   CubeSnapshot,
   QuadSnapshot,
   FbxObjectSnapshot,
   LightSnapshot,
   DirectionalLightSnapshot,
-} from './types'
+} from './types';

@@ -13,4 +13,4 @@
   STORAGE:       0x0080,
   INDIRECT:      0x0100,
   QUERY_RESOLVE: 0x0200,
-}
+};

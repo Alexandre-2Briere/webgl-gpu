@@ -1,2 +1,2 @@
-export { parseObj } from './parseObj'
-export { parseFbx } from './parseFbx'
+export { parseObj } from './parseObj';
+export { parseFbx } from './parseFbx';

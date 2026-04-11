@@ -1,4 +1,4 @@
-export const LIGHT_CROSS_PIPELINE_KEY = 'light-cross'
+export const LIGHT_CROSS_PIPELINE_KEY = 'light-cross';
 
 export const LIGHT = /* wgsl */`
 // Light ball gizmo shader — screen-space overlay, procedural geometry.

@@ -1,4 +1,4 @@
-import type { ProjectMeta } from './types'
+import type { ProjectMeta } from './types';
 
 export const projects: ProjectMeta[] = [
   {
@@ -11,4 +11,4 @@ export const projects: ProjectMeta[] = [
     tags: ['WebGPU', 'TypeScript', '3D', 'Marching Cubes'],
     publishedAt: '2026-03-20',
   },
-]
+];

@@ -24,6 +24,7 @@ export default defineConfig([
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
       }],
+      'semi': ['error', 'always'],
     },
   },
 ])

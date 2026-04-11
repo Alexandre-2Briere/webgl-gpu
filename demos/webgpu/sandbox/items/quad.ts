@@ -1,5 +1,5 @@
-import type { Engine, IGameObject } from '../../../../src/webgpu/engine/index'
-import type { PrimitiveSpawnContext } from './types'
+import type { Engine, IGameObject } from '../../../../src/webgpu/engine/index';
+import type { PrimitiveSpawnContext } from './types';
 
 export function spawn(engine: Engine, context: PrimitiveSpawnContext): IGameObject {
   return engine.createQuad3D({
@@ -11,5 +11,5 @@ export function spawn(engine: Engine, context: PrimitiveSpawnContext): IGameObje
     },
     rigidbody: context.rigidbody,
     hitbox:    context.hitbox,
-  })
+  });
 }

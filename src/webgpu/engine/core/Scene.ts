@@ -1,52 +1,52 @@
-import type { Renderable } from '../gameObject/renderables/Renderable'
-import { Camera } from './Camera'
-import { Renderer } from './Renderer'
-import type { LightBuffer } from '../buffers/LightBuffer'
-import { logger } from '../utils'
+import type { Renderable } from '../gameObject/renderables/Renderable';
+import { Camera } from './Camera';
+import { Renderer } from './Renderer';
+import type { LightBuffer } from '../buffers/LightBuffer';
+import { logger } from '../utils';
 
 export class Scene {
-  private readonly _renderer: Renderer
-  private readonly _lightBuffer: LightBuffer
-  private readonly _worldRenderables: Renderable[] = []
-  private readonly _worldOverlay: Renderable[] = []
-  private readonly _overlayRenderables: Renderable[] = []
+  private readonly _renderer: Renderer;
+  private readonly _lightBuffer: LightBuffer;
+  private readonly _worldRenderables: Renderable[] = [];
+  private readonly _worldOverlay: Renderable[] = [];
+  private readonly _overlayRenderables: Renderable[] = [];
 
   constructor(renderer: Renderer, lightBuffer: LightBuffer) {
-    this._renderer    = renderer
-    this._lightBuffer = lightBuffer
+    this._renderer    = renderer;
+    this._lightBuffer = lightBuffer;
   }
 
   add(r: Renderable): void {
     if (r.layer === 'world') {
-      this._worldRenderables.push(r)
+      this._worldRenderables.push(r);
     } else if (r.layer === 'world-overlay') {
-      this._worldOverlay.push(r)
+      this._worldOverlay.push(r);
     } else {
-      logger.warn(`Renderable with unknown layer "${r.layer}" added to scene; defaulting to "overlay".`)
-      this._overlayRenderables.push(r)
+      logger.warn(`Renderable with unknown layer "${r.layer}" added to scene; defaulting to "overlay".`);
+      this._overlayRenderables.push(r);
     }
     // Sort world renderables by pipeline key to minimise setPipeline() calls
-    this._worldRenderables.sort((a, b) => a.pipelineKey.localeCompare(b.pipelineKey))
-    this._worldOverlay.sort((a, b) => a.pipelineKey.localeCompare(b.pipelineKey))
+    this._worldRenderables.sort((a, b) => a.pipelineKey.localeCompare(b.pipelineKey));
+    this._worldOverlay.sort((a, b) => a.pipelineKey.localeCompare(b.pipelineKey));
   }
 
   destroy(): void {
-    for (const r of this._worldRenderables) r.destroy()
-    for (const r of this._worldOverlay) r.destroy()
-    for (const r of this._overlayRenderables) r.destroy()
-    this._worldRenderables.length = 0
-    this._worldOverlay.length = 0
-    this._overlayRenderables.length = 0
+    for (const r of this._worldRenderables) r.destroy();
+    for (const r of this._worldOverlay) r.destroy();
+    for (const r of this._overlayRenderables) r.destroy();
+    this._worldRenderables.length = 0;
+    this._worldOverlay.length = 0;
+    this._overlayRenderables.length = 0;
   }
 
   remove(r: Renderable): void {
     const removeFrom = (arr: Renderable[]) => {
-      const idx = arr.indexOf(r)
-      if (idx !== -1) arr.splice(idx, 1)
-    }
-    removeFrom(this._worldRenderables)
-    removeFrom(this._worldOverlay)
-    removeFrom(this._overlayRenderables)
+      const idx = arr.indexOf(r);
+      if (idx !== -1) arr.splice(idx, 1);
+    };
+    removeFrom(this._worldRenderables);
+    removeFrom(this._worldOverlay);
+    removeFrom(this._overlayRenderables);
   }
 
   /**
@@ -54,19 +54,19 @@ export class Scene {
    * Called by the RAF loop in Engine with the current camera.
    */
   frame(camera: Camera, canvas: HTMLCanvasElement): void {
-    const { device, queue } = this._renderer
-    const aspect = canvas.width / canvas.height
+    const { device, queue } = this._renderer;
+    const aspect = canvas.width / canvas.height;
 
     // Update camera matrices and upload to GPU
-    camera.updateMatrices(aspect)
-    camera.uploadTo(queue)
+    camera.updateMatrices(aspect);
+    camera.uploadTo(queue);
 
     // Upload any pending light changes
-    this._lightBuffer.upload(queue)
+    this._lightBuffer.upload(queue);
 
-    const encoder = device.createCommandEncoder({ label: 'frame' })
-    const colorView = this._renderer.getCurrentColorView()
-    const depthView = this._renderer.getDepthView()
+    const encoder = device.createCommandEncoder({ label: 'frame' });
+    const colorView = this._renderer.getCurrentColorView();
+    const depthView = this._renderer.getDepthView();
 
     // ── 1. World render pass ───────────────────────────────────────────────────
     {
@@ -84,22 +84,22 @@ export class Scene {
           depthStoreOp: 'store',
           depthClearValue: 1.0,
         },
-      })
+      });
 
       // Camera and lights bind groups are set once for the entire pass
-      worldPass.setBindGroup(0, camera.bindGroup)
-      worldPass.setBindGroup(3, this._lightBuffer.bindGroup)
+      worldPass.setBindGroup(0, camera.bindGroup);
+      worldPass.setBindGroup(3, this._lightBuffer.bindGroup);
 
       for (const r of this._worldRenderables) {
-        if (!r.visible) continue
-        r.encode(worldPass, camera)
+        if (!r.visible) continue;
+        r.encode(worldPass, camera);
       }
       for (const r of this._worldOverlay) {
-        if (!r.visible) continue
-        r.encode(worldPass, camera)
+        if (!r.visible) continue;
+        r.encode(worldPass, camera);
       }
 
-      worldPass.end()
+      worldPass.end();
     }
 
     // ── 2. Overlay render pass ─────────────────────────────────────────────────
@@ -112,18 +112,18 @@ export class Scene {
           storeOp: 'store',
         }],
         // No depthStencilAttachment
-      })
+      });
 
-      overlayPass.setBindGroup(0, camera.bindGroup)
+      overlayPass.setBindGroup(0, camera.bindGroup);
 
       for (const r of this._overlayRenderables) {
-        if (!r.visible) continue
-        r.encode(overlayPass, camera)
+        if (!r.visible) continue;
+        r.encode(overlayPass, camera);
       }
 
-      overlayPass.end()
+      overlayPass.end();
     }
 
-    queue.submit([encoder.finish()])
+    queue.submit([encoder.finish()]);
   }
 }

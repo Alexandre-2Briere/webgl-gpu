@@ -1,12 +1,12 @@
-export { Engine } from './Engine'
-export { Camera } from './core/Camera'
+export { Engine } from './Engine';
+export { Camera } from './core/Camera';
 
 // GameObject and scene-object interfaces
-export { GameObject } from './gameObject/GameObject'
-export type { IGameObject, ISceneObject } from './gameObject/GameObject'
+export { GameObject } from './gameObject/GameObject';
+export type { IGameObject, ISceneObject } from './gameObject/GameObject';
 
 // Light game object
-export { LightGameObject, LightType } from './gameObject/LightGameObject'
+export { LightGameObject, LightType } from './gameObject/LightGameObject';
 
 // Option types for Engine.create*() methods
 export type {
@@ -30,21 +30,25 @@ export type {
   AmbientLightOptions,
   DirectionalLightOptions,
   ArrowGizmoOptions,
-} from './types'
+} from './types';
 
 // Editor renderables
-export { ArrowGizmo } from './gameObject/renderables'
+export { ArrowGizmo } from './gameObject/renderables';
 
 // Save / load
-export { SaveManager, restoreFromSnapshot } from './saveManager'
+export { SaveManager, restoreFromSnapshot } from './saveManager';
 export type {
-  SceneSnapshot,
+  SaveSegments,
+  SceneConstantsSnapshot,
+  GameObjectsSnapshot,
+  LightObjectsSnapshot,
+  GameObjectSnapshot,
+  LightObjectSnapshot,
   CameraSnapshot,
-  ObjectSnapshot,
   PhysicsConfigSnapshot,
   CubeSnapshot,
   QuadSnapshot,
   FbxObjectSnapshot,
   LightSnapshot,
   DirectionalLightSnapshot,
-} from './saveManager'
+} from './saveManager';

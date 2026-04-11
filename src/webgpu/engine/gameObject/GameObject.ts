@@ -1,8 +1,8 @@
-import type { Hitbox3D } from './hitbox'
-import type { Rigidbody3D } from './rigidbody'
-import type { Vec3, Vec4 } from '../math'
-import { applyEulerDelta, yawPitchRollToQuat, rotateByQuat } from '../math'
-import type { Renderable } from './renderables'
+import type { Hitbox3D } from './hitbox';
+import type { Rigidbody3D } from './rigidbody';
+import type { Vec3, Vec4 } from '../math';
+import { applyEulerDelta, yawPitchRollToQuat, rotateByQuat } from '../math';
+import type { Renderable } from './renderables';
 
 // ── Public interfaces ─────────────────────────────────────────────────────────
 
@@ -68,64 +68,64 @@ export interface GameObjectOptions<R extends Renderable = Renderable> {
  *   - These are called automatically by `applyPhysics` and `applyCollisions`.
  */
 export class GameObject<R extends Renderable = Renderable> implements IGameObject<R> {
-  readonly renderable: R
-  readonly hitbox:     Hitbox3D    | null
-  readonly rigidbody:  Rigidbody3D | null
+  readonly renderable: R;
+  readonly hitbox:     Hitbox3D    | null;
+  readonly rigidbody:  Rigidbody3D | null;
 
-  position:   Vec3
-  quaternion: Vec4
-  scale:      Vec3
+  position:   Vec3;
+  quaternion: Vec4;
+  scale:      Vec3;
 
-  private readonly _rigidbodyOffset: Vec3
-  private readonly _copyFn:    () => IGameObject<R>
-  private readonly _destroyFn: () => void
+  private readonly _rigidbodyOffset: Vec3;
+  private readonly _copyFn:    () => IGameObject<R>;
+  private readonly _destroyFn: () => void;
 
   constructor(opts: GameObjectOptions<R>) {
-    this.renderable       = opts.renderable
-    this.hitbox           = opts.hitbox     ?? null
-    this.rigidbody        = opts.rigidbody  ?? null
-    this.position         = opts.position   ? [...opts.position]   : [0, 0, 0]
-    this.quaternion       = opts.quaternion ? [...opts.quaternion] : [0, 0, 0, 1]
-    this.scale            = opts.scale      ? [...opts.scale]      : [1, 1, 1]
-    this._rigidbodyOffset = opts.rigidbodyOffset ? [...opts.rigidbodyOffset] : [0, 0, 0]
-    this._copyFn          = opts._copy
-    this._destroyFn       = opts._destroy
-    this._applyTransform()
+    this.renderable       = opts.renderable;
+    this.hitbox           = opts.hitbox     ?? null;
+    this.rigidbody        = opts.rigidbody  ?? null;
+    this.position         = opts.position   ? [...opts.position]   : [0, 0, 0];
+    this.quaternion       = opts.quaternion ? [...opts.quaternion] : [0, 0, 0, 1];
+    this.scale            = opts.scale      ? [...opts.scale]      : [1, 1, 1];
+    this._rigidbodyOffset = opts.rigidbodyOffset ? [...opts.rigidbodyOffset] : [0, 0, 0];
+    this._copyFn          = opts._copy;
+    this._destroyFn       = opts._destroy;
+    this._applyTransform();
   }
 
   // ─── Transform ────────────────────────────────────────────────────────────
 
   setPosition(position: Vec3): void {
-    this.position = [...position]
-    this._applyTransform()
+    this.position = [...position];
+    this._applyTransform();
   }
 
   setQuaternion(quaternion: Vec4): void {
-    this.quaternion = [...quaternion]
-    this._applyTransform()
+    this.quaternion = [...quaternion];
+    this._applyTransform();
   }
 
   setRotation(yaw: number, pitch: number, roll = 0): void {
-    this.quaternion = yawPitchRollToQuat(yaw, pitch, roll)
-    this._applyTransform()
+    this.quaternion = yawPitchRollToQuat(yaw, pitch, roll);
+    this._applyTransform();
   }
 
   rotate(yaw: number, pitch: number, roll = 0): void {
-    this.quaternion = applyEulerDelta(this.quaternion, yaw, pitch, roll)
-    this._applyTransform()
+    this.quaternion = applyEulerDelta(this.quaternion, yaw, pitch, roll);
+    this._applyTransform();
   }
 
   setScale(x: number, y: number, z: number): void {
-    this.scale = [x, y, z]
-    this._applyTransform()
+    this.scale = [x, y, z];
+    this._applyTransform();
   }
 
   get color(): [number, number, number, number] {
-    return this.renderable.color
+    return this.renderable.color;
   }
 
   setColor(r: number, g: number, b: number, a: number): void {
-    this.renderable.setColor(r, g, b, a)
+    this.renderable.setColor(r, g, b, a);
   }
 
   // ─── Physics sync ─────────────────────────────────────────────────────────
@@ -135,18 +135,18 @@ export class GameObject<R extends Renderable = Renderable> implements IGameObjec
    * the correct world transform.  Called by `applyPhysics` each frame.
    */
   getRigidbody(): Rigidbody3D | null {
-    return this.rigidbody
+    return this.rigidbody;
   }
 
   syncToPhysics(): void {
-    if (!this.rigidbody) return
-    const rotated = rotateByQuat(this._rigidbodyOffset, this.quaternion)
+    if (!this.rigidbody) return;
+    const rotated = rotateByQuat(this._rigidbodyOffset, this.quaternion);
     this.rigidbody.position   = [
       this.position[0] + rotated[0],
       this.position[1] + rotated[1],
       this.position[2] + rotated[2],
-    ]
-    this.rigidbody.quaternion = [...this.quaternion]
+    ];
+    this.rigidbody.quaternion = [...this.quaternion];
   }
 
   /**
@@ -154,35 +154,35 @@ export class GameObject<R extends Renderable = Renderable> implements IGameObjec
    * them to the renderable and hitbox.  Called by `applyCollisions` each frame.
    */
   syncFromPhysics(): void {
-    if (!this.rigidbody) return
-    const rotated = rotateByQuat(this._rigidbodyOffset, this.rigidbody.quaternion)
+    if (!this.rigidbody) return;
+    const rotated = rotateByQuat(this._rigidbodyOffset, this.rigidbody.quaternion);
     this.position   = [
       this.rigidbody.position[0] - rotated[0],
       this.rigidbody.position[1] - rotated[1],
       this.rigidbody.position[2] - rotated[2],
-    ]
-    this.quaternion = [...this.rigidbody.quaternion]
-    this._applyTransform()
+    ];
+    this.quaternion = [...this.rigidbody.quaternion];
+    this._applyTransform();
   }
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────
 
   /** Create a new independent GameObject of the same type at the same transform. */
   copy(): IGameObject<R> {
-    return this._copyFn()
+    return this._copyFn();
   }
 
   /** Remove this GameObject from the scene and free its GPU memory. */
   destroy(): void {
-    this._destroyFn()
+    this._destroyFn();
   }
 
   // ─── Private ──────────────────────────────────────────────────────────────
 
   private _applyTransform(): void {
-    this.renderable.setPosition(this.position)
-    this.renderable.setQuaternion(this.quaternion)
-    this.renderable.setScale(this.scale[0], this.scale[1], this.scale[2])
-    this.hitbox?.updateOrientation(this.position, this.quaternion)
+    this.renderable.setPosition(this.position);
+    this.renderable.setQuaternion(this.quaternion);
+    this.renderable.setScale(this.scale[0], this.scale[1], this.scale[2]);
+    this.hitbox?.updateOrientation(this.position, this.quaternion);
   }
 }

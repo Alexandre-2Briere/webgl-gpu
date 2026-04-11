@@ -1,9 +1,9 @@
-import { vi } from 'vitest'
-import { makeMockDevice, type MockGPUDevice, type MockGPUBuffer } from '../buffers/mockDevice'
-import type { RenderableInitArgs } from '../../gameObject/renderables/Renderable'
-import type { PipelineCache } from '../../core/PipelineCache'
-import type { BindGroupLayouts } from '../../types'
-import type { UniformPool } from '../../buffers/UniformPool'
+import { vi } from 'vitest';
+import { makeMockDevice, type MockGPUDevice, type MockGPUBuffer } from '../buffers/mockDevice';
+import type { RenderableInitArgs } from '../../gameObject/renderables/Renderable';
+import type { PipelineCache } from '../../core/PipelineCache';
+import type { BindGroupLayouts } from '../../types';
+import type { UniformPool } from '../../buffers/UniformPool';
 
 export interface MockUniformSlot {
   buffer: MockGPUBuffer
@@ -35,26 +35,26 @@ export interface MockRenderableInitArgs {
 }
 
 export function makeMockRenderableInitArgs(): MockRenderableInitArgs {
-  const base = makeMockDevice()
+  const base = makeMockDevice();
 
   const device: MockRenderableDevice = {
     ...base,
     createBindGroup: vi.fn().mockReturnValue({}),
     createShaderModule: vi.fn().mockReturnValue({}),
     createPipelineLayout: vi.fn().mockReturnValue({}),
-  }
+  };
 
-  const mockBuffer: MockGPUBuffer = { size: 256, usage: 0x40, destroy: vi.fn() }
-  const uniformSlot: MockUniformSlot = { buffer: mockBuffer, offset: 0, size: 256 }
+  const mockBuffer: MockGPUBuffer = { size: 256, usage: 0x40, destroy: vi.fn() };
+  const uniformSlot: MockUniformSlot = { buffer: mockBuffer, offset: 0, size: 256 };
 
   const uniformPool: MockUniformPool = {
     allocate: vi.fn().mockReturnValue(uniformSlot),
     write: vi.fn(),
-  }
+  };
 
   const pipelineCache: MockPipelineCache = {
     getOrCreateRender: vi.fn().mockReturnValue({}),
-  }
+  };
 
   const args: RenderableInitArgs = {
     device: device as unknown as GPUDevice,
@@ -63,7 +63,7 @@ export function makeMockRenderableInitArgs(): MockRenderableInitArgs {
     pipelineCache: pipelineCache as unknown as PipelineCache,
     layouts: { camera: {}, object: {}, empty: {}, lights: {}, fbxMaterial: {}, gizmo: {} } as unknown as BindGroupLayouts,
     uniformPool: uniformPool as unknown as UniformPool,
-  }
+  };
 
-  return { args, device, uniformPool, uniformSlot, pipelineCache }
+  return { args, device, uniformPool, uniformSlot, pipelineCache };
 }

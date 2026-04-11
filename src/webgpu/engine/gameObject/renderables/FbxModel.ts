@@ -1,17 +1,17 @@
-import type { Renderable, RenderableInitArgs } from './Renderable'
-import type { FbxModelOptions } from '../../types'
-import type { Camera } from '../../core/Camera'
-import type { UniformSlot } from '../../buffers/UniformPool'
-import { FbxAsset } from './FbxAsset'
-import { COMMON } from '../../shaders/common'
-import { FBX } from '../../shaders/fbx'
-import { makeTransformMatrix } from '../../math'
-import type { Vec3, Vec4 } from '../../math'
+import type { Renderable, RenderableInitArgs } from './Renderable';
+import type { FbxModelOptions } from '../../types';
+import type { Camera } from '../../core/Camera';
+import type { UniformSlot } from '../../buffers/UniformPool';
+import { FbxAsset } from './FbxAsset';
+import { COMMON } from '../../shaders/common';
+import { FBX } from '../../shaders/fbx';
+import { makeTransformMatrix } from '../../math';
+import type { Vec3, Vec4 } from '../../math';
 
-export const FBX_PIPELINE_KEY = 'fbx'
+export const FBX_PIPELINE_KEY = 'fbx';
 
 // 64 bytes/vertex: pos(12)+pad(4) | normal(12)+pad(4) | uv(8)+pad(8) | tangent(16)
-const BYTES_PER_VERTEX = 64
+const BYTES_PER_VERTEX = 64;
 
 /**
  * World-space renderable that draws all mesh slices of an FbxAsset.
@@ -19,44 +19,44 @@ const BYTES_PER_VERTEX = 64
  * Shares the same render pipeline across all FbxModel instances.
  */
 export class FbxModel implements Renderable {
-  readonly id = Symbol()
-  readonly layer = 'world' as const
-  readonly pipelineKey = FBX_PIPELINE_KEY
-  visible = true
+  readonly id = Symbol();
+  readonly layer = 'world' as const;
+  readonly pipelineKey = FBX_PIPELINE_KEY;
+  visible = true;
 
-  private readonly _asset: FbxAsset
-  private readonly _label?: string
-  private _uniformSlot!: UniformSlot
-  private _objectBindGroup!: GPUBindGroup
-  private _pipeline!: GPURenderPipeline
-  private _device!: GPUDevice
+  private readonly _asset: FbxAsset;
+  private readonly _label?: string;
+  private _uniformSlot!: UniformSlot;
+  private _objectBindGroup!: GPUBindGroup;
+  private _pipeline!: GPURenderPipeline;
+  private _device!: GPUDevice;
 
   // TRS state
-  private _position:   [number, number, number]
-  private _scale:      [number, number, number]
-  private _quaternion: [number, number, number, number]
+  private _position:   [number, number, number];
+  private _scale:      [number, number, number];
+  private _quaternion: [number, number, number, number];
 
   // 80-byte uniform: mat4 (64B) + tint (16B)
-  private _uniformData = new Float32Array(20)
+  private _uniformData = new Float32Array(20);
 
   constructor(opts: FbxModelOptions) {
-    this._asset      = opts.asset as FbxAsset
-    this._label      = opts.label
-    this._position   = [0, 0, 0]
-    this._scale      = [1, 1, 1]
-    this._quaternion = [0, 0, 0, 1]
-    const tint = opts.tint ?? [1, 1, 1, 1]
-    makeTransformMatrix(this._position, this._quaternion, this._scale, this._uniformData)
-    this._uniformData.set(tint, 16)
+    this._asset      = opts.asset as FbxAsset;
+    this._label      = opts.label;
+    this._position   = [0, 0, 0];
+    this._scale      = [1, 1, 1];
+    this._quaternion = [0, 0, 0, 1];
+    const tint = opts.tint ?? [1, 1, 1, 1];
+    makeTransformMatrix(this._position, this._quaternion, this._scale, this._uniformData);
+    this._uniformData.set(tint, 16);
   }
 
   init(args: RenderableInitArgs): void {
-    const { device, format, pipelineCache, layouts, uniformPool } = args
-    this._device = device
+    const { device, format, pipelineCache, layouts, uniformPool } = args;
+    this._device = device;
 
     // ── Object uniform ───────────────────────────────────────────────────────
-    this._uniformSlot = uniformPool.allocate(80)
-    uniformPool.write(this._uniformSlot, this._uniformData)
+    this._uniformSlot = uniformPool.allocate(80);
+    uniformPool.write(this._uniformSlot, this._uniformData);
 
     this._objectBindGroup = device.createBindGroup({
       label: this._label ? `${this._label}:obj` : 'fbx-model:obj',
@@ -69,13 +69,13 @@ export class FbxModel implements Renderable {
           size: 80,
         },
       }],
-    })
+    });
 
     // ── Render pipeline ──────────────────────────────────────────────────────
     const shaderModule = device.createShaderModule({
       label: 'fbx-shader',
       code: COMMON + '\n' + FBX,
-    })
+    });
 
     this._pipeline = pipelineCache.getOrCreateRender(FBX_PIPELINE_KEY, {
       label: 'fbx-pipeline',
@@ -110,49 +110,49 @@ export class FbxModel implements Renderable {
         depthWriteEnabled: true,
         depthCompare: 'less',
       },
-    })
+    });
   }
 
   encode(pass: GPURenderPassEncoder, _camera: Camera): void {
-    pass.setPipeline(this._pipeline)
-    pass.setBindGroup(1, this._objectBindGroup)
+    pass.setPipeline(this._pipeline);
+    pass.setBindGroup(1, this._objectBindGroup);
     for (const slice of this._asset.slices) {
-      pass.setBindGroup(2, slice.materialBindGroup)
-      pass.setVertexBuffer(0, slice.vertexBuf)
-      pass.setIndexBuffer(slice.indexBuf, 'uint32')
-      pass.drawIndexed(slice.indexCount)
+      pass.setBindGroup(2, slice.materialBindGroup);
+      pass.setVertexBuffer(0, slice.vertexBuf);
+      pass.setIndexBuffer(slice.indexBuf, 'uint32');
+      pass.drawIndexed(slice.indexCount);
     }
   }
 
   // ── FbxModelHandle ───────────────────────────────────────────────────────────
 
   setPosition(position: Vec3): void {
-    this._position = [...position]
-    this._rebuildMatrix()
+    this._position = [...position];
+    this._rebuildMatrix();
   }
 
   setScale(x: number, y: number, z: number): void {
-    this._scale = [x, y, z]
-    this._rebuildMatrix()
+    this._scale = [x, y, z];
+    this._rebuildMatrix();
   }
 
   setQuaternion(quaternion: Vec4): void {
-    this._quaternion = [...quaternion]
-    this._rebuildMatrix()
+    this._quaternion = [...quaternion];
+    this._rebuildMatrix();
   }
 
   get color(): [number, number, number, number] {
-    return [this._uniformData[16], this._uniformData[17], this._uniformData[18], this._uniformData[19]]
+    return [this._uniformData[16], this._uniformData[17], this._uniformData[18], this._uniformData[19]];
   }
 
   setColor(r: number, g: number, b: number, a: number): void {
-    this._uniformData[16] = r
-    this._uniformData[17] = g
-    this._uniformData[18] = b
-    this._uniformData[19] = a
+    this._uniformData[16] = r;
+    this._uniformData[17] = g;
+    this._uniformData[18] = b;
+    this._uniformData[19] = a;
     this._device.queue.writeBuffer(
       this._uniformSlot.buffer, this._uniformSlot.offset, this._uniformData,
-    )
+    );
   }
 
   clone(): FbxModel {
@@ -160,7 +160,7 @@ export class FbxModel implements Renderable {
       asset: this._asset,
       label: this._label,
       tint: [this._uniformData[16], this._uniformData[17], this._uniformData[18], this._uniformData[19]],
-    })
+    });
   }
 
   destroy(): void {
@@ -170,9 +170,9 @@ export class FbxModel implements Renderable {
   // ── Private ──────────────────────────────────────────────────────────────────
 
   private _rebuildMatrix(): void {
-    makeTransformMatrix(this._position, this._quaternion, this._scale, this._uniformData)
+    makeTransformMatrix(this._position, this._quaternion, this._scale, this._uniformData);
     this._device.queue.writeBuffer(
       this._uniformSlot.buffer, this._uniformSlot.offset, this._uniformData,
-    )
+    );
   }
 }

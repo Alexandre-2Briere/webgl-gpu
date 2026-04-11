@@ -50,16 +50,32 @@ export interface DirectionalLightSnapshot extends BaseObjectSnapshot {
   direction: [number, number, number]
 }
 
-/** Discriminated union — switch on `key` for exhaustive handling. */
-export type ObjectSnapshot =
-  | CubeSnapshot
-  | QuadSnapshot
-  | FbxObjectSnapshot
-  | LightSnapshot
-  | DirectionalLightSnapshot
+export type GameObjectSnapshot = CubeSnapshot | QuadSnapshot | FbxObjectSnapshot
 
-export interface SceneSnapshot {
+export type LightObjectSnapshot = LightSnapshot | DirectionalLightSnapshot
+
+export interface SceneConstantsSnapshot {
   version: 1
   camera:  CameraSnapshot
-  objects: ObjectSnapshot[]
+}
+
+export interface GameObjectsSnapshot {
+  version: 1
+  objects: GameObjectSnapshot[]
+}
+
+export interface LightObjectsSnapshot {
+  version: 1
+  objects: LightObjectSnapshot[]
+}
+
+/**
+ * All decoded segments from a combined save string.
+ * Each field is an array to support multiple saves of the same type.
+ * Extend by adding new optional array fields for future segment types.
+ */
+export interface SaveSegments {
+  sceneConstants: SceneConstantsSnapshot[]
+  gameObjects:    GameObjectsSnapshot[]
+  lightObjects:   LightObjectsSnapshot[]
 }

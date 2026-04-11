@@ -10,23 +10,23 @@
  *   - COPY_DST → CPU can zero vertexCount before each compute pass
  */
 export class IndirectBuffer {
-  private readonly _buffer: GPUBuffer
-  private readonly _device: GPUDevice
-  private static readonly _zero = new Uint32Array([0, 1, 0, 0])
+  private readonly _buffer: GPUBuffer;
+  private readonly _device: GPUDevice;
+  private static readonly _zero = new Uint32Array([0, 1, 0, 0]);
 
   constructor(device: GPUDevice, label?: string) {
-    this._device = device
+    this._device = device;
     this._buffer = device.createBuffer({
       label,
       size: 16,
       usage: GPUBufferUsage.INDIRECT | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-    })
+    });
     // Initialize with instanceCount=1 so a draw without a prior compute pass is harmless
-    device.queue.writeBuffer(this._buffer, 0, IndirectBuffer._zero)
+    device.queue.writeBuffer(this._buffer, 0, IndirectBuffer._zero);
   }
 
   get buffer(): GPUBuffer {
-    return this._buffer
+    return this._buffer;
   }
 
   /**
@@ -34,10 +34,10 @@ export class IndirectBuffer {
    * instanceCount (offset 4) stays 1, firstVertex and firstInstance stay 0.
    */
   reset(): void {
-    this._device.queue.writeBuffer(this._buffer, 0, new Uint32Array([0]))
+    this._device.queue.writeBuffer(this._buffer, 0, new Uint32Array([0]));
   }
 
   destroy(): void {
-    this._buffer.destroy()
+    this._buffer.destroy();
   }
 }

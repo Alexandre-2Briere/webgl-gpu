@@ -1,5 +1,5 @@
-import type { Hitbox3D } from '../hitbox'
-import type { Vec3, Vec4 } from '../../math'
+import type { Hitbox3D } from '../hitbox';
+import type { Vec3, Vec4 } from '../../math';
 
 export interface Rigidbody3DOptions {
   layer: string
@@ -22,30 +22,30 @@ export interface Rigidbody3DOptions {
  *            Initialised by GameObject from the renderable's position before binding.
  */
 export class Rigidbody3D {
-  readonly layer: string
-  readonly isStatic: boolean
-  readonly mass: number
-  readonly useGravity: boolean
+  readonly layer: string;
+  readonly isStatic: boolean;
+  readonly mass: number;
+  readonly useGravity: boolean;
 
   /** World-space position. Written by RigidbodyHandler, read by GameObject to move the renderable. */
-  position:   Vec3 = [0, 0, 0]
+  position:   Vec3 = [0, 0, 0];
   /** World-space orientation. Kept in sync by GameObject; used by RigidbodyHandler to update hitbox orientation. */
-  quaternion: Vec4 = [0, 0, 0, 1]
-  velocity:   Vec3 = [0, 0, 0]
+  quaternion: Vec4 = [0, 0, 0, 1];
+  velocity:   Vec3 = [0, 0, 0];
 
   /** Collision shape. If null, this rigidbody participates in physics but skips collision detection. */
-  hitbox: Hitbox3D | null
+  hitbox: Hitbox3D | null;
 
-  onCollision: ((other: Rigidbody3D) => void) | null
-  onOverlap:   ((other: Rigidbody3D) => void) | null
+  onCollision: ((other: Rigidbody3D) => void) | null;
+  onOverlap:   ((other: Rigidbody3D) => void) | null;
 
   constructor(opts: Rigidbody3DOptions) {
-    this.layer      = opts.layer
-    this.isStatic   = opts.isStatic   ?? false
-    this.mass       = opts.mass       ?? 1
-    this.useGravity = opts.useGravity ?? true
-    this.hitbox     = opts.hitbox     ?? null
-    this.onCollision = opts.onCollision ?? null
-    this.onOverlap   = opts.onOverlap   ?? null
+    this.layer      = opts.layer;
+    this.isStatic   = opts.isStatic   ?? false;
+    this.mass       = opts.mass       ?? 1;
+    this.useGravity = opts.useGravity ?? true;
+    this.hitbox     = opts.hitbox     ?? null;
+    this.onCollision = opts.onCollision ?? null;
+    this.onOverlap   = opts.onOverlap   ?? null;
   }
 }

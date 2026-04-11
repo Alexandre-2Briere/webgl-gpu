@@ -1,18 +1,29 @@
-import type { Engine }           from '../../../../../src/webgpu/engine/index'
-import type { SceneSnapshot, ObjectSnapshot, LightSnapshot, DirectionalLightSnapshot } from '../../../../../src/webgpu/engine/index'
-import { LightGameObject }      from '../../../../../src/webgpu/engine/gameObject/LightGameObject'
-import { SaveManager }          from '../../../../../src/webgpu/engine/index'
-import type { Terminal }        from '../../ui/Terminal/Terminal'
-import type { PhysicsConfig, PropertyGroup, ItemEntry } from '../../items/types'
-import type { SpawnManager }    from './SpawnManager'
-import type { PhysicsManager }  from './PhysicsManager'
+import type { Engine }           from '../../../../../src/webgpu/engine/index';
+import type {
+  SaveSegments,
+  SceneConstantsSnapshot,
+  GameObjectsSnapshot,
+  LightObjectsSnapshot,
+  GameObjectSnapshot,
+  LightObjectSnapshot,
+  LightSnapshot,
+  DirectionalLightSnapshot,
+} from '../../../../../src/webgpu/engine/index';
+import { LightGameObject }      from '../../../../../src/webgpu/engine/gameObject/LightGameObject';
+import { SaveManager }          from '../../../../../src/webgpu/engine/index';
+import type { Terminal }        from '../../ui/Terminal/Terminal';
+import type { PhysicsConfig, PropertyGroup, ItemEntry } from '../../items/types';
+import type { SpawnManager }    from './SpawnManager';
+import type { PhysicsManager }  from './PhysicsManager';
+
+const LIGHT_KEYS = new Set(['Light', 'DirectionalLight']);
 
 export class SaveLoadManager {
-  private readonly _engine:          Engine
-  private readonly _spawnManager:    SpawnManager
-  private readonly _physicsManager:  PhysicsManager
-  private readonly _terminal:        Terminal
-  private readonly _saveManager:     SaveManager
+  private readonly _engine:          Engine;
+  private readonly _spawnManager:    SpawnManager;
+  private readonly _physicsManager:  PhysicsManager;
+  private readonly _terminal:        Terminal;
+  private readonly _saveManager:     SaveManager;
 
   constructor(
     engine:          Engine,
@@ -20,137 +31,174 @@ export class SaveLoadManager {
     physicsManager:  PhysicsManager,
     terminal:        Terminal,
   ) {
-    this._engine         = engine
-    this._spawnManager   = spawnManager
-    this._physicsManager = physicsManager
-    this._terminal       = terminal
-    this._saveManager    = new SaveManager()
+    this._engine         = engine;
+    this._spawnManager   = spawnManager;
+    this._physicsManager = physicsManager;
+    this._terminal       = terminal;
+    this._saveManager    = new SaveManager();
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────────
 
   async saveScene(): Promise<string> {
-    const snapshot = this._buildSnapshot()
-    return this._saveManager.save(snapshot)
+    const segments: SaveSegments = {
+      sceneConstants: [this._buildSceneConstants()],
+      gameObjects:    [this._buildGameObjects()],
+      lightObjects:   [this._buildLightObjects()],
+    };
+    return this._saveManager.save(segments);
   }
 
   // ── Load ──────────────────────────────────────────────────────────────────────
 
   async loadScene(encodedString: string): Promise<boolean> {
-    const snapshot = await this._saveManager.load(encodedString)
-    if (snapshot === null) {
-      return false
+    const segments = await this._saveManager.load(encodedString);
+    if (segments === null) {
+      return false;
     }
-    this._applySnapshot(snapshot)
-    return true
+    this._applySegments(segments);
+    return true;
   }
 
   // ── Snapshot building ─────────────────────────────────────────────────────────
 
-  private _buildSnapshot(): SceneSnapshot {
-    const camera = this._engine.camera
-    const cameraSnapshot = {
-      position: [camera.position[0], camera.position[1], camera.position[2]] as [number, number, number],
-      yaw:      camera.yaw,
-      pitch:    camera.pitch,
-    }
-
-    const objectSnapshots: ObjectSnapshot[] = this._spawnManager.getObjects().map(spawnedObject => {
-      const gameObject = spawnedObject.gameObject
-      const baseFields = {
-        label:         spawnedObject.label,
-        properties:    spawnedObject.properties as string[],
-        physicsConfig: { ...spawnedObject.physicsConfig },
-        position:      [gameObject.position[0], gameObject.position[1], gameObject.position[2]] as [number, number, number],
-        quaternion:    [gameObject.quaternion[0], gameObject.quaternion[1], gameObject.quaternion[2], gameObject.quaternion[3]] as [number, number, number, number],
-        scale:         [gameObject.scale[0], gameObject.scale[1], gameObject.scale[2]] as [number, number, number],
-        color:         [...gameObject.color] as [number, number, number, number],
-      }
-
-      switch (spawnedObject.key) {
-        case 'Cube': {
-          return { key: 'Cube', ...baseFields }
-        }
-        case 'Quad': {
-          return { key: 'Quad', ...baseFields }
-        }
-        case 'FBX': {
-          return { key: 'FBX', ...baseFields, assetUrl: spawnedObject.selectedFbxUrl! }
-        }
-        case 'Light': {
-          const lightObject = gameObject as LightGameObject
-          return {
-            key:       'Light',
-            ...baseFields,
-            lightType: lightObject.lightType as 0 | 1,
-            radius:    lightObject.radius,
-            direction: [lightObject.direction[0], lightObject.direction[1], lightObject.direction[2]] as [number, number, number],
-          }
-        }
-        case 'DirectionalLight': {
-          const lightObject = gameObject as LightGameObject
-          return {
-            key:       'DirectionalLight',
-            ...baseFields,
-            lightType: 2 as const,
-            radius:    lightObject.radius,
-            direction: [lightObject.direction[0], lightObject.direction[1], lightObject.direction[2]] as [number, number, number],
-          }
-        }
-        default: {
-          return { key: 'Cube', ...baseFields }
-        }
-      }
-    })
-
+  private _buildSceneConstants(): SceneConstantsSnapshot {
+    const camera = this._engine.camera;
     return {
       version: 1,
-      camera:  cameraSnapshot,
-      objects: objectSnapshots,
+      camera: {
+        position: [camera.position[0], camera.position[1], camera.position[2]],
+        yaw:      camera.yaw,
+        pitch:    camera.pitch,
+      },
+    };
+  }
+
+  private _buildGameObjects(): GameObjectsSnapshot {
+    const objects: GameObjectSnapshot[] = this._spawnManager.getObjects()
+      .filter(spawnedObject => !LIGHT_KEYS.has(spawnedObject.key))
+      .map(spawnedObject => {
+        const gameObject = spawnedObject.gameObject;
+        const baseFields = {
+          label:         spawnedObject.label,
+          properties:    spawnedObject.properties as string[],
+          physicsConfig: { ...spawnedObject.physicsConfig },
+          position:      [gameObject.position[0], gameObject.position[1], gameObject.position[2]] as [number, number, number],
+          quaternion:    [gameObject.quaternion[0], gameObject.quaternion[1], gameObject.quaternion[2], gameObject.quaternion[3]] as [number, number, number, number],
+          scale:         [gameObject.scale[0], gameObject.scale[1], gameObject.scale[2]] as [number, number, number],
+          color:         [...gameObject.color] as [number, number, number, number],
+        };
+        switch (spawnedObject.key) {
+          case 'Cube': return { key: 'Cube' as const, ...baseFields };
+          case 'Quad': return { key: 'Quad' as const, ...baseFields };
+          case 'FBX':  return { key: 'FBX' as const, ...baseFields, assetUrl: spawnedObject.selectedFbxUrl! };
+          default:     return { key: 'Cube' as const, ...baseFields };
+        }
+      });
+    return { version: 1, objects };
+  }
+
+  private _buildLightObjects(): LightObjectsSnapshot {
+    const objects: LightObjectSnapshot[] = this._spawnManager.getObjects()
+      .filter(spawnedObject => LIGHT_KEYS.has(spawnedObject.key))
+      .map(spawnedObject => {
+        const lightObject = spawnedObject.gameObject as LightGameObject;
+        const baseFields = {
+          label:         spawnedObject.label,
+          properties:    spawnedObject.properties as string[],
+          physicsConfig: { ...spawnedObject.physicsConfig },
+          position:      [lightObject.position[0], lightObject.position[1], lightObject.position[2]] as [number, number, number],
+          quaternion:    [lightObject.quaternion[0], lightObject.quaternion[1], lightObject.quaternion[2], lightObject.quaternion[3]] as [number, number, number, number],
+          scale:         [lightObject.scale[0], lightObject.scale[1], lightObject.scale[2]] as [number, number, number],
+          color:         [...lightObject.color] as [number, number, number, number],
+          radius:        lightObject.radius,
+          direction:     [lightObject.direction[0], lightObject.direction[1], lightObject.direction[2]] as [number, number, number],
+        };
+        if (spawnedObject.key === 'DirectionalLight') {
+          return { key: 'DirectionalLight' as const, ...baseFields, lightType: 2 as const };
+        }
+        return { key: 'Light' as const, ...baseFields, lightType: lightObject.lightType as 0 | 1 };
+      });
+    return { version: 1, objects };
+  }
+
+  // ── Segment application ───────────────────────────────────────────────────────
+
+  private _applySegments(segments: SaveSegments): void {
+    if (segments.sceneConstants.length > 0) {
+      const { camera } = segments.sceneConstants[0];
+      const engineCamera = this._engine.camera;
+      engineCamera.setPosition(camera.position[0], camera.position[1], camera.position[2]);
+      engineCamera.yaw   = camera.yaw;
+      engineCamera.pitch = camera.pitch;
+    }
+
+    if (segments.gameObjects.length > 0) {
+      this._removeObjectsByKeys(key => !LIGHT_KEYS.has(key));
+      for (const snapshot of segments.gameObjects) {
+        for (const objectRecord of snapshot.objects) {
+          this._spawnGameObject(objectRecord);
+        }
+      }
+    }
+
+    if (segments.lightObjects.length > 0) {
+      this._removeObjectsByKeys(key => LIGHT_KEYS.has(key));
+      for (const snapshot of segments.lightObjects) {
+        for (const objectRecord of snapshot.objects) {
+          this._spawnLightObject(objectRecord);
+        }
+      }
+    }
+
+    const totalObjects = segments.gameObjects.reduce((sum: number, s: GameObjectsSnapshot) => sum + s.objects.length, 0)
+      + segments.lightObjects.reduce((sum: number, s: LightObjectsSnapshot) => sum + s.objects.length, 0);
+    this._terminal.print(`Scene loaded: ${totalObjects} object(s) restored.`, 'log');
+  }
+
+  private _removeObjectsByKeys(predicate: (key: string) => boolean): void {
+    const objects = this._spawnManager.getObjects();
+    for (let index = objects.length - 1; index >= 0; index--) {
+      if (predicate(objects[index].key)) {
+        this._spawnManager.removeObject(index, -1);
+      }
     }
   }
 
-  // ── Snapshot application ──────────────────────────────────────────────────────
+  private _spawnGameObject(objectRecord: GameObjectSnapshot): void {
+    const itemEntry: ItemEntry = {
+      key:        objectRecord.key,
+      label:      objectRecord.key,
+      isReady:    true,
+      properties: objectRecord.properties as PropertyGroup[],
+    };
+    this._spawnManager.spawn(objectRecord.key, itemEntry);
+    const spawnedObjectIndex = this._spawnManager.getObjects().length - 1;
+    const spawnedObject = this._spawnManager.getObject(spawnedObjectIndex)!;
 
-  private _applySnapshot(snapshot: SceneSnapshot): void {
-    while (this._spawnManager.getObjects().length > 0) {
-      this._spawnManager.removeObject(0, -1)
+    if (objectRecord.key === 'FBX') {
+      spawnedObject.selectedFbxUrl = objectRecord.assetUrl;
     }
+    this._physicsManager.rebuildObject(spawnedObjectIndex, objectRecord.physicsConfig as PhysicsConfig);
+    const rebuiltObject = this._spawnManager.getObject(spawnedObjectIndex)!;
+    rebuiltObject.gameObject.setPosition([objectRecord.position[0], objectRecord.position[1], objectRecord.position[2]]);
+    rebuiltObject.gameObject.setQuaternion([objectRecord.quaternion[0], objectRecord.quaternion[1], objectRecord.quaternion[2], objectRecord.quaternion[3]]);
+    rebuiltObject.gameObject.setScale(objectRecord.scale[0], objectRecord.scale[1], objectRecord.scale[2]);
+    rebuiltObject.gameObject.setColor(objectRecord.color[0], objectRecord.color[1], objectRecord.color[2], objectRecord.color[3]);
+    this._spawnManager.renameObject(spawnedObjectIndex, objectRecord.label);
+  }
 
-    const camera = this._engine.camera
-    camera.setPosition(snapshot.camera.position[0], snapshot.camera.position[1], snapshot.camera.position[2])
-    camera.yaw   = snapshot.camera.yaw
-    camera.pitch = snapshot.camera.pitch
-
-    for (const objectRecord of snapshot.objects) {
-      const itemEntry: ItemEntry = {
-        key:        objectRecord.key,
-        label:      objectRecord.key,
-        isReady:    true,
-        properties: objectRecord.properties as PropertyGroup[],
-      }
-      this._spawnManager.spawn(objectRecord.key, itemEntry)
-      const spawnedObjectIndex = this._spawnManager.getObjects().length - 1
-      const spawnedObject = this._spawnManager.getObject(spawnedObjectIndex)!
-
-      if (objectRecord.key === 'Light' || objectRecord.key === 'DirectionalLight') {
-        _applyLightRecord(spawnedObject.gameObject as LightGameObject, objectRecord)
-      } else {
-        if (objectRecord.key === 'FBX') {
-          spawnedObject.selectedFbxUrl = objectRecord.assetUrl
-        }
-        this._physicsManager.rebuildObject(spawnedObjectIndex, objectRecord.physicsConfig as PhysicsConfig)
-        const rebuiltObject = this._spawnManager.getObject(spawnedObjectIndex)!
-        rebuiltObject.gameObject.setPosition([objectRecord.position[0], objectRecord.position[1], objectRecord.position[2]])
-        rebuiltObject.gameObject.setQuaternion([objectRecord.quaternion[0], objectRecord.quaternion[1], objectRecord.quaternion[2], objectRecord.quaternion[3]])
-        rebuiltObject.gameObject.setScale(objectRecord.scale[0], objectRecord.scale[1], objectRecord.scale[2])
-        rebuiltObject.gameObject.setColor(objectRecord.color[0], objectRecord.color[1], objectRecord.color[2], objectRecord.color[3])
-      }
-
-      this._spawnManager.renameObject(spawnedObjectIndex, objectRecord.label)
-    }
-
-    this._terminal.print(`Scene loaded: ${snapshot.objects.length} object(s) restored.`, 'log')
+  private _spawnLightObject(objectRecord: LightObjectSnapshot): void {
+    const itemEntry: ItemEntry = {
+      key:        objectRecord.key,
+      label:      objectRecord.key,
+      isReady:    true,
+      properties: objectRecord.properties as PropertyGroup[],
+    };
+    this._spawnManager.spawn(objectRecord.key, itemEntry);
+    const spawnedObjectIndex = this._spawnManager.getObjects().length - 1;
+    _applyLightRecord(this._spawnManager.getObject(spawnedObjectIndex)!.gameObject as LightGameObject, objectRecord);
+    this._spawnManager.renameObject(spawnedObjectIndex, objectRecord.label);
   }
 }
 
@@ -158,11 +206,11 @@ function _applyLightRecord(
   lightObject: LightGameObject,
   objectRecord: LightSnapshot | DirectionalLightSnapshot,
 ): void {
-  lightObject.setPosition([objectRecord.position[0], objectRecord.position[1], objectRecord.position[2]])
-  lightObject.setColor(objectRecord.color[0], objectRecord.color[1], objectRecord.color[2], objectRecord.color[3])
-  lightObject.setLightType(objectRecord.lightType)
+  lightObject.setPosition([objectRecord.position[0], objectRecord.position[1], objectRecord.position[2]]);
+  lightObject.setColor(objectRecord.color[0], objectRecord.color[1], objectRecord.color[2], objectRecord.color[3]);
+  lightObject.setLightType(objectRecord.lightType);
   if (objectRecord.lightType !== 0) {
-    lightObject.setRadius(objectRecord.radius)
+    lightObject.setRadius(objectRecord.radius);
   }
-  lightObject.setDirection([objectRecord.direction[0], objectRecord.direction[1], objectRecord.direction[2]])
+  lightObject.setDirection([objectRecord.direction[0], objectRecord.direction[1], objectRecord.direction[2]]);
 }

@@ -1,8 +1,8 @@
-import type { BindGroupLayouts } from '../../types'
-import type { Camera } from '../../core/Camera'
-import type { PipelineCache } from '../../core/PipelineCache'
-import type { UniformPool } from '../../buffers/UniformPool'
-import type { Vec3, Vec4 } from '../../math'
+import type { BindGroupLayouts } from '../../types';
+import type { Camera } from '../../core/Camera';
+import type { PipelineCache } from '../../core/PipelineCache';
+import type { UniformPool } from '../../buffers/UniformPool';
+import type { Vec3, Vec4 } from '../../math';
 
 export interface RenderableInitArgs {
   device: GPUDevice

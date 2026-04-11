@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react'
-import { fetchProjectMeta } from '@lib/services/fetchProjectMeta'
-import { logger } from '../../webgpu/engine/utils'
-import type { ProjectMeta } from '@lib/projects/types'
-import ProjectCard from '@components/ProjectCard/ProjectCard'
-import styles from './Home.module.css'
+import { useEffect, useState } from 'react';
+import { fetchProjectMeta } from '@lib/services/fetchProjectMeta';
+import { logger } from '../../webgpu/engine/utils';
+import type { ProjectMeta } from '@lib/projects/types';
+import ProjectCard from '@components/ProjectCard/ProjectCard';
+import styles from './Home.module.css';
 
 export default function Home() {
-  const [projects, setProjects] = useState<ProjectMeta[]>([])
+  const [projects, setProjects] = useState<ProjectMeta[]>([]);
 
   useEffect(() => {
-    fetchProjectMeta().then(setProjects).catch(e => logger.error(e))
-  }, [])
+    fetchProjectMeta().then(setProjects).catch(e => logger.error(e));
+  }, []);
 
   return (
     <main className={styles.main}>
@@ -24,5 +24,5 @@ export default function Home() {
         ))}
       </section>
     </main>
-  )
+  );
 }

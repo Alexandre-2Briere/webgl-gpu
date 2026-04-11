@@ -1,12 +1,12 @@
-import { Engine } from '../../src/webgpu/engine/index'
-import { logger } from '../../src/webgpu/engine/utils'
-import { FOV_Y, initTileBuilder } from './tileBuilder'
+import { Engine } from '../../src/webgpu/engine/index';
+import { logger } from '../../src/webgpu/engine/utils';
+import { FOV_Y, initTileBuilder } from './tileBuilder';
 
 async function main() {
-  const canvas  = document.getElementById('webgpu-canvas') as HTMLCanvasElement
-  if (!canvas) throw new Error('Canvas element #webgpu-canvas not found')
+  const canvas  = document.getElementById('webgpu-canvas') as HTMLCanvasElement;
+  if (!canvas) throw new Error('Canvas element #webgpu-canvas not found');
 
-  const engine = await Engine.create(canvas)
+  const engine = await Engine.create(canvas);
 
   // ── Camera ──────────────────────────────────────────────────────────────────
   // FOV_Y is imported from tileBuilder.ts — both values must always stay in sync.
@@ -19,16 +19,16 @@ async function main() {
     position: [6, 18, 16],
     yaw:      0,
     pitch:    +(55 * Math.PI / 180),
-  })
-  engine.setCamera(camera)
+  });
+  engine.setCamera(camera);
 
   // Logic RAF is started inside initTileBuilder — must happen before engine.start()
   // so the first render frame never runs with stale camera state or a hidden highlight.
-  await initTileBuilder(engine, camera, canvas)
+  await initTileBuilder(engine, camera, canvas);
 
-  engine.start()
+  engine.start();
 }
 
 main().catch(err => {
-  logger.error('Engine init failed:', err)
-})
+  logger.error('Engine init failed:', err);
+});

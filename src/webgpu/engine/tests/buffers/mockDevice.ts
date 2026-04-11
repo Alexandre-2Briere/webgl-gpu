@@ -1,4 +1,4 @@
-import { vi } from 'vitest'
+import { vi } from 'vitest';
 
 export interface MockGPUBuffer {
   size: number
@@ -17,20 +17,20 @@ export interface MockGPUDevice {
  * Each call to createBuffer records the descriptor and returns a MockGPUBuffer.
  */
 export function makeMockDevice(alignment = 256): MockGPUDevice {
-  const writeBuffer = vi.fn()
+  const writeBuffer = vi.fn();
 
   const createBuffer = vi.fn((descriptor: { size: number; usage: number }) => {
     const buf: MockGPUBuffer = {
       size: descriptor.size,
       usage: descriptor.usage,
       destroy: vi.fn(),
-    }
-    return buf
-  })
+    };
+    return buf;
+  });
 
   return {
     createBuffer,
     queue: { writeBuffer },
     limits: { minUniformBufferOffsetAlignment: alignment },
-  }
+  };
 }
