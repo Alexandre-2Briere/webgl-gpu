@@ -1,4 +1,4 @@
-class PubSubManager {
+export class PubSubManager {
     private _events: EventMap = {};
     public subscribe(event: string, callback: Subscriber): void {
         if (!this._events[event]) {

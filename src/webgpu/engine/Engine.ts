@@ -27,6 +27,7 @@ import { Rigidbody3D } from './gameObject/rigidbody/Rigidbody3D';
 import type { Hitbox3D } from './gameObject/hitbox/Hitbox3D';
 import { SaveManager } from './saveManager/SaveManager';
 import { restoreFromSnapshot } from './saveManager/restoreScene';
+import { PubSubManager } from './core/PubSub';
 
 /** Pool size for per-object uniforms: supports up to 512 renderables. */
 const UNIFORM_POOL_SIZE = 512 * 256;
@@ -42,6 +43,7 @@ export class Engine {
   private _camera: Camera;
   private _rafHandle = 0;
   private _onFrame: ((deltaTime: number) => void) | null = null;
+  public readonly PubSubManager: PubSubManager;
 
   private constructor(
     canvas: HTMLCanvasElement,
@@ -60,6 +62,7 @@ export class Engine {
     this._lightBuffer = lightBuffer;
     this._layouts = layouts;
     this._camera = camera;
+    this.PubSubManager = new PubSubManager();
   }
 
   // ── Factory ─────────────────────────────────────────────────────────────────
