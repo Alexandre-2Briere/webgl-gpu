@@ -1,5 +1,4 @@
-import type { Engine }           from '../../../../src/webgpu/engine/index';
-import type { LightGameObject }  from '../../../../src/webgpu/engine/gameObject/LightGameObject';
+import type { Engine, LightGameObject } from '@engine';
 import type { LightSpawnContext } from './types';
 
 /** Spawns a Point light by default; the user can switch to Ambient via PropertyPanel. */

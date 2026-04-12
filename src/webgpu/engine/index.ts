@@ -33,6 +33,22 @@ export type {
 
 // Editor renderables
 export { ArrowGizmo } from './gameObject/renderables';
+export type { Quad3D } from './gameObject/renderables/Quad3D';
+
+// Physics
+export { Rigidbody3D } from './gameObject/rigidbody/Rigidbody3D';
+export { applyPhysics, applyCollisions } from './gameObject/rigidbody/index';
+export { CubeHitbox } from './gameObject/hitbox/CubeHitbox';
+
+// Math utilities
+export { safeParseFloat } from './math/vec';
+export type { Vec3 } from './math/vec';
+
+// PubSub
+export type { PubSubManager } from './core/PubSub';
+
+// Logger
+export { logger } from './utils';
 
 // Save / load
 export { SaveManager, restoreFromSnapshot } from './saveManager';

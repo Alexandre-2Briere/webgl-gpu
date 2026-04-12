@@ -1,7 +1,7 @@
 import type { SpawnManager } from './SpawnManager';
 import type { PropertyPanel } from '../../ui/PropertyPanel/PropertyPanel';
 import type { SceneHierarchy } from '../../ui/SceneHierarchy/SceneHierarchy';
-import type { ArrowGizmo } from '../../../../../src/webgpu/engine/index';
+import type { ArrowGizmo } from '@engine';
 import { SANDBOX_EVENTS } from '../events';
 import type { PubSubManager, ObjectSpawnedPayload, ObjectRemovedPayload } from '../events';
 

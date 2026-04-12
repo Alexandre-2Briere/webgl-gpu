@@ -1,4 +1,4 @@
-import { LightGameObject } from '../../../../../src/webgpu/engine/gameObject/LightGameObject';
+import { LightGameObject } from '@engine';
 import type { SpawnManager } from './SpawnManager';
 import type { PhysicsManager } from './PhysicsManager';
 import type { Terminal } from '../../ui/Terminal/Terminal';

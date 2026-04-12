@@ -1,5 +1,5 @@
-import { Engine } from '../../../../src/webgpu/engine/index';
-import type { FbxAssetHandle } from '../../../../src/webgpu/engine/index';
+import { Engine } from '@engine';
+import type { FbxAssetHandle } from '@engine';
 import type { Terminal } from '../ui/Terminal/Terminal';
 import type { PropertyPanel } from '../ui/PropertyPanel/PropertyPanel';
 import type { SceneHierarchy } from '../ui/SceneHierarchy/SceneHierarchy';

@@ -1,5 +1,4 @@
-import { Engine } from '../../src/webgpu/engine/index';
-import { logger } from '../../src/webgpu/engine/utils';
+import { Engine, logger } from '@engine';
 import { FOV_Y, initTileBuilder } from './tileBuilder';
 
 async function main() {

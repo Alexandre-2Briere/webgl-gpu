@@ -1,10 +1,5 @@
-import type { Engine } from '../../../../../src/webgpu/engine/index';
-import type { ISceneObject, IGameObject } from '../../../../../src/webgpu/engine/index';
-import { LightGameObject } from '../../../../../src/webgpu/engine/gameObject/LightGameObject';
-import { applyPhysics, applyCollisions } from '../../../../../src/webgpu/engine/gameObject/rigidbody/index';
-import { Rigidbody3D } from '../../../../../src/webgpu/engine/gameObject/rigidbody/Rigidbody3D';
-import { CubeHitbox } from '../../../../../src/webgpu/engine/gameObject/hitbox/CubeHitbox';
-import type { Vec3 } from '../../../../../src/webgpu/engine/math';
+import type { Engine, ISceneObject, IGameObject, Vec3 } from '@engine';
+import { LightGameObject, applyPhysics, applyCollisions, Rigidbody3D, CubeHitbox } from '@engine';
 import type { PropertyPanel } from '../../ui/PropertyPanel/PropertyPanel';
 import type { SpawnManager } from './SpawnManager';
 import type { SpawnContext, PhysicsConfig } from '../../items/types';

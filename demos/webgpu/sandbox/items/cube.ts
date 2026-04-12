@@ -1,4 +1,4 @@
-import type { Engine, IGameObject } from '../../../../src/webgpu/engine/index';
+import type { Engine, IGameObject } from '@engine';
 import type { PrimitiveSpawnContext } from './types';
 import { buildCubeVertices } from '../game/geometry';
 

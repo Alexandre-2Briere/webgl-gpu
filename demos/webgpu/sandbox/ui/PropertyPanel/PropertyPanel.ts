@@ -1,7 +1,6 @@
 import './property-panel.css';
-import type { ISceneObject } from '../../../../../src/webgpu/engine/index';
-import { LightGameObject, LightType } from '../../../../../src/webgpu/engine/gameObject/LightGameObject';
-import { safeParseFloat } from '../../../../../src/webgpu/engine/math';
+import type { ISceneObject } from '@engine';
+import { LightGameObject, LightType, safeParseFloat } from '@engine';
 import type { PropertyGroup, PhysicsConfig } from '../../items/types';
 import { buildPropertyPanelElements } from './property-panel-elements';
 

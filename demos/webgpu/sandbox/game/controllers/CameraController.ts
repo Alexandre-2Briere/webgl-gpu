@@ -1,4 +1,4 @@
-import type { Engine } from '../../../../../src/webgpu/engine/index';
+import type { Engine } from '@engine';
 import type { InputManager } from '../managers/InputManager';
 
 const CAMERA_MOVE_SPEED = 5.0;   // units per second

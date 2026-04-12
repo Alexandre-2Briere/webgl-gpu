@@ -1,4 +1,4 @@
-import type { Engine, IGameObject } from '../../../../src/webgpu/engine/index';
+import type { Engine, IGameObject } from '@engine';
 import type { FbxSpawnContext } from './types';
 
 // ── Catalog ───────────────────────────────────────────────────────────────────

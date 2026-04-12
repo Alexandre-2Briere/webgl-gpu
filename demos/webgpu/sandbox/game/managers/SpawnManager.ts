@@ -1,6 +1,5 @@
-import type { Engine, FbxAssetHandle } from '../../../../../src/webgpu/engine/index';
-import type { ISceneObject } from '../../../../../src/webgpu/engine/index';
-import { Rigidbody3D } from '../../../../../src/webgpu/engine/gameObject/rigidbody/Rigidbody3D';
+import type { Engine, FbxAssetHandle, ISceneObject } from '@engine';
+import { Rigidbody3D } from '@engine';
 import type { Terminal } from '../../ui/Terminal/Terminal';
 import type { PropertyPanel } from '../../ui/PropertyPanel/PropertyPanel';
 import type { SceneHierarchy } from '../../ui/SceneHierarchy/SceneHierarchy';

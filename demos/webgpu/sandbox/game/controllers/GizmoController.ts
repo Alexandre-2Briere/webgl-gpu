@@ -1,4 +1,4 @@
-import type { Engine, ArrowGizmo } from '../../../../../src/webgpu/engine/index';
+import type { Engine, ArrowGizmo } from '@engine';
 import type { InputManager } from '../managers/InputManager';
 import type { SelectionManager } from '../managers/SelectionManager';
 import type { SpawnManager } from '../managers/SpawnManager';

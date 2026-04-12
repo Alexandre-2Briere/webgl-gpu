@@ -1,6 +1,4 @@
-import type { Rigidbody3D }    from '../../../../src/webgpu/engine/gameObject/rigidbody/Rigidbody3D';
-import type { CubeHitbox }     from '../../../../src/webgpu/engine/gameObject/hitbox/CubeHitbox';
-import type { FbxAssetHandle } from '../../../../src/webgpu/engine/types';
+import type { Rigidbody3D, CubeHitbox, FbxAssetHandle } from '@engine';
 
 export type PropertyGroup = 'position' | 'rotation' | 'color' | 'scale' | 'rigidbody' | 'hitbox' | 'asset' | 'lightType' | 'lightRadius' | 'lightPower'
 

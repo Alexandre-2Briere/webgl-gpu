@@ -1,4 +1,4 @@
-import type { PubSubManager } from '../../../../src/webgpu/engine/core/PubSub';
+import type { PubSubManager } from '@engine';
 
 export const SANDBOX_EVENTS = {
   OBJECT_SPAWNED:              'object:spawned',

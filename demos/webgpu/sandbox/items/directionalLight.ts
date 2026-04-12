@@ -1,6 +1,5 @@
-import type { Engine }            from '../../../../src/webgpu/engine/index';
-import type { LightSpawnContext }  from './types';
-import type { LightGameObject }    from '../../../../src/webgpu/engine/gameObject/LightGameObject';
+import type { Engine, LightGameObject } from '@engine';
+import type { LightSpawnContext }        from './types';
 
 /** Spawns a Directional light with neutral white color and power 1. */
 export function spawn(engine: Engine, _context: LightSpawnContext): LightGameObject {

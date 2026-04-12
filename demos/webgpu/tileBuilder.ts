@@ -1,5 +1,4 @@
-import type { Engine, Camera, FbxAssetHandle, IGameObject } from '../../src/webgpu/engine/index';
-import type { Quad3D } from '../../src/webgpu/engine/gameObject/renderables';
+import type { Engine, Camera, FbxAssetHandle, IGameObject, Quad3D } from '@engine';
 
 // FOV_Y must match fovY in main.ts createCamera() call.
 // raycastMouse() uses this to reconstruct the view frustum — if they diverge,

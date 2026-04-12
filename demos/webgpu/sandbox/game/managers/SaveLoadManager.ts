@@ -1,16 +1,5 @@
-import type { Engine }           from '../../../../../src/webgpu/engine/index';
-import type {
-  SaveSegments,
-  SceneConstantsSnapshot,
-  GameObjectsSnapshot,
-  LightObjectsSnapshot,
-  GameObjectSnapshot,
-  LightObjectSnapshot,
-  LightSnapshot,
-  DirectionalLightSnapshot,
-} from '../../../../../src/webgpu/engine/index';
-import { LightGameObject }      from '../../../../../src/webgpu/engine/gameObject/LightGameObject';
-import { SaveManager }          from '../../../../../src/webgpu/engine/index';
+import type { Engine, SaveSegments, SceneConstantsSnapshot, GameObjectsSnapshot, LightObjectsSnapshot, GameObjectSnapshot, LightObjectSnapshot, LightSnapshot, DirectionalLightSnapshot } from '@engine';
+import { LightGameObject, SaveManager } from '@engine';
 import type { Terminal }        from '../../ui/Terminal/Terminal';
 import type { PhysicsConfig, PropertyGroup, ItemEntry } from '../../items/types';
 import type { SpawnManager }    from './SpawnManager';
