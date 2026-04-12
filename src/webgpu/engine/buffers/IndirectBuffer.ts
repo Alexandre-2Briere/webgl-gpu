@@ -8,6 +8,7 @@
  *   - STORAGE  → compute shader can write vertexCount
  *   - INDIRECT → render pass can read it via drawIndirect()
  *   - COPY_DST → CPU can zero vertexCount before each compute pass
+ * @internal
  */
 export class IndirectBuffer {
   private readonly _buffer: GPUBuffer;

@@ -1,3 +1,4 @@
+/** @internal */
 export const QUAD3D = /* wgsl */`
 // World-space quad shader — depth-tested, no back-face culling, flat tint color.
 // Prepend common.wgsl before compiling.

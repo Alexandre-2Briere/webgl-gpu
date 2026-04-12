@@ -7,6 +7,7 @@ import { LIGHT, LIGHT_CROSS_PIPELINE_KEY } from '../../shaders/light';
 import { logger } from '../../utils';
 import type { LightGameObject } from '../LightGameObject';
 
+/** @internal */
 export class LightCrossRenderable implements Renderable {
   readonly id          = Symbol();
   readonly layer       = 'overlay' as const;

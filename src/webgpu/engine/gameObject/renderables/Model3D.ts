@@ -16,6 +16,7 @@ const BYTES_PER_VERTEX = 48;
  * Shares GPU vertex + index buffers with any other Model3D using the same asset.
  * Only allocates its own 80-byte uniform slot (model matrix + tint).
  */
+/** @internal */
 export class Model3D implements Renderable {
   readonly id = Symbol();
   readonly layer = 'world' as const;

@@ -1,3 +1,4 @@
+/** @internal */
 export class PipelineCache {
   private readonly _device: GPUDevice;
   private readonly _renderPipelines = new Map<string, GPURenderPipeline>();

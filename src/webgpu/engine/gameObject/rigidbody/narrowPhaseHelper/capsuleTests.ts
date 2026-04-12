@@ -7,6 +7,7 @@ import {
 } from './helpers';
 import { testMeshCapsule } from './meshTests';
 
+/** @internal */
 export function testCapsuleSphere(capsule: CapsuleHitbox, sphere: SphereHitbox): CollisionResult {
   const [segmentStart, segmentEnd] = getCapsuleSegment(capsule);
   const closestPoint = closestPointOnSegment(segmentStart, segmentEnd, sphere.worldCenter);
@@ -18,12 +19,14 @@ export function testCapsuleSphere(capsule: CapsuleHitbox, sphere: SphereHitbox):
   return { hit: true, depth: radiusSum - distance, normal: safeNorm3(delta) };
 }
 
+/** @internal */
 export function testCapsuleCube(capsule: CapsuleHitbox, cube: CubeHitbox): CollisionResult {
   const [segmentStart, segmentEnd] = getCapsuleSegment(capsule);
   const closestPoint = closestPointOnSegment(segmentStart, segmentEnd, cube.worldCenter);
   return pointRadiusVsOBB(closestPoint, capsule.radius, cube);
 }
 
+/** @internal */
 export function testCapsuleCapsule(capsuleA: CapsuleHitbox, capsuleB: CapsuleHitbox): CollisionResult {
   const [segAStart, segAEnd] = getCapsuleSegment(capsuleA);
   const [segBStart, segBEnd] = getCapsuleSegment(capsuleB);
@@ -59,6 +62,7 @@ export function testCapsuleCapsule(capsuleA: CapsuleHitbox, capsuleB: CapsuleHit
   return { hit: true, depth: radiusSum - distance, normal: safeNorm3(delta) };
 }
 
+/** @internal */
 export function testCapsuleMesh(capsule: CapsuleHitbox, mesh: MeshHitbox): CollisionResult {
   return flipNormal(testMeshCapsule(mesh, capsule));
 }

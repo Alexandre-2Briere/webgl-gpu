@@ -1,3 +1,4 @@
+/** @internal */
 export const COMMON = /* wgsl */`
 // Shared structs and bind group declarations used by all engine shaders.
 // Prepend this source to every shader before creating a GPUShaderModule.

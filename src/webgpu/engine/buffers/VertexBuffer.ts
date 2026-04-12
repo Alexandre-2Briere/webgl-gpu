@@ -1,3 +1,4 @@
+/** @internal */
 export class VertexBuffer {
   private readonly _buffer: GPUBuffer;
   private readonly _device: GPUDevice;

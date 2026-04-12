@@ -1,5 +1,6 @@
 import type { BindGroupLayouts } from '../types';
 
+/** @internal */
 export function createCameraLayout(device: GPUDevice): GPUBindGroupLayout {
   return device.createBindGroupLayout({
     label: 'camera-bgl',
@@ -11,6 +12,7 @@ export function createCameraLayout(device: GPUDevice): GPUBindGroupLayout {
   });
 }
 
+/** @internal */
 export function createObjectLayout(device: GPUDevice): GPUBindGroupLayout {
   return device.createBindGroupLayout({
     label: 'object-bgl',
@@ -22,6 +24,7 @@ export function createObjectLayout(device: GPUDevice): GPUBindGroupLayout {
   });
 }
 
+/** @internal */
 export function createFbxMaterialLayout(device: GPUDevice): GPUBindGroupLayout {
   return device.createBindGroupLayout({
     label: 'fbx-material-bgl',
@@ -33,6 +36,7 @@ export function createFbxMaterialLayout(device: GPUDevice): GPUBindGroupLayout {
   });
 }
 
+/** @internal */
 export function createLightsLayout(device: GPUDevice): GPUBindGroupLayout {
   return device.createBindGroupLayout({
     label: 'lights-bgl',
@@ -44,10 +48,12 @@ export function createLightsLayout(device: GPUDevice): GPUBindGroupLayout {
   });
 }
 
+/** @internal */
 export function createEmptyLayout(device: GPUDevice): GPUBindGroupLayout {
   return device.createBindGroupLayout({ label: 'empty-bgl', entries: [] });
 }
 
+/** @internal */
 export function createGizmoLayout(device: GPUDevice): GPUBindGroupLayout {
   return device.createBindGroupLayout({
     label: 'gizmo-bgl',
@@ -59,6 +65,7 @@ export function createGizmoLayout(device: GPUDevice): GPUBindGroupLayout {
   });
 }
 
+/** @internal */
 export function createEngineLayouts(device: GPUDevice): BindGroupLayouts {
   return {
     camera:      createCameraLayout(device),

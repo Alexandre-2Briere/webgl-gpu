@@ -7,6 +7,7 @@ import {
   closestPointOnSegment, getCapsuleSegment,
 } from './helpers';
 
+/** @internal */
 export function testMeshMesh(meshA: MeshHitbox, meshB: MeshHitbox): CollisionResult {
   const halfExtentsA = meshA.halfExtents;
   const halfExtentsB = meshB.halfExtents;
@@ -32,6 +33,7 @@ export function testMeshMesh(meshA: MeshHitbox, meshB: MeshHitbox): CollisionRes
   return { hit: true, depth, normal };
 }
 
+/** @internal */
 export function testMeshCube(mesh: MeshHitbox, cube: CubeHitbox): CollisionResult {
   const identityAxes: [Vec3, Vec3, Vec3] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
   const meshCenter = mesh.worldCenter;
@@ -64,12 +66,14 @@ export function testMeshCube(mesh: MeshHitbox, cube: CubeHitbox): CollisionResul
   return { hit: true, depth: minPenetrationDepth, normal: minPenetrationNormal };
 }
 
+/** @internal */
 export function testMeshCapsule(mesh: MeshHitbox, capsule: CapsuleHitbox): CollisionResult {
   const [segmentStart, segmentEnd] = getCapsuleSegment(capsule);
   const closestPoint = closestPointOnSegment(segmentStart, segmentEnd, mesh.worldCenter);
   return pointRadiusVsAABB(closestPoint, capsule.radius, mesh);
 }
 
+/** @internal */
 export function testMeshSphere(mesh: MeshHitbox, sphere: SphereHitbox): CollisionResult {
   return flipNormal(pointRadiusVsAABB(sphere.worldCenter, sphere.radius, mesh));
 }

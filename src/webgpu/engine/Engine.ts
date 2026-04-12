@@ -15,11 +15,22 @@ import type {
   DirectionalLightOptions,
   ArrowGizmoOptions,
 } from './types';
-import { Camera, Renderer, Scene, PipelineCache } from './core';
-import { UniformPool, LightBuffer } from './buffers';
-import { Mesh, Quad2D, Quad3D, Model3D, FbxModel, ArrowGizmo } from './gameObject/renderables';
-import type { Renderable, RenderableInitArgs } from './gameObject/renderables';
-import { loadObjAsset, loadFbxAsset, createEngineLayouts, logger } from './utils';
+import { Camera } from './core';
+import { Renderer } from './core/Renderer';
+import { Scene } from './core/Scene';
+import { PipelineCache } from './core/PipelineCache';
+import { UniformPool } from './buffers/UniformPool';
+import { LightBuffer } from './buffers/LightBuffer';
+import { Mesh } from './gameObject/renderables/Mesh';
+import { Quad2D } from './gameObject/renderables/Quad2D';
+import { Quad3D } from './gameObject/renderables/Quad3D';
+import { Model3D } from './gameObject/renderables/Model3D';
+import { FbxModel } from './gameObject/renderables/FbxModel';
+import { ArrowGizmo } from './gameObject/renderables/ArrowGizmo';
+import type { Renderable, RenderableInitArgs } from './gameObject/renderables/Renderable';
+import { loadObjAsset, loadFbxAsset } from './utils/assetLoaders';
+import { createEngineLayouts } from './utils/bindGroupLayouts';
+import { logger } from './utils';
 import { GameObject } from './gameObject/GameObject';
 import type { IGameObject } from './gameObject/GameObject';
 import { LightGameObject, LightType } from './gameObject/LightGameObject';

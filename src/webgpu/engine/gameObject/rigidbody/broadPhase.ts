@@ -2,8 +2,10 @@ import type { Hitbox3D, CubeHitbox, SphereHitbox, CapsuleHitbox, MeshHitbox } fr
 
 // ─── AABB ─────────────────────────────────────────────────────────────────────
 
+/** @internal */
 export interface AABB { min: [number, number, number]; max: [number, number, number] }
 
+/** @internal */
 export function extractOBBAxes(orientation: Float32Array): [[number,number,number],[number,number,number],[number,number,number]] {
   return [
     [orientation[0], orientation[1], orientation[2]],
@@ -12,6 +14,7 @@ export function extractOBBAxes(orientation: Float32Array): [[number,number,numbe
   ];
 }
 
+/** @internal */
 export function computeWorldAABB(hitbox: Hitbox3D): AABB {
   const center = hitbox.worldCenter;
   switch (hitbox.type) {
@@ -71,6 +74,7 @@ export function computeWorldAABB(hitbox: Hitbox3D): AABB {
   }
 }
 
+/** @internal */
 export function aabbOverlap(a: AABB, b: AABB): boolean {
   return a.max[0] > b.min[0] && a.min[0] < b.max[0]
       && a.max[1] > b.min[1] && a.min[1] < b.max[1]

@@ -4,6 +4,7 @@ import { Renderer } from './Renderer';
 import type { LightBuffer } from '../buffers/LightBuffer';
 import { logger } from '../utils';
 
+/** @internal */
 export class Scene {
   private readonly _renderer: Renderer;
   private readonly _lightBuffer: LightBuffer;

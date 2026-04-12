@@ -1,3 +1,4 @@
+/** @internal */
 export const FBX = /* wgsl */`
 // FBX mesh shader — CCW winding, back-face culling, diffuse + normal mapping.
 // Prepend common.wgsl before compiling.

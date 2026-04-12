@@ -12,7 +12,6 @@ export { LightGameObject, LightType } from './gameObject/LightGameObject';
 export type {
   EngineOptions,
   CameraOptions,
-  BindGroupLayouts,
   GameObjectBaseOptions,
   MeshOptions,
   MeshGameObjectOptions,

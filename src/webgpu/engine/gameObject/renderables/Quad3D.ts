@@ -19,6 +19,7 @@ const QUAD3D_PIPELINE_KEY = 'quad3d';
 const QUAD_INDICES = new Uint16Array([0, 1, 2, 2, 3, 0]);
 
 
+/** @internal */
 export class Quad3D implements Renderable {
   readonly id = Symbol();
   readonly layer = 'world' as const;

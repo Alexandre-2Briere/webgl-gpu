@@ -3,6 +3,7 @@ import { logger } from '../utils';
 import { FLOAT_SIZE } from '../math';
 import type { LightGameObject } from '../gameObject/LightGameObject';
 
+/** @internal */
 export const MAX_LIGHTS = 250;
 
 // GPU buffer layout (see common.wgsl LightBuffer struct):
@@ -13,6 +14,7 @@ const HEADER_SIZE = 4 * FLOAT_SIZE;              // 16 bytes
 const LIGHT_SIZE  = 8 * FLOAT_SIZE;              // 32 bytes (3+1+3+1 floats)
 const BUFFER_SIZE = HEADER_SIZE + MAX_LIGHTS * LIGHT_SIZE;  // 8016 bytes
 
+/** @internal */
 export class LightBuffer extends UniformBuffer {
   private _dirty = true;
   private readonly _lights: LightGameObject[] = [];

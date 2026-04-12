@@ -1,3 +1,4 @@
+/** @internal */
 export interface UniformSlot {
   buffer: GPUBuffer
   offset: number
@@ -7,6 +8,7 @@ export interface UniformSlot {
 /**
  * Suballocates 256-byte-aligned uniform buffer slices from one large GPUBuffer.
  * This avoids creating hundreds of small buffers for per-object uniforms.
+ * @internal
  */
 export class UniformPool {
   private readonly _buffer: GPUBuffer;

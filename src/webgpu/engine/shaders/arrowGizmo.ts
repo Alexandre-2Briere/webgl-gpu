@@ -1,6 +1,9 @@
+/** @internal */
 export const ARROW_GIZMO_VISIBLE_KEY  = 'arrow-gizmo-visible';
+/** @internal */
 export const ARROW_GIZMO_OCCLUDED_KEY = 'arrow-gizmo-occluded';
 
+/** @internal */
 export const ARROW_GIZMO = /* wgsl */`
 // ArrowGizmo shader — procedural axis arrows, two-pipeline occluded rendering.
 // Prepend common.wgsl before compiling.

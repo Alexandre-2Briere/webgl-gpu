@@ -99,6 +99,7 @@ export class LightGameObject implements ISceneObject {
 
   // ── Visualization ────────────────────────────────────────────────────────────
 
+  /** @internal */
   initRenderable(args: RenderableInitArgs, scene: Scene): void {
     this._renderable = new LightCrossRenderable(this, args);
     this._scene = scene;

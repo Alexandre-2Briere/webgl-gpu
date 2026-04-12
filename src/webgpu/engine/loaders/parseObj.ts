@@ -11,6 +11,7 @@ import { safeParseFloat } from '../math';
  * Supports:  f v//vn  f v/vt/vn  f v  (triangles and quads, auto-triangulated)
  * Ignores:   mtllib, usemtl, vt, s, o, g
  * Normals:   uses vn if present; computes flat face normals otherwise.
+ * @internal
  */
 export function parseObj(source: string): { vertices: Float32Array; indices: Uint32Array } {
   const positions: number[] = [];   // raw [x, y, z, x, y, z, ...]

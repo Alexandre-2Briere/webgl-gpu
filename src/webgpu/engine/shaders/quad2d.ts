@@ -1,3 +1,4 @@
+/** @internal */
 export const QUAD2D = /* wgsl */`
 // Screen-space quad shader — NDC positions, flat tint color, no depth.
 // Prepend common.wgsl before compiling.

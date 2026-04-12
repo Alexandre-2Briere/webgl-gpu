@@ -21,6 +21,7 @@ export interface CameraOptions {
 
 // ── Shared bind group layouts passed to renderable init ────────────────────
 
+/** @internal */
 export interface BindGroupLayouts {
   camera:      GPUBindGroupLayout  // group 0 — camera uniform
   object:      GPUBindGroupLayout  // group 1 — per-object uniform (model + tint)

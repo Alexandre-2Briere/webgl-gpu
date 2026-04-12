@@ -1,3 +1,4 @@
+/** @internal */
 export class StorageBuffer {
   private readonly _buffer: GPUBuffer;
   private readonly _device: GPUDevice;

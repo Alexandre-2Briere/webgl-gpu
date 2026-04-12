@@ -6,6 +6,7 @@ import {
 } from './helpers';
 import { testCapsuleSphere } from './capsuleTests';
 
+/** @internal */
 export function testSphereSphere(a: SphereHitbox, b: SphereHitbox): CollisionResult {
   const delta: Vec3 = [a.worldCenter[0] - b.worldCenter[0], a.worldCenter[1] - b.worldCenter[1], a.worldCenter[2] - b.worldCenter[2]];
   const squaredDist = dot(delta, delta);
@@ -15,14 +16,17 @@ export function testSphereSphere(a: SphereHitbox, b: SphereHitbox): CollisionRes
   return { hit: true, depth: radiusSum - distance, normal: safeNorm3(delta) };
 }
 
+/** @internal */
 export function testSphereCube(sphere: SphereHitbox, cube: CubeHitbox): CollisionResult {
   return pointRadiusVsOBB(sphere.worldCenter, sphere.radius, cube);
 }
 
+/** @internal */
 export function testSphereCapsule(sphere: SphereHitbox, capsule: CapsuleHitbox): CollisionResult {
   return flipNormal(testCapsuleSphere(capsule, sphere));
 }
 
+/** @internal */
 export function testSphereMesh(sphere: SphereHitbox, mesh: MeshHitbox): CollisionResult {
   return pointRadiusVsAABB(sphere.worldCenter, sphere.radius, mesh);
 }

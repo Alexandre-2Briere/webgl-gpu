@@ -1,3 +1,4 @@
+/** @internal */
 export const MESH = /* wgsl */`
 // 3D mesh shader — CCW winding, back-face culling, simple diffuse + ambient.
 // Prepend common.wgsl before compiling.

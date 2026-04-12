@@ -1,6 +1,7 @@
 /**
  * Base class for a single GPUBuffer backed uniform with a pre-built bind group.
  * Subclasses own the data layout and call _write() to push updates to the GPU.
+ * @internal
  */
 export class UniformBuffer {
   protected readonly _device: GPUDevice;

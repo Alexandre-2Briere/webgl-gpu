@@ -12,8 +12,10 @@ import type { Vec3, Vec4 } from '../../math';
 /** Bytes per vertex: vec3f pos + f32 pad + vec3f normal + f32 pad + vec4f color = 48 */
 const BYTES_PER_VERTEX = 48;
 
+/** @internal */
 export const MESH_PIPELINE_KEY = 'mesh';
 
+/** @internal */
 export class Mesh implements Renderable {
   readonly id = Symbol();
   readonly layer = 'world' as const;

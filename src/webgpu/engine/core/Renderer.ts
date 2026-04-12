@@ -1,3 +1,4 @@
+/** @internal */
 export class Renderer {
   readonly device: GPUDevice;
   readonly queue: GPUQueue;

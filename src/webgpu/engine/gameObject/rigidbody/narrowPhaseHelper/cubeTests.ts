@@ -8,6 +8,7 @@ import {
 import { testCapsuleCube } from './capsuleTests';
 import { testMeshCube } from './meshTests';
 
+/** @internal */
 export function testCubeCube(a: CubeHitbox, b: CubeHitbox): CollisionResult {
   const centerA = a.worldCenter;
   const centerB = b.worldCenter;
@@ -40,14 +41,17 @@ export function testCubeCube(a: CubeHitbox, b: CubeHitbox): CollisionResult {
   return { hit: true, depth: minPenetrationDepth, normal: minPenetrationNormal };
 }
 
+/** @internal */
 export function testCubeSphere(cube: CubeHitbox, sphere: SphereHitbox): CollisionResult {
   return flipNormal(pointRadiusVsOBB(sphere.worldCenter, sphere.radius, cube));
 }
 
+/** @internal */
 export function testCubeCapsule(cube: CubeHitbox, capsule: CapsuleHitbox): CollisionResult {
   return flipNormal(testCapsuleCube(capsule, cube));
 }
 
+/** @internal */
 export function testCubeMesh(cube: CubeHitbox, mesh: MeshHitbox): CollisionResult {
   return flipNormal(testMeshCube(mesh, cube));
 }

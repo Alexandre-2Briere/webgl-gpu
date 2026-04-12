@@ -8,6 +8,7 @@ import { FBX } from '../../shaders/fbx';
 import { makeTransformMatrix } from '../../math';
 import type { Vec3, Vec4 } from '../../math';
 
+/** @internal */
 export const FBX_PIPELINE_KEY = 'fbx';
 
 // 64 bytes/vertex: pos(12)+pad(4) | normal(12)+pad(4) | uv(8)+pad(8) | tangent(16)
@@ -18,6 +19,7 @@ const BYTES_PER_VERTEX = 64;
  * Each slice gets its own material bind group (group 2) per draw call.
  * Shares the same render pipeline across all FbxModel instances.
  */
+/** @internal */
 export class FbxModel implements Renderable {
   readonly id = Symbol();
   readonly layer = 'world' as const;

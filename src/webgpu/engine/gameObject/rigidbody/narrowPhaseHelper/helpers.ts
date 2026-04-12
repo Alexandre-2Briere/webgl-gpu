@@ -3,9 +3,12 @@ import { dot, safeNorm3, type Vec3 } from '../../../math';
 
 // ─── Result type ──────────────────────────────────────────────────────────────
 
+/** @internal */
 export interface CollisionResult { hit: boolean; depth: number; normal: Vec3 }
+/** @internal */
 export const NO_HIT: CollisionResult = { hit: false, depth: 0, normal: [0, 1, 0] };
 
+/** @internal */
 export function flipNormal(result: CollisionResult): CollisionResult {
   return result.hit
     ? { hit: true, depth: result.depth, normal: [-result.normal[0], -result.normal[1], -result.normal[2]] }
@@ -14,6 +17,7 @@ export function flipNormal(result: CollisionResult): CollisionResult {
 
 // ─── OBB helpers ──────────────────────────────────────────────────────────────
 
+/** @internal */
 export function extractOBBAxes(orientation: Float32Array): [Vec3, Vec3, Vec3] {
   return [
     [orientation[0], orientation[1], orientation[2]],
@@ -22,6 +26,7 @@ export function extractOBBAxes(orientation: Float32Array): [Vec3, Vec3, Vec3] {
   ];
 }
 
+/** @internal */
 export function projectOBBOntoAxis(
   center: Vec3,
   axes: [Vec3, Vec3, Vec3],
@@ -37,6 +42,7 @@ export function projectOBBOntoAxis(
 
 // ─── Segment helpers ──────────────────────────────────────────────────────────
 
+/** @internal */
 export function closestPointOnSegment(segStart: Vec3, segEnd: Vec3, point: Vec3): Vec3 {
   const direction: Vec3 = [segEnd[0] - segStart[0], segEnd[1] - segStart[1], segEnd[2] - segStart[2]];
   const lengthSq = dot(direction, direction);
@@ -48,6 +54,7 @@ export function closestPointOnSegment(segStart: Vec3, segEnd: Vec3, point: Vec3)
   return [segStart[0] + direction[0] * param, segStart[1] + direction[1] * param, segStart[2] + direction[2] * param];
 }
 
+/** @internal */
 export function getCapsuleSegment(capsule: CapsuleHitbox): [Vec3, Vec3] {
   const center = capsule.worldCenter;
   const halfSegmentLength = Math.max(0, capsule.height * 0.5 - capsule.radius);
@@ -60,7 +67,7 @@ export function getCapsuleSegment(capsule: CapsuleHitbox): [Vec3, Vec3] {
 
 // ─── Shared geometry tests ────────────────────────────────────────────────────
 
-/** Point + radius vs OBB. Normal points from OBB toward the point. */
+/** Point + radius vs OBB. Normal points from OBB toward the point. @internal */
 export function pointRadiusVsOBB(point: Vec3, radius: number, cube: CubeHitbox): CollisionResult {
   const obbCenter = cube.worldCenter;
   const axes = extractOBBAxes(cube.orientation);
@@ -110,7 +117,7 @@ export function pointRadiusVsOBB(point: Vec3, radius: number, cube: CubeHitbox):
   return { hit: true, depth: radius - distance, normal: safeNorm3(toPoint) };
 }
 
-/** Point + radius vs AABB (mesh). Normal points from AABB toward the point. */
+/** Point + radius vs AABB (mesh). Normal points from AABB toward the point. @internal */
 export function pointRadiusVsAABB(point: Vec3, radius: number, mesh: MeshHitbox): CollisionResult {
   const meshCenter = mesh.worldCenter;
   const halfExtents = mesh.halfExtents;

@@ -2,7 +2,7 @@ import type { Hitbox3D } from './hitbox';
 import type { Rigidbody3D } from './rigidbody';
 import type { Vec3, Vec4 } from '../math';
 import { applyEulerDelta, yawPitchRollToQuat, rotateByQuat } from '../math';
-import type { Renderable } from './renderables';
+import type { Renderable } from './renderables/Renderable';
 
 // ── Public interfaces ─────────────────────────────────────────────────────────
 
@@ -31,8 +31,9 @@ export interface IGameObject<R extends Renderable = Renderable> extends ISceneOb
   readonly hitbox:     Hitbox3D    | null
   readonly rigidbody:  Rigidbody3D | null
 
-  // Physics sync (called in the user's game loop)
+  /** @internal */
   syncToPhysics(): void
+  /** @internal */
   syncFromPhysics(): void
 
   // Lifecycle
@@ -41,6 +42,7 @@ export interface IGameObject<R extends Renderable = Renderable> extends ISceneOb
 
 // ── Internal options ──────────────────────────────────────────────────────────
 
+/** @internal */
 export interface GameObjectOptions<R extends Renderable = Renderable> {
   renderable:       R
   position?:        Vec3
@@ -138,6 +140,7 @@ export class GameObject<R extends Renderable = Renderable> implements IGameObjec
     return this.rigidbody;
   }
 
+  /** @internal */
   syncToPhysics(): void {
     if (!this.rigidbody) return;
     const rotated = rotateByQuat(this._rigidbodyOffset, this.quaternion);
@@ -152,6 +155,7 @@ export class GameObject<R extends Renderable = Renderable> implements IGameObjec
   /**
    * Read the rigidbody's post-simulation position + quaternion back and apply
    * them to the renderable and hitbox.  Called by `applyCollisions` each frame.
+   * @internal
    */
   syncFromPhysics(): void {
     if (!this.rigidbody) return;

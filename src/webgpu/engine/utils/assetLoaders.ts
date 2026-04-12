@@ -1,7 +1,8 @@
 import type { ModelAssetHandle, FbxAssetHandle } from '../types';
 import { ModelAsset } from '../gameObject/renderables/ModelAsset';
 import { FbxAsset } from '../gameObject/renderables/FbxAsset';
-import { parseObj, parseFbx } from '../loaders';
+import { parseObj } from '../loaders/parseObj';
+import { parseFbx } from '../loaders/parseFbx';
 import { logger } from './logger';
 
 /** Maximum asset download size (256 MB). Enforced on Content-Length and during streaming. */
@@ -54,6 +55,7 @@ async function fetchWithLimit(url: string, label: string, timeoutMs: number): Pr
 /**
  * Fetches and parses a .obj file, uploading its geometry to GPU once.
  * The returned handle can be passed to Engine.createModel3D() many times.
+ * @internal
  */
 export async function loadObjAsset(
   device: GPUDevice,
@@ -70,6 +72,7 @@ export async function loadObjAsset(
 /**
  * Fetches and parses a .fbx file, uploading all mesh geometry and textures to GPU once.
  * The returned handle can be passed to Engine.createFbxModel() many times.
+ * @internal
  */
 export async function loadFbxAsset(
   device: GPUDevice,

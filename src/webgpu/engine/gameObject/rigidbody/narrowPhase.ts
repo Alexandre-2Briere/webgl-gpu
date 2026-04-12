@@ -5,8 +5,9 @@ import { testCubeCube, testCubeSphere, testCubeCapsule, testCubeMesh } from './n
 import { testCapsuleSphere, testCapsuleCube, testCapsuleCapsule, testCapsuleMesh } from './narrowPhaseHelper/capsuleTests';
 import { testMeshMesh, testMeshCube, testMeshCapsule, testMeshSphere } from './narrowPhaseHelper/meshTests';
 
-export type { CollisionResult };
+/** @internal */ export type { CollisionResult };
 
+/** @internal */
 export function narrowPhase(a: Hitbox3D, b: Hitbox3D): CollisionResult {
   const typeA = a.type;
   const typeB = b.type;

@@ -18,6 +18,7 @@ const QUAD2D_PIPELINE_KEY = 'quad2d';
 // Indices for a CCW quad (two triangles)
 const QUAD_INDICES = new Uint16Array([0, 1, 2, 2, 3, 0]);
 
+/** @internal */
 export class Quad2D implements Renderable {
   readonly id = Symbol();
   readonly layer = 'overlay' as const;

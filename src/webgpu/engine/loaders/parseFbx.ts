@@ -1,8 +1,21 @@
-import { parseBinary, parseText, FBXReader, FBXReaderNode } from 'fbx-parser';
+import type { FBXReader, FBXReaderNode } from 'fbx-parser';
 import { logger } from '../utils';
+
+let cachedFbxParser: typeof import('fbx-parser') | null = null;
+
+async function getFbxParser(): Promise<typeof import('fbx-parser')> {
+  if (!cachedFbxParser) {
+    cachedFbxParser = await import('fbx-parser').catch(() => {
+      logger.error('[WebGPUEngine] fbx-parser is not installed. Run: npm install fbx-parser');
+      throw new Error('[WebGPUEngine] fbx-parser is not installed. Run: npm install fbx-parser');
+    });
+  }
+  return cachedFbxParser;
+}
 
 // ── Public interfaces ────────────────────────────────────────────────────────
 
+/** @internal */
 export interface ParsedFbxMaterial {
   name: string
   /** Decoded image ready for GPUDevice. null = use fallback 1×1 white texture. */
@@ -16,6 +29,7 @@ export interface ParsedFbxMaterial {
   baseColor: [number, number, number]
 }
 
+/** @internal */
 export interface ParsedFbxMesh {
   name: string
   /** Interleaved vertex data — 64 bytes/vertex (pos 16B | normal 16B | uv 16B | tangent 16B). */
@@ -24,6 +38,7 @@ export interface ParsedFbxMesh {
   material: ParsedFbxMaterial
 }
 
+/** @internal */
 export interface ParsedFbxData {
   meshes: ParsedFbxMesh[]
 }
@@ -32,7 +47,10 @@ export interface ParsedFbxData {
 
 const FBX_BINARY_MAGIC = 'Kaydara FBX Binary  ';
 
+/** @internal */
 export async function parseFbx(data: Uint8Array): Promise<ParsedFbxData> {
+  const { parseBinary, parseText, FBXReader } = await getFbxParser();
+
   const magic = new TextDecoder('ascii').decode(data.slice(0, 20));
   const fbxNodes = magic === FBX_BINARY_MAGIC
     ? parseBinary(data)
