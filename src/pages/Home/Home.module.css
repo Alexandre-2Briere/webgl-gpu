@@ -16,7 +16,7 @@
 
 .siteSubtitle {
   font-size: 1.1rem;
-  color: #64748b;
+  color: var(--color-text-muted);
   margin: 0;
 }
 

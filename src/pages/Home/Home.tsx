@@ -3,6 +3,7 @@ import { fetchProjectMeta } from '@lib/services/fetchProjectMeta';
 import { logger } from '../../webgpu/engine/utils';
 import type { ProjectMeta } from '@lib/projects/types';
 import ProjectCard from '@components/ProjectCard/ProjectCard';
+import SocialLinks from '@components/SocialLinks/SocialLinks';
 import styles from './Home.module.css';
 
 export default function Home() {
@@ -13,10 +14,12 @@ export default function Home() {
   }, []);
 
   return (
-    <main className={styles.main}>
+    <>
+      <SocialLinks />
+      <main className={styles.main}>
       <header className={styles.header}>
         <h1 className={styles.siteTitle}>Alexandre Brière</h1>
-        <p className={styles.siteSubtitle}>Interactive demos &amp; experiments</p>
+        <p className={styles.siteSubtitle}>Projects, experiments, work, and more</p>
       </header>
       <section className={styles.projectList}>
         {projects.map((project, index) => (
@@ -24,5 +27,6 @@ export default function Home() {
         ))}
       </section>
     </main>
+    </>
   );
 }
