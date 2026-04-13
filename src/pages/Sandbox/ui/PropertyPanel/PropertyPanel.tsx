@@ -3,12 +3,8 @@ import { IconButton, Typography } from '@mui/material';
 import type { ISceneObject } from '@engine';
 import { LightGameObject, LightType } from '@engine';
 import type { PhysicsConfig, PropertyGroup } from '../../items/types';
-import { PositionForm } from './PropertyForm/PositionForm';
-import type { PositionFormHandle } from './PropertyForm/PositionForm';
-import { RotationForm } from './PropertyForm/RotationForm';
-import type { RotationFormHandle } from './PropertyForm/RotationForm';
-import { ScaleForm } from './PropertyForm/ScaleForm';
-import type { ScaleFormHandle } from './PropertyForm/ScaleForm';
+import { Vector3Form } from './PropertyForm/Vector3Form';
+import type { Vector3FormHandle } from './PropertyForm/Vector3Form';
 import { ColorForm } from './PropertyForm/ColorForm';
 import { PhysicsForm } from './PropertyForm/PhysicsForm';
 import type { PhysicsState } from './PropertyForm/PhysicsForm';
@@ -68,9 +64,9 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
   function PropertyPanelComponent(_, ref) {
     const [state, setState] = useState<PanelViewState>(INITIAL_STATE);
 
-    const positionFormRef = useRef<PositionFormHandle>(null);
-    const rotationFormRef = useRef<RotationFormHandle>(null);
-    const scaleFormRef    = useRef<ScaleFormHandle>(null);
+    const positionFormRef = useRef<Vector3FormHandle>(null);
+    const rotationFormRef = useRef<Vector3FormHandle>(null);
+    const scaleFormRef    = useRef<Vector3FormHandle>(null);
 
     const currentObjectRef  = useRef<ISceneObject | null>(null);
     const assetOptionsRef   = useRef<AssetOption[]>([]);
@@ -197,14 +193,18 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
           <div className="prop-panel-body">
 
             {visibleSections.has('position') && (
-              <PositionForm
+              <Vector3Form
+                label="Position" sectionId="prop-section-position"
+                defaultValue={0} axisLabels={['X', 'Y', 'Z']} precision={3} transform={(v) => v}
                 ref={positionFormRef}
                 onApply={(x, y, z) => currentObjectRef.current?.setPosition([x, y, z])}
               />
             )}
 
             {visibleSections.has('rotation') && (
-              <RotationForm
+              <Vector3Form
+                label="Rotation (deg)" sectionId="prop-section-rotation"
+                defaultValue={0} axisLabels={['Yaw', 'Pitch', 'Roll']} precision={1} transform={(v) => v * DEG}
                 ref={rotationFormRef}
                 onApply={(yawRad, pitchRad, rollRad) => currentObjectRef.current?.setRotation(yawRad, pitchRad, rollRad)}
               />
@@ -219,7 +219,9 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
             )}
 
             {visibleSections.has('scale') && (
-              <ScaleForm
+              <Vector3Form
+                label="Scale" sectionId="prop-section-scale"
+                defaultValue={1} axisLabels={['X', 'Y', 'Z']} precision={3} transform={(v) => v}
                 ref={scaleFormRef}
                 onApply={(x, y, z) => {
                   currentObjectRef.current?.setScale(x, y, z);

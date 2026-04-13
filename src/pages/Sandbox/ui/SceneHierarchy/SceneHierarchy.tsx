@@ -101,7 +101,6 @@ export const SceneHierarchyComponent = forwardRef<SceneHierarchy, SceneHierarchy
 
     return (
       <aside id="scene-hierarchy">
-        <Typography variant="subtitle2" className="menu-header">Scene</Typography>
         <List id="scene-list" dense disablePadding>
           {rows.map((row, index) => (
             <ListItem
@@ -136,7 +135,7 @@ export const SceneHierarchyComponent = forwardRef<SceneHierarchy, SceneHierarchy
                   }}
                   onBlur={cancelRename}
                   onClick={(event) => event.stopPropagation()}
-                  inputProps={{ spellCheck: false }}
+                  slotProps={{ htmlInput: { spellCheck: false } }}
                 />
               ) : (
                 <ListItemText

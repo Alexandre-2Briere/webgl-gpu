@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { AppBar, Button, Toolbar as MuiToolbar, Typography } from '@mui/material';
+import "./Toolbar.css";
 
 export interface ToolbarHandle {
   setPlaying(playing: boolean): void;
@@ -49,32 +50,34 @@ export const Toolbar = forwardRef<ToolbarHandle>(function Toolbar(_, ref) {
           This application is a WebGPU canvas-based 3D editor.
           It is not designed for screen readers or keyboard navigation.
         </p>
-        <Button
-          id="play-btn"
-          variant="contained"
-          color={isPlaying ? 'error' : 'success'}
-          size="small"
-          disabled={!isEnabled}
-          onClick={handlePlayStop}
-        >
-          {isPlaying ? 'Stop' : 'Play'}
-        </Button>
-        <Button
-          variant="outlined"
-          size="small"
-          disabled={!isEnabled}
-          onClick={() => { onSaveRef.current?.(); }}
-        >
-          Save
-        </Button>
-        <Button
-          variant="outlined"
-          size="small"
-          disabled={!isEnabled}
-          onClick={() => { onLoadRef.current?.(); }}
-        >
-          Load
-        </Button>
+        <div className='sandbox-toolbar-button-container'>
+          <Button
+            id="play-btn"
+            variant="contained"
+            color={isPlaying ? 'error' : 'success'}
+            size="small"
+            disabled={!isEnabled}
+            onClick={handlePlayStop}
+          >
+            {isPlaying ? 'Stop' : 'Play'}
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            disabled={!isEnabled}
+            onClick={() => { onSaveRef.current?.(); }}
+          >
+            Save
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            disabled={!isEnabled}
+            onClick={() => { onLoadRef.current?.(); }}
+          >
+            Load
+          </Button>
+        </div>
       </MuiToolbar>
     </AppBar>
   );

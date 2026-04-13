@@ -1,6 +1,7 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
-import { Chip, List, ListItemButton, Typography } from '@mui/material';
+import { Chip, Divider, List, ListItemButton, Typography } from '@mui/material';
 import type { ItemEntry, ItemRegistry } from '../../items/types';
+import './ItemMenu.css';
 
 export interface ItemMenuHandle {
   setEnabled(enabled: boolean): void;
@@ -18,8 +19,7 @@ export const ItemMenu = forwardRef<ItemMenuHandle, ItemMenuProps>(
     useImperativeHandle(ref, () => ({ setEnabled: setIsEnabled }), []);
 
     return (
-      <aside className="item-menu">
-        <Typography variant="subtitle2" className="menu-header">Spawn Objects</Typography>
+      <aside id="item-menu">
         <List dense disablePadding>
           {Object.entries(registry).map(([sectionName, entries]) => (
             <li key={sectionName}>
@@ -41,6 +41,7 @@ export const ItemMenu = forwardRef<ItemMenuHandle, ItemMenuProps>(
               ))}
             </li>
           ))}
+          <Divider className='separator' variant="middle" component="li" />
         </List>
       </aside>
     );

@@ -17,7 +17,7 @@
 :root {
   --left-panel-width:  220px;
   --terminal-height:   200px;
-  --toolbar-height:    44px;
+  --toolbar-height:    50px;
   --border-radius:     6px;
   --font-mono:         'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 }

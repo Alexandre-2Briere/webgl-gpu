@@ -1,0 +1,9 @@
+.sandbox-toolbar-inner {
+    justify-content: space-between;
+    padding: 1rem;
+    padding-bottom: 1rem;
+}
+.sandbox-toolbar-button-container {
+    display: flex;
+    gap: 0.5rem;
+}
