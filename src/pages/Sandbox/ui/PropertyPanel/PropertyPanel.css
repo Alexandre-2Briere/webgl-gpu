@@ -1,0 +1,74 @@
+#property-panel {
+  width: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.25s ease-in;
+}
+
+#property-panel.open {
+  width: 260px;
+}
+
+.prop-panel-inner {
+  width: 260px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.prop-panel-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px 8px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.prop-panel-title {
+  flex: 1;
+}
+
+.prop-panel-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.prop-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.prop-axis-label {
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.prop-label {
+  flex-shrink: 0;
+}
+
+.prop-subrow {
+  padding-left: 20px;
+}
+
+.prop-color-row {
+  display: flex;
+  align-items: center;
+}
+
+.prop-color-prefix {
+  flex-shrink: 0;
+  padding: 4px 6px;
+}
+
+.prop-color-swatch {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin-left: 6px;
+}

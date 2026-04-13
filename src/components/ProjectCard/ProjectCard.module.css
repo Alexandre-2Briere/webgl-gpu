@@ -1,36 +1,10 @@
-.card {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 3rem;
-  padding: 3rem;
-  background: var(--color-card);
-  border: 0.0625rem solid var(--color-border);
-  border-radius: 0.75rem;
-  text-decoration: none;
-  color: inherit;
-  transition: transform 250ms ease-in-out;
-}
-
-.card:not(:last-child) {
+.cardNotLast:not(:last-child) {
   margin-bottom: 2rem;
 }
 
-.reversed {
-  flex-direction: row-reverse;
-}
-
-.card:hover {
+.cardNotLast:hover {
   transform: translateY(-0.25rem);
-}
-
-.card:hover .title {
-  text-decoration: underline;
-}
-
-.card:focus-visible {
-  outline: 0.1875rem solid var(--color-focus-ring);
-  outline-offset: 0.25rem;
+  transition: transform 250ms ease-in-out;
 }
 
 .imageWrapper {
@@ -40,9 +14,7 @@
 .image {
   width: 100%;
   height: 16.25rem;
-  border-radius: 0.5rem;
   display: block;
-  background: var(--color-border);
 }
 
 .content {
@@ -58,36 +30,8 @@
   gap: 0.5rem;
 }
 
-.tag {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-tag-text);
-  background: var(--color-tag-bg);
-  padding: 0.2em 0.6em;
-  border-radius: 0.25rem;
-}
-
-.title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0;
-  line-height: 1.2;
-  color: var(--color-text);
-}
-
-.description {
-  font-size: 1rem;
-  color: var(--color-text-muted);
-  line-height: 1.6;
-  margin: 0;
-}
-
 .cta {
   align-self: flex-start;
-  font-weight: 600;
-  color: var(--color-cta);
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -99,17 +43,14 @@
   transition: transform 250ms ease-in-out;
 }
 
-.card:hover .cta::after {
+.cardNotLast:hover .cta::after {
   transform: translateX(0.25rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card {
-    transition: none;
-  }
-
-  .card:hover {
+  .cardNotLast:hover {
     transform: none;
+    transition: none;
   }
 
   .cta::after {
@@ -118,9 +59,8 @@
 }
 
 @media (max-width: 48rem) {
-  .card,
-  .reversed {
-    flex-direction: column;
+  .actionArea {
+    flex-direction: column !important;
   }
 
   .imageWrapper {

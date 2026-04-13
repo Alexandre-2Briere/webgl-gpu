@@ -19,11 +19,11 @@ export default defineConfig({
     setupFiles: ['src/webgpu/engine/tests/setup.ts'],
   },
   build: {
+    emptyOutDir: false,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        'demo-webgpu':         resolve(__dirname, 'demos/webgpu/index.html'),
-        'demo-webgpu-sandbox': resolve(__dirname, 'demos/webgpu/sandbox/index.html'),
+        'demo-webgpu': resolve(__dirname, 'demos/webgpu/index.html'),
       },
     },
   },

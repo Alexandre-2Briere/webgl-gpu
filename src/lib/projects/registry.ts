@@ -7,7 +7,7 @@ export const projects: ProjectMeta[] = [
     shortDescription:
       'GUI for a WebGPU-based game engine, showcasing various rendering techniques and optimizations and allowing for import and export of scene. Canvas based so it will fail accessibility tests.',
     previewImage: '/projects/gameEngine.png',
-    demoUrl: '/demos/webgpu/sandbox/',
+    demoUrl: '/sandbox',
     tags: ['WebGPU', 'TypeScript', '3D', 'Game Engine', 'Shaders'],
     publishedAt: '2026-03-20',
   },

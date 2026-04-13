@@ -1,0 +1,29 @@
+#scene-hierarchy {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.hier-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 14px;
+  gap: 4px;
+}
+
+.hier-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hier-remove {
+  flex-shrink: 0;
+  opacity: 0;
+}
+
+.hier-row:hover .hier-remove {
+  opacity: 1;
+}

@@ -1,49 +1,3 @@
-/* Design tokens — used by all components */
-
-:root {
-  /* derived from #4B4237 darkened */
-  --color-text: #2e261f;
-  /* derived from #9CAFB7 darkened for AA on light */
-  --color-text-muted: #4d6870;
-  /* warm cream page bg — #FF784F + white warmth */
-  --color-surface: #f5ede3;
-  /* near-white card surface */
-  --color-card: #fffaf5;
-  /* warm beige border */
-  --color-border: #e0c9b2;
-  /* slightly deeper warm tag bg */
-  --color-tag-bg: #f0e4d6;
-  /* #8E4162 darkened for AA */
-  --color-tag-text: #703352;
-  /* #FF784F darkened for AA on light */
-  --color-cta: #a83d1a;
-  /* golden yellow — original #FCCA46 */
-  --color-focus-ring: #fcca46;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* warm cream text */
-    --color-text: #f0e8dc;
-    /* original #9CAFB7 — great on dark */
-    --color-text-muted: #9cafb7;
-    /* very dark warm brown — #4B4237 darkened */
-    --color-surface: #1e1a16;
-    /* slightly lighter dark card */
-    --color-card: #2e2822;
-    /* mid warm brown border */
-    --color-border: #4a3e34;
-    /* dark warm tag bg */
-    --color-tag-bg: #3b3028;
-    /* golden yellow on dark — original #FCCA46 */
-    --color-tag-text: #fcca46;
-    /* original coral — #FF784F */
-    --color-cta: #ff784f;
-    /* golden yellow */
-    --color-focus-ring: #fcca46;
-  }
-}
-
 /* Reset — applied globally across the entire site */
 
 *,
@@ -59,16 +13,6 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  color: var(--color-text);
-  background: var(--color-surface);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
 img,
 video,
 canvas,
@@ -82,12 +26,6 @@ button,
 textarea,
 select {
   font: inherit;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-size: inherit;
-  font-weight: inherit;
-  line-height: 1.2;
 }
 
 ul, ol {

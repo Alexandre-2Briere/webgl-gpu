@@ -2,7 +2,8 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 
-const Home = lazy(() => import('@pages/Home/Home'));
+const Home    = lazy(() => import('@pages/Home/Home'));
+const Sandbox = lazy(() => import('@pages/Sandbox/Sandbox'));
 
 export const router = createBrowserRouter([
   {
@@ -10,6 +11,14 @@ export const router = createBrowserRouter([
     element: (
       <Suspense fallback={null}>
         <Home />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/sandbox',
+    element: (
+      <Suspense fallback={null}>
+        <Sandbox />
       </Suspense>
     ),
   },

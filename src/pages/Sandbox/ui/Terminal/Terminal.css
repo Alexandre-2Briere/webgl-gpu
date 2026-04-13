@@ -1,0 +1,36 @@
+#terminal-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#terminal-tabs {
+  height: 30px;
+  flex-shrink: 0;
+  padding: 0 8px;
+}
+
+#terminal-output {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 10px;
+}
+
+.terminal-tab-body {
+  display: none;
+}
+
+.terminal-tab-body.active {
+  display: block;
+}
+
+.log-entry {
+  display: flex;
+  gap: 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.log-time {
+  flex-shrink: 0;
+}
