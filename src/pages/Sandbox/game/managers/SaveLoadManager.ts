@@ -1,11 +1,12 @@
-import type { Engine, SaveSegments, SceneConstantsSnapshot, GameObjectsSnapshot, LightObjectsSnapshot, GameObjectSnapshot, LightObjectSnapshot, LightSnapshot, DirectionalLightSnapshot } from '@engine';
-import { LightGameObject, SaveManager } from '@engine';
+import type { Engine, SaveSegments, SceneConstantsSnapshot, GameObjectsSnapshot, LightObjectsSnapshot, GameObjectSnapshot, LightObjectSnapshot, LightSnapshot, DirectionalLightSnapshot, SkyboxSnapshot, InfiniteGroundSnapshot } from '@engine';
+import { LightGameObject, InfiniteGroundGameObject, SaveManager } from '@engine';
 import type { Terminal }        from '../../ui/Terminal/Terminal';
 import type { PhysicsConfig, PropertyGroup, ItemEntry } from '../../items/types';
 import type { SpawnManager }    from './SpawnManager';
 import type { PhysicsManager }  from './PhysicsManager';
 
 const LIGHT_KEYS = new Set(['Light', 'DirectionalLight']);
+const SINGLETON_KEYS = new Set(['Skybox', 'InfiniteGround']);
 
 export class SaveLoadManager {
   private readonly _engine:          Engine;
@@ -30,10 +31,14 @@ export class SaveLoadManager {
   // ── Save ──────────────────────────────────────────────────────────────────────
 
   async saveScene(): Promise<string> {
+    const skyboxSnapshot    = this._buildSkyboxSnapshot();
+    const infiniteGround    = this._buildInfiniteGroundSnapshot();
     const segments: SaveSegments = {
-      sceneConstants: [this._buildSceneConstants()],
-      gameObjects:    [this._buildGameObjects()],
-      lightObjects:   [this._buildLightObjects()],
+      sceneConstants:   [this._buildSceneConstants()],
+      gameObjects:      [this._buildGameObjects()],
+      lightObjects:     [this._buildLightObjects()],
+      skyboxObjects:    skyboxSnapshot    ? [skyboxSnapshot]    : [],
+      infiniteGrounds:  infiniteGround    ? [infiniteGround]    : [],
     };
     return this._saveManager.save(segments);
   }
@@ -63,9 +68,27 @@ export class SaveLoadManager {
     };
   }
 
+  private _buildSkyboxSnapshot(): SkyboxSnapshot | null {
+    const skyboxEntry = this._spawnManager.getObjects().find(o => o.key === 'Skybox');
+    if (!skyboxEntry) return null;
+    return { color: [...skyboxEntry.gameObject.color] as [number, number, number, number] };
+  }
+
+  private _buildInfiniteGroundSnapshot(): InfiniteGroundSnapshot | null {
+    const groundEntry = this._spawnManager.getObjects().find(o => o.key === 'InfiniteGround');
+    if (!groundEntry) return null;
+    const ground = groundEntry.gameObject as InfiniteGroundGameObject;
+    return {
+      color:          [...ground.color]          as [number, number, number, number],
+      alternateColor: [...ground.alternateColor] as [number, number, number, number],
+      yLevel:         ground.yLevel,
+      tileSize:       ground.tileSize,
+    };
+  }
+
   private _buildGameObjects(): GameObjectsSnapshot {
     const objects: GameObjectSnapshot[] = this._spawnManager.getObjects()
-      .filter(spawnedObject => !LIGHT_KEYS.has(spawnedObject.key))
+      .filter(spawnedObject => !LIGHT_KEYS.has(spawnedObject.key) && !SINGLETON_KEYS.has(spawnedObject.key))
       .map(spawnedObject => {
         const gameObject = spawnedObject.gameObject;
         const baseFields = {
@@ -140,6 +163,26 @@ export class SaveLoadManager {
       }
     }
 
+    if ((segments.skyboxObjects ?? []).length > 0) {
+      this._removeObjectsByKeys(key => key === 'Skybox');
+      const snapshot = segments.skyboxObjects![0];
+      this._spawnSingletonObject('Skybox', 'Skybox', ['color'], (gameObject) => {
+        gameObject.setColor(snapshot.color[0], snapshot.color[1], snapshot.color[2], snapshot.color[3]);
+      });
+    }
+
+    if ((segments.infiniteGrounds ?? []).length > 0) {
+      this._removeObjectsByKeys(key => key === 'InfiniteGround');
+      const snapshot = segments.infiniteGrounds![0];
+      this._spawnSingletonObject('InfiniteGround', 'Infinite Ground', ['color', 'groundSettings'], (gameObject) => {
+        const ground = gameObject as InfiniteGroundGameObject;
+        ground.setColor(snapshot.color[0], snapshot.color[1], snapshot.color[2], snapshot.color[3]);
+        ground.setAlternateColor(snapshot.alternateColor[0], snapshot.alternateColor[1], snapshot.alternateColor[2], snapshot.alternateColor[3]);
+        ground.setYLevel(snapshot.yLevel);
+        ground.setTileSize(snapshot.tileSize);
+      });
+    }
+
     const totalObjects = segments.gameObjects.reduce((sum: number, s: GameObjectsSnapshot) => sum + s.objects.length, 0)
       + segments.lightObjects.reduce((sum: number, s: LightObjectsSnapshot) => sum + s.objects.length, 0);
     this._terminal.print(`Scene loaded: ${totalObjects} object(s) restored.`, 'log');
@@ -175,6 +218,19 @@ export class SaveLoadManager {
     rebuiltObject.gameObject.setScale(objectRecord.scale[0], objectRecord.scale[1], objectRecord.scale[2]);
     rebuiltObject.gameObject.setColor(objectRecord.color[0], objectRecord.color[1], objectRecord.color[2], objectRecord.color[3]);
     this._spawnManager.renameObject(spawnedObjectIndex, objectRecord.label);
+  }
+
+  private _spawnSingletonObject(
+    key: string,
+    label: string,
+    properties: PropertyGroup[],
+    apply: (gameObject: import('@engine').ISceneObject) => void,
+  ): void {
+    const itemEntry: ItemEntry = { key, label, isReady: true, properties };
+    this._spawnManager.spawn(key, itemEntry);
+    const index = this._spawnManager.getObjects().length - 1;
+    const spawnedObject = this._spawnManager.getObject(index);
+    if (spawnedObject) apply(spawnedObject.gameObject);
   }
 
   private _spawnLightObject(objectRecord: LightObjectSnapshot): void {

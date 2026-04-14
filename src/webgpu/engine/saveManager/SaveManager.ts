@@ -4,15 +4,19 @@ import type {
   SceneConstantsSnapshot,
   GameObjectsSnapshot,
   LightObjectsSnapshot,
+  SkyboxSnapshot,
+  InfiniteGroundSnapshot,
 } from './types';
 
 const MAX_ENCODED_BYTES = 5_000_000;
 const SEGMENT_SEPARATOR = '|||';
 
 const SEGMENT_TYPES = {
-  sceneConstants: 'sceneConstants',
-  gameObjects:    'gameObjects',
-  lightObjects:   'lightObjects',
+  sceneConstants:   'sceneConstants',
+  gameObjects:      'gameObjects',
+  lightObjects:     'lightObjects',
+  skyboxObjects:    'skyboxObjects',
+  infiniteGrounds:  'infiniteGrounds',
 } as const;
 
 type SegmentType = typeof SEGMENT_TYPES[keyof typeof SEGMENT_TYPES]
@@ -31,6 +35,12 @@ export class SaveManager {
     for (const snapshot of segments.lightObjects) {
       pieces.push(`${SEGMENT_TYPES.lightObjects}:${await this._encode(snapshot)}`);
     }
+    for (const snapshot of segments.skyboxObjects ?? []) {
+      pieces.push(`${SEGMENT_TYPES.skyboxObjects}:${await this._encode(snapshot)}`);
+    }
+    for (const snapshot of segments.infiniteGrounds ?? []) {
+      pieces.push(`${SEGMENT_TYPES.infiniteGrounds}:${await this._encode(snapshot)}`);
+    }
 
     const combinedString = pieces.join(SEGMENT_SEPARATOR);
     if (combinedString.length > MAX_ENCODED_BYTES) {
@@ -43,9 +53,11 @@ export class SaveManager {
 
   async load(combinedString: string): Promise<SaveSegments | null> {
     const result: SaveSegments = {
-      sceneConstants: [],
-      gameObjects:    [],
-      lightObjects:   [],
+      sceneConstants:   [],
+      gameObjects:      [],
+      lightObjects:     [],
+      skyboxObjects:    [],
+      infiniteGrounds:  [],
     };
 
     const pieces = combinedString.split(SEGMENT_SEPARATOR);
@@ -61,7 +73,9 @@ export class SaveManager {
       // Skip unknown tags before attempting to decode
       const isKnownTag = tag === SEGMENT_TYPES.sceneConstants
         || tag === SEGMENT_TYPES.gameObjects
-        || tag === SEGMENT_TYPES.lightObjects;
+        || tag === SEGMENT_TYPES.lightObjects
+        || tag === SEGMENT_TYPES.skyboxObjects
+        || tag === SEGMENT_TYPES.infiniteGrounds;
       if (!isKnownTag) continue;
 
       const decodeResult = await this._decode(blob);
@@ -89,6 +103,10 @@ export class SaveManager {
           return null;
         }
         result.lightObjects.push(decoded as LightObjectsSnapshot);
+      } else if (tag === SEGMENT_TYPES.skyboxObjects) {
+        result.skyboxObjects!.push(decoded as SkyboxSnapshot);
+      } else if (tag === SEGMENT_TYPES.infiniteGrounds) {
+        result.infiniteGrounds!.push(decoded as InfiniteGroundSnapshot);
       }
       // Unknown tags are silently ignored for forward compatibility
     }

@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { IconButton, Typography } from '@mui/material';
 import type { ISceneObject } from '@engine';
-import { LightGameObject, LightType } from '@engine';
+import { LightGameObject, LightType, InfiniteGroundGameObject } from '@engine';
 import type { PhysicsConfig, PropertyGroup } from '../../items/types';
 import { Vector3Form } from './PropertyForm/Vector3Form';
 import type { Vector3FormHandle } from './PropertyForm/Vector3Form';
@@ -12,6 +12,8 @@ import { AssetForm } from './PropertyForm/AssetForm';
 import type { AssetOption } from './PropertyForm/AssetForm';
 import { LightForm } from './PropertyForm/LightForm';
 import type { LightState } from './PropertyForm/LightForm';
+import { InfiniteGroundForm } from './PropertyForm/InfiniteGroundForm';
+import type { InfiniteGroundState } from './PropertyForm/InfiniteGroundForm';
 import './PropertyPanel.css';
 
 const DEG = Math.PI / 180;
@@ -25,6 +27,7 @@ interface PanelViewState {
   assetOptions:     AssetOption[];
   selectedAssetUrl: string;
   light:            LightState;
+  ground:           InfiniteGroundState;
 }
 
 // ── Exported interface — named PropertyPanel so SceneManager import type works ──
@@ -59,6 +62,7 @@ const INITIAL_STATE: PanelViewState = {
   assetOptions:     [],
   selectedAssetUrl: '',
   light:            { lightType: 0, radius: '1.0', power: '1.0', strength: '1.0' },
+  ground:           { yLevel: '0', alternateColorHex: '737373', tileSize: 16 },
 };
 
 export const PropertyPanelComponent = forwardRef<PropertyPanel>(
@@ -124,6 +128,17 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
             };
           }
 
+          let groundState: InfiniteGroundState = { yLevel: '0', alternateColorHex: '737373', tileSize: 16 };
+          if (gameObject instanceof InfiniteGroundGameObject) {
+            const toHex = (value: number) => Math.round(value * 255).toString(16).padStart(2, '0').toUpperCase();
+            const [r2, g2, b2] = gameObject.alternateColor;
+            groundState = {
+              yLevel:           gameObject.yLevel.toFixed(3),
+              alternateColorHex: `${toHex(r2)}${toHex(g2)}${toHex(b2)}`,
+              tileSize:         gameObject.tileSize,
+            };
+          }
+
           setState({
             isOpen: true,
             title:  label,
@@ -135,6 +150,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
             assetOptions: assetOptionsRef.current,
             selectedAssetUrl: selectedAssetUrl ?? '',
             light: lightState,
+            ground: groundState,
           });
         },
 
@@ -178,9 +194,10 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const { isOpen, title, colorHex, visibleSections, physics, assetOptions, selectedAssetUrl, light } = state;
+    const { isOpen, title, colorHex, visibleSections, physics, assetOptions, selectedAssetUrl, light, ground } = state;
     const showPhysics = visibleSections.has('rigidbody') || visibleSections.has('hitbox');
     const showLight   = visibleSections.has('lightType') || visibleSections.has('lightRadius') || visibleSections.has('lightPower') || visibleSections.has('lightStrength');
+    const showGround  = visibleSections.has('groundSettings');
 
     if (!isOpen) return null;
 
@@ -264,6 +281,23 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
                 onRadiusApply={(radius) => callbacksRef.current.onRadiusChange?.(radius)}
                 onPowerApply={(power) => callbacksRef.current.onPowerChange?.(power)}
                 onStrengthApply={(strength) => callbacksRef.current.onStrengthChange?.(strength)}
+              />
+            )}
+
+            {showGround && currentObjectRef.current instanceof InfiniteGroundGameObject && (
+              <InfiniteGroundForm
+                ground={ground}
+                onGroundChange={(updated) => setState((previous) => ({ ...previous, ground: updated }))}
+                onYLevelApply={(y) => (currentObjectRef.current as InfiniteGroundGameObject).setYLevel(y)}
+                onAltColorApply={(hex) => {
+                  const upper = hex.trim().toUpperCase();
+                  if (!/^[0-9A-F]{6}$/.test(upper)) return;
+                  const red   = parseInt(upper.slice(0, 2), 16) / 255;
+                  const green = parseInt(upper.slice(2, 4), 16) / 255;
+                  const blue  = parseInt(upper.slice(4, 6), 16) / 255;
+                  (currentObjectRef.current as InfiniteGroundGameObject).setAlternateColor(red, green, blue, 1);
+                }}
+                onTileSizeApply={(size) => (currentObjectRef.current as InfiniteGroundGameObject).setTileSize(size)}
               />
             )}
 

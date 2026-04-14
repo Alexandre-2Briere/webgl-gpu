@@ -66,6 +66,18 @@ export function createGizmoLayout(device: GPUDevice): GPUBindGroupLayout {
 }
 
 /** @internal */
+export function createGroundExtraLayout(device: GPUDevice): GPUBindGroupLayout {
+  return device.createBindGroupLayout({
+    label: 'ground-extra-bgl',
+    entries: [{
+      binding:    0,
+      visibility: GPUShaderStage.FRAGMENT,
+      buffer:     { type: 'uniform' },
+    }],
+  });
+}
+
+/** @internal */
 export function createEngineLayouts(device: GPUDevice): BindGroupLayouts {
   return {
     camera:      createCameraLayout(device),
@@ -74,5 +86,6 @@ export function createEngineLayouts(device: GPUDevice): BindGroupLayouts {
     lights:      createLightsLayout(device),
     empty:       createEmptyLayout(device),
     gizmo:       createGizmoLayout(device),
+    groundExtra: createGroundExtraLayout(device),
   };
 }

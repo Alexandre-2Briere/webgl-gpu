@@ -71,6 +71,9 @@ export function computeWorldAABB(hitbox: Hitbox3D): AABB {
         max: [center[0] + halfExtents[0], center[1] + halfExtents[1], center[2] + halfExtents[2]],
       };
     }
+    case 'plane':
+      // A plane is infinite — any AABB overlaps it. Narrow phase handles geometry.
+      return { min: [-1e9, -1e9, -1e9], max: [1e9, 1e9, 1e9] };
   }
 }
 

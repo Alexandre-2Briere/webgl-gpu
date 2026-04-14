@@ -14,6 +14,8 @@ import type {
   AmbientLightOptions,
   DirectionalLightOptions,
   ArrowGizmoOptions,
+  SkyboxOptions,
+  InfiniteGroundOptions,
 } from './types';
 import { Camera } from './core';
 import { Renderer } from './core/Renderer';
@@ -34,6 +36,10 @@ import { logger } from './utils';
 import { GameObject } from './gameObject/GameObject';
 import type { IGameObject } from './gameObject/GameObject';
 import { LightGameObject, LightType } from './gameObject/LightGameObject';
+import { SkyboxGameObject } from './gameObject/SkyboxGameObject';
+import { SkyboxRenderable } from './gameObject/renderables/SkyboxRenderable';
+import { InfiniteGroundGameObject } from './gameObject/InfiniteGroundGameObject';
+import { InfiniteGroundRenderable } from './gameObject/renderables/InfiniteGroundRenderable';
 import { Rigidbody3D } from './gameObject/rigidbody/Rigidbody3D';
 import type { Hitbox3D } from './gameObject/hitbox/Hitbox3D';
 import { SaveManager } from './saveManager/SaveManager';
@@ -54,6 +60,8 @@ export class Engine {
   private _camera: Camera;
   private _rafHandle = 0;
   private _onFrame: ((deltaTime: number) => void) | null = null;
+  private _skybox: SkyboxGameObject | null = null;
+  private _infiniteGround: InfiniteGroundGameObject | null = null;
   public readonly PubSubManager: PubSubManager;
 
   private constructor(
@@ -196,6 +204,51 @@ export class Engine {
 
   private _spawnLightRenderable(light: LightGameObject): void {
     light.initRenderable(this._initArgs(), this._scene);
+  }
+
+  // ── Skybox factory ───────────────────────────────────────────────────────────
+
+  createSkybox(opts: SkyboxOptions = {}): SkyboxGameObject {
+    if (this._skybox !== null) {
+      logger.error('Engine.createSkybox: a Skybox already exists; destroy it first.');
+      throw new Error('Engine: only one Skybox is allowed per Engine instance.');
+    }
+    const renderable = new SkyboxRenderable(opts.color);
+    renderable.init(this._initArgs());
+    this._scene.setSkybox(renderable);
+    this._skybox = new SkyboxGameObject({
+      renderable,
+      scene: this._scene,
+      _destroy: () => { this._skybox = null; },
+    });
+    return this._skybox;
+  }
+
+  destroySkybox(): void {
+    this._skybox?.destroy();
+  }
+
+  // ── InfiniteGround factory ───────────────────────────────────────────────────
+
+  createInfiniteGround(opts: InfiniteGroundOptions = {}): InfiniteGroundGameObject {
+    if (this._infiniteGround !== null) {
+      logger.error('Engine.createInfiniteGround: an InfiniteGround already exists; destroy it first.');
+      throw new Error('Engine: only one InfiniteGround is allowed per Engine instance.');
+    }
+    const renderable = new InfiniteGroundRenderable(opts);
+    renderable.init(this._initArgs());
+    this._scene.add(renderable);
+    this._infiniteGround = new InfiniteGroundGameObject({
+      renderable,
+      scene: this._scene,
+      yLevel: opts.yLevel,
+      _destroy: () => { this._infiniteGround = null; },
+    });
+    return this._infiniteGround;
+  }
+
+  destroyInfiniteGround(): void {
+    this._infiniteGround?.destroy();
   }
 
   // ── Asset loaders ────────────────────────────────────────────────────────────

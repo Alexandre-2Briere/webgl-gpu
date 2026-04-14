@@ -4,6 +4,7 @@ import { SphereHitbox } from '../../gameObject/hitbox/SphereHitbox';
 import { CubeHitbox } from '../../gameObject/hitbox/CubeHitbox';
 import { CapsuleHitbox } from '../../gameObject/hitbox/CapsuleHitbox';
 import { MeshHitbox } from '../../gameObject/hitbox/MeshHitbox';
+import { PlaneHitbox } from '../../gameObject/hitbox/PlaneHitbox';
 
 const IDENTITY: [number, number, number, number] = [0, 0, 0, 1];
 
@@ -107,5 +108,27 @@ describe('computeWorldAABB — MeshHitbox', () => {
     mesh.updateOrientation([3, 0, 0], IDENTITY);
     const aabb = computeWorldAABB(mesh);
     expectClose(aabb.min[0], 2); expectClose(aabb.max[0], 4);
+  });
+});
+
+
+// ── PlaneHitbox AABB ──────────────────────────────────────────────────────────
+
+describe('computeWorldAABB — PlaneHitbox', () => {
+  it('y-axis plane returns ±1e9 AABB (always overlaps everything)', () => {
+    const plane = new PlaneHitbox('y');
+    plane.updateOrientation([0, 5, 0], [0, 0, 0, 1]);
+    const aabb = computeWorldAABB(plane);
+    expect(aabb.min[0]).toBe(-1e9); expect(aabb.max[0]).toBe(1e9);
+    expect(aabb.min[1]).toBe(-1e9); expect(aabb.max[1]).toBe(1e9);
+    expect(aabb.min[2]).toBe(-1e9); expect(aabb.max[2]).toBe(1e9);
+  });
+
+  it('x-axis plane also returns ±1e9 AABB', () => {
+    const plane = new PlaneHitbox('x');
+    plane.updateOrientation([3, 0, 0], [0, 0, 0, 1]);
+    const aabb = computeWorldAABB(plane);
+    expect(aabb.min[0]).toBe(-1e9);
+    expect(aabb.max[0]).toBe(1e9);
   });
 });

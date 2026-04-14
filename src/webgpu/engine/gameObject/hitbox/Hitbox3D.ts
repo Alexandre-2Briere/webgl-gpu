@@ -1,7 +1,7 @@
 import { makeTransformMatrix, identityMat, yawPitchToQuat, mulQuat, rotateByQuat } from '../../math';
 import type { Vec3, Vec4 } from '../../math';
 
-export type HitboxType = 'cube' | 'sphere' | 'capsule' | 'mesh'
+export type HitboxType = 'cube' | 'sphere' | 'capsule' | 'mesh' | 'plane'
 
 export abstract class Hitbox3D {
   offsetTranslation: Vec3;

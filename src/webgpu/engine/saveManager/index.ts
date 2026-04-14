@@ -14,4 +14,6 @@ export type {
   FbxObjectSnapshot,
   LightSnapshot,
   DirectionalLightSnapshot,
+  SkyboxSnapshot,
+  InfiniteGroundSnapshot,
 } from './types';

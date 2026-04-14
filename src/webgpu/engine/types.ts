@@ -29,6 +29,7 @@ export interface BindGroupLayouts {
   lights:      GPUBindGroupLayout  // group 3 — light buffer (world-pass shaders)
   empty:       GPUBindGroupLayout  // placeholder for unused group slots
   gizmo:       GPUBindGroupLayout  // group 2 — ArrowGizmo axis colors + visibility
+  groundExtra: GPUBindGroupLayout  // group 2 — InfiniteGround secondary color + tile size
 }
 
 // ── Renderable options (used inside renderable: { ... } when creating GameObjects) ──
@@ -151,4 +152,22 @@ export interface DirectionalLightOptions {
   direction?: Vec3
   color?:     Vec3
   power?:     number
+}
+
+// ── Skybox / InfiniteGround creation options ───────────────────────────────
+
+export interface SkyboxOptions {
+  /** Solid background color. Default: [0.1, 0.12, 0.15, 1]. */
+  color?: [number, number, number, number]
+}
+
+export interface InfiniteGroundOptions {
+  /** Primary tile color. Default: [0.55, 0.55, 0.55, 1]. */
+  color?: [number, number, number, number]
+  /** Alternate tile color. Default: [0.45, 0.45, 0.45, 1]. */
+  alternateColor?: [number, number, number, number]
+  /** World Y position of the ground plane. Default: 0. */
+  yLevel?: number
+  /** Checkerboard tile size in world units (powers of 2 recommended). Default: 16. */
+  tileSize?: number
 }

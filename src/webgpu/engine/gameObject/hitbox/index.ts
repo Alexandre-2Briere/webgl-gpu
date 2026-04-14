@@ -5,3 +5,5 @@ export { SphereHitbox } from './SphereHitbox';
 export { CapsuleHitbox } from './CapsuleHitbox';
 export { MeshHitbox } from './MeshHitbox';
 export type { MeshHitboxOverride } from './MeshHitbox';
+export { PlaneHitbox } from './PlaneHitbox';
+export type { PlaneAxis } from './PlaneHitbox';

@@ -1,4 +1,5 @@
 import type { Renderable } from '../gameObject/renderables/Renderable';
+import type { SkyboxRenderable } from '../gameObject/renderables/SkyboxRenderable';
 import { Camera } from './Camera';
 import { Renderer } from './Renderer';
 import type { LightBuffer } from '../buffers/LightBuffer';
@@ -11,6 +12,7 @@ export class Scene {
   private readonly _worldRenderables: Renderable[] = [];
   private readonly _worldOverlay: Renderable[] = [];
   private readonly _overlayRenderables: Renderable[] = [];
+  private _skybox: SkyboxRenderable | null = null;
 
   constructor(renderer: Renderer, lightBuffer: LightBuffer) {
     this._renderer    = renderer;
@@ -31,7 +33,17 @@ export class Scene {
     this._worldOverlay.sort((a, b) => a.pipelineKey.localeCompare(b.pipelineKey));
   }
 
+  setSkybox(renderable: SkyboxRenderable): void {
+    this._skybox = renderable;
+  }
+
+  removeSkybox(): void {
+    this._skybox = null;
+  }
+
   destroy(): void {
+    this._skybox?.destroy();
+    this._skybox = null;
     for (const r of this._worldRenderables) r.destroy();
     for (const r of this._worldOverlay) r.destroy();
     for (const r of this._overlayRenderables) r.destroy();
@@ -90,6 +102,9 @@ export class Scene {
       // Camera and lights bind groups are set once for the entire pass
       worldPass.setBindGroup(0, camera.bindGroup);
       worldPass.setBindGroup(3, this._lightBuffer.bindGroup);
+
+      // Skybox draws first (always-pass depth, no depth write) so all geometry renders on top
+      if (this._skybox?.visible) this._skybox.encode(worldPass, camera);
 
       for (const r of this._worldRenderables) {
         if (!r.visible) continue;
