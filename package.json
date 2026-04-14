@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite build --config vite.lib.config.ts --watch & vite",
-    "build": "tsc -b && vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json && vite build",
+    "build": "tsc -b && vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json && node scripts/remove-empty-dts.mjs && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run"

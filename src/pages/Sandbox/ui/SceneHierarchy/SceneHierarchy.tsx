@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { IconButton, List, ListItem, ListItemText, TextField, Typography } from '@mui/material';
+import { IconButton, List, ListItem, ListItemText, TextField } from '@mui/material';
 import './SceneHierarchy.css';
 
 const NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9]*$/;
