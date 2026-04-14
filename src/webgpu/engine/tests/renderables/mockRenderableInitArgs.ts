@@ -61,7 +61,7 @@ export function makeMockRenderableInitArgs(): MockRenderableInitArgs {
     queue: device.queue as unknown as GPUQueue,
     format: 'bgra8unorm' as GPUTextureFormat,
     pipelineCache: pipelineCache as unknown as PipelineCache,
-    layouts: { camera: {}, object: {}, empty: {}, lights: {}, fbxMaterial: {}, gizmo: {} } as unknown as BindGroupLayouts,
+    layouts: { camera: {}, object: {}, empty: {}, lights: {}, fbxMaterial: {}, gizmo: {}, groundExtra: {} } as unknown as BindGroupLayouts,
     uniformPool: uniformPool as unknown as UniformPool,
   };
 

@@ -69,13 +69,26 @@ export interface LightObjectsSnapshot {
   objects: LightObjectSnapshot[]
 }
 
+export interface SkyboxSnapshot {
+  color: [number, number, number, number]
+}
+
+export interface InfiniteGroundSnapshot {
+  color:          [number, number, number, number]
+  alternateColor: [number, number, number, number]
+  yLevel:         number
+  tileSize:       number
+}
+
 /**
  * All decoded segments from a combined save string.
  * Each field is an array to support multiple saves of the same type.
  * Extend by adding new optional array fields for future segment types.
  */
 export interface SaveSegments {
-  sceneConstants: SceneConstantsSnapshot[]
-  gameObjects:    GameObjectsSnapshot[]
-  lightObjects:   LightObjectsSnapshot[]
+  sceneConstants:   SceneConstantsSnapshot[]
+  gameObjects:      GameObjectsSnapshot[]
+  lightObjects:     LightObjectsSnapshot[]
+  skyboxObjects?:   SkyboxSnapshot[]
+  infiniteGrounds?: InfiniteGroundSnapshot[]
 }

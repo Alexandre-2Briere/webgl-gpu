@@ -3,12 +3,14 @@ import { Rigidbody3D } from '@engine';
 import type { Terminal } from '../../ui/Terminal/Terminal';
 import type { PropertyPanel } from '../../ui/PropertyPanel/PropertyPanel';
 import type { SceneHierarchy } from '../../ui/SceneHierarchy/SceneHierarchy';
-import type { ItemEntry, PropertyGroup, PhysicsConfig, SpawnContext, PrimitiveSpawnContext, FbxSpawnContext, LightSpawnContext } from '../../items/types';
+import type { ItemEntry, PropertyGroup, PhysicsConfig, SpawnContext, PrimitiveSpawnContext, FbxSpawnContext, LightSpawnContext, SingletonSpawnContext } from '../../items/types';
 import { spawn as spawnQuad } from '../../items/quad';
 import { spawn as spawnCube } from '../../items/cube';
 import { spawn as spawnFBX, FBX_CATALOG } from '../../items/fbx';
 import { spawn as spawnLight } from '../../items/lights';
 import { spawn as spawnDirectionalLight } from '../../items/directionalLight';
+import { spawn as spawnSkybox } from '../../items/skybox';
+import { spawn as spawnInfiniteGround } from '../../items/infiniteGround';
 import { SANDBOX_EVENTS } from '../events';
 import type { PubSubManager } from '../events';
 
@@ -19,12 +21,16 @@ const DEFAULT_PHYSICS: PhysicsConfig = {
   layer:        'default',
 };
 
+const SINGLETON_KEYS = new Set(['Skybox', 'InfiniteGround']);
+
 const SPAWN_MAP: Record<string, (engine: Engine, context: SpawnContext) => ISceneObject> = {
   Quad:             (engine, context) => spawnQuad(engine, context as PrimitiveSpawnContext),
   Cube:             (engine, context) => spawnCube(engine, context as PrimitiveSpawnContext),
   FBX:              (engine, context) => spawnFBX(engine, context as FbxSpawnContext),
   Light:            (engine, context) => spawnLight(engine, context as LightSpawnContext),
   DirectionalLight: (engine, context) => spawnDirectionalLight(engine, context as LightSpawnContext),
+  Skybox:           (engine, context) => spawnSkybox(engine, context as SingletonSpawnContext),
+  InfiniteGround:   (engine, context) => spawnInfiniteGround(engine, context as SingletonSpawnContext),
 };
 
 export interface SpawnedObject {
@@ -100,9 +106,17 @@ export class SpawnManager {
       ? { kind: 'fbx', asset: this._fbxCache.get(selectedFbxUrl!)! }
       : key === 'Light' || key === 'DirectionalLight'
         ? { kind: 'light' }
-        : { kind: 'primitive' };
+        : SINGLETON_KEYS.has(key)
+          ? { kind: 'singleton' }
+          : { kind: 'primitive' };
 
-    const gameObject = spawnFn(this._engine, context);
+    let gameObject: ISceneObject;
+    try {
+      gameObject = spawnFn(this._engine, context);
+    } catch {
+      this._terminal.print(`${entry.label} already exists in the scene.`, 'warn');
+      return;
+    }
 
     const rb = gameObject.getRigidbody();
     if (rb) {

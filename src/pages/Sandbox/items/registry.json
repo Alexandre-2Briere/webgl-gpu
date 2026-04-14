@@ -32,5 +32,19 @@
       "isReady": true,
       "properties": ["position", "rotation", "color", "lightPower"]
     }
+  ],
+  "Environment": [
+    {
+      "key": "Skybox",
+      "label": "Skybox",
+      "isReady": true,
+      "properties": ["color"]
+    },
+    {
+      "key": "InfiniteGround",
+      "label": "Infinite Ground",
+      "isReady": true,
+      "properties": ["color", "groundSettings"]
+    }
   ]
 }

@@ -1,6 +1,6 @@
 import type { Rigidbody3D, CubeHitbox, FbxAssetHandle } from '@engine';
 
-export type PropertyGroup = 'position' | 'rotation' | 'color' | 'scale' | 'rigidbody' | 'hitbox' | 'asset' | 'lightType' | 'lightRadius' | 'lightPower' | 'lightStrength'
+export type PropertyGroup = 'position' | 'rotation' | 'color' | 'scale' | 'rigidbody' | 'hitbox' | 'asset' | 'lightType' | 'lightRadius' | 'lightPower' | 'lightStrength' | 'groundSettings'
 
 export interface PhysicsConfig {
   hasRigidbody: boolean
@@ -35,4 +35,8 @@ export interface LightSpawnContext {
   kind: 'light'
 }
 
-export type SpawnContext = PrimitiveSpawnContext | FbxSpawnContext | LightSpawnContext
+export interface SingletonSpawnContext {
+  kind: 'singleton'
+}
+
+export type SpawnContext = PrimitiveSpawnContext | FbxSpawnContext | LightSpawnContext | SingletonSpawnContext

@@ -8,6 +8,10 @@ export type { IGameObject, ISceneObject } from './gameObject/GameObject';
 // Light game object
 export { LightGameObject, LightType } from './gameObject/LightGameObject';
 
+// Singleton scene objects
+export { SkyboxGameObject } from './gameObject/SkyboxGameObject';
+export { InfiniteGroundGameObject } from './gameObject/InfiniteGroundGameObject';
+
 // Option types for Engine.create*() methods
 export type {
   EngineOptions,
@@ -29,6 +33,8 @@ export type {
   AmbientLightOptions,
   DirectionalLightOptions,
   ArrowGizmoOptions,
+  SkyboxOptions,
+  InfiniteGroundOptions,
 } from './types';
 
 // Editor renderables
@@ -66,4 +72,6 @@ export type {
   FbxObjectSnapshot,
   LightSnapshot,
   DirectionalLightSnapshot,
+  SkyboxSnapshot,
+  InfiniteGroundSnapshot,
 } from './saveManager';
