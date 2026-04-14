@@ -143,7 +143,8 @@ export interface PointLightOptions {
 }
 
 export interface AmbientLightOptions {
-  color?: Vec3
+  color?:    Vec3
+  strength?: number
 }
 
 export interface DirectionalLightOptions {

@@ -30,7 +30,7 @@ struct VOut {
   if (lights.count == 0u) {
     let lightDir = normalize(vec3f(0.577, 0.577, 0.577));
     let diff     = max(dot(in.normal, lightDir), 0.0);
-    return vec4f(in.color.rgb * (0.3 + 0.7 * diff), in.color.a);
+    return vec4f(in.color.rgb * (0.7 * diff), in.color.a);
   }
 
   var totalAmbient : vec3f = vec3f(0.0);
@@ -39,7 +39,7 @@ struct VOut {
   for (var i : u32 = 0u; i < lights.count; i++) {
     let light = lights.lights[i];
     if (light.lightType == 0u) {
-      totalAmbient += light.color;
+      totalAmbient += light.color.rgb * light.radius;
     } else if (light.lightType == 1u) {
       let toLight     = light.position - in.worldPos;
       let distance    = length(toLight);

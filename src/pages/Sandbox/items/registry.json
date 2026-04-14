@@ -24,7 +24,7 @@
       "key": "Light",
       "label": "Light",
       "isReady": true,
-      "properties": ["position", "color", "lightType", "lightRadius"]
+      "properties": ["position", "color", "lightType", "lightRadius", "lightStrength"]
     },
     {
       "key": "DirectionalLight",

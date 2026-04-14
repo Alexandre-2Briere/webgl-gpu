@@ -107,6 +107,15 @@ export class PhysicsManager {
         obj.gameObject.setRadius(power);
       }
     };
+
+    propertyPanel.onStrengthChange = (strength) => {
+      const obj = this._spawnManager.getObjects().find(
+        s => s.gameObject === propertyPanel.currentObject,
+      );
+      if (obj?.gameObject instanceof LightGameObject) {
+        obj.gameObject.setStrength(strength);
+      }
+    };
   }
 
   // ── Object rebuild (physics config change) ────────────────────────────────────

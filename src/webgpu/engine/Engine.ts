@@ -171,6 +171,7 @@ export class Engine {
     const light = new LightGameObject({
       lightType:   LightType.Ambient,
       color:       opts.color,
+      radius:      opts.strength ?? 1.0,
       lightBuffer: this._lightBuffer,
       _destroy:    () => this._lightBuffer.removeLight(light),
     });

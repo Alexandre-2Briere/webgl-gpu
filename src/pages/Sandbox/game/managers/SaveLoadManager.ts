@@ -200,6 +200,8 @@ function _applyLightRecord(
   lightObject.setLightType(objectRecord.lightType);
   if (objectRecord.lightType !== 0) {
     lightObject.setRadius(objectRecord.radius);
+  } else {
+    lightObject.setStrength(objectRecord.radius);
   }
   lightObject.setDirection([objectRecord.direction[0], objectRecord.direction[1], objectRecord.direction[2]]);
 }

@@ -70,6 +70,7 @@ export class LightGameObject implements ISceneObject {
 
   setLightType(type: LightType): void {
     this.lightType = type;
+    this.setVisualizationVisible(type !== LightType.Ambient);
     this._lightBuffer.markDirty();
   }
 
@@ -79,6 +80,15 @@ export class LightGameObject implements ISceneObject {
       return;
     }
     this._radius = radius;
+    this._lightBuffer.markDirty();
+  }
+
+  setStrength(strength: number): void {
+    if (this.lightType !== LightType.Ambient) {
+      logger.error('LightGameObject: setStrength() is only valid on ambient lights');
+      return;
+    }
+    this._radius = strength;
     this._lightBuffer.markDirty();
   }
 
@@ -104,6 +114,7 @@ export class LightGameObject implements ISceneObject {
     this._renderable = new LightCrossRenderable(this, args);
     this._scene = scene;
     scene.add(this._renderable);
+    if (this.lightType === LightType.Ambient) this._renderable.visible = false;
   }
 
   setVisualizationVisible(visible: boolean): void {

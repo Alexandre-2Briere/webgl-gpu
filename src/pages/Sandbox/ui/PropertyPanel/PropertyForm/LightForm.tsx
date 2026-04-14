@@ -6,18 +6,20 @@ export interface LightState {
   lightType: number;
   radius:    string;
   power:     string;
+  strength:  string;
 }
 
 interface LightFormProps {
-  light:           LightState;
-  visibleSections: Set<PropertyGroup>;
-  onLightChange:   (light: LightState) => void;
-  onTypeApply:     (type: LightType) => void;
-  onRadiusApply:   (radius: number) => void;
-  onPowerApply:    (power: number) => void;
+  light:            LightState;
+  visibleSections:  Set<PropertyGroup>;
+  onLightChange:    (light: LightState) => void;
+  onTypeApply:      (type: LightType) => void;
+  onRadiusApply:    (radius: number) => void;
+  onPowerApply:     (power: number) => void;
+  onStrengthApply:  (strength: number) => void;
 }
 
-export function LightForm({ light, visibleSections, onLightChange, onTypeApply, onRadiusApply, onPowerApply }: LightFormProps) {
+export function LightForm({ light, visibleSections, onLightChange, onTypeApply, onRadiusApply, onPowerApply, onStrengthApply }: LightFormProps) {
   return (
     <div id="prop-section-light" className="prop-section">
       <div className="prop-section-label">Light</div>
@@ -64,6 +66,20 @@ export function LightForm({ light, visibleSections, onLightChange, onTypeApply, 
             onChange={(event) => onLightChange({ ...light, power: event.target.value })}
             onBlur={() => onPowerApply(safeParseFloat(light.power))}
             onKeyDown={(event) => { if (event.key === 'Enter') onPowerApply(safeParseFloat(light.power)); }}
+          />
+        </div>
+      )}
+      {visibleSections.has('lightStrength') && light.lightType === LightType.Ambient && (
+        <div className="prop-row prop-subrow">
+          <span className="prop-label">Strength</span>
+          <TextField
+            type="number"
+            value={light.strength}
+            size="small"
+            variant="standard"
+            onChange={(event) => onLightChange({ ...light, strength: event.target.value })}
+            onBlur={() => onStrengthApply(safeParseFloat(light.strength))}
+            onKeyDown={(event) => { if (event.key === 'Enter') onStrengthApply(safeParseFloat(light.strength)); }}
           />
         </div>
       )}

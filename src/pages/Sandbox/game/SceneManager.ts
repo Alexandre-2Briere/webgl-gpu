@@ -69,12 +69,6 @@ export class SceneManager {
 
     engine.start();
 
-    engine.createDirectionalLight({
-      direction: [0.577, 0.577, 0.577],
-      color:     [0.35, 0.35, 0.35],
-      power:     1.0,
-    });
-
     // Construct managers and controllers
     this._inputManager     = new InputManager(this._canvas, pubSub);
     this._spawnManager     = new SpawnManager(engine, this._terminal, this._propertyPanel, this._sceneHierarchy, fbxCache, pubSub);

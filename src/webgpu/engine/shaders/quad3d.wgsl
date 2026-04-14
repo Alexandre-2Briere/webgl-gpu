@@ -28,7 +28,7 @@ struct VOut {
   var totalAmbient : vec3f = vec3f(0.0);
   for (var i : u32 = 0u; i < lights.count; i++) {
     if (lights.lights[i].lightType == 0u) {
-      totalAmbient += lights.lights[i].color;
+      totalAmbient += lights.lights[i].color.rgb * lights.lights[i].radius;
     }
     // Point lights ignored — quad3d has no surface normal
   }

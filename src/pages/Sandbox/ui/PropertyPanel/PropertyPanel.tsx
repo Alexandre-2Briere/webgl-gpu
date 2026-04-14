@@ -47,6 +47,7 @@ export interface PropertyPanel {
   onLightTypeChange: ((type: LightType) => void) | null;
   onAssetChange:     ((url: string) => void) | null;
   onPowerChange:     ((power: number) => void) | null;
+  onStrengthChange:  ((strength: number) => void) | null;
 }
 
 const INITIAL_STATE: PanelViewState = {
@@ -57,7 +58,7 @@ const INITIAL_STATE: PanelViewState = {
   physics:          { hasRigidbody: false, isStatic: false, hasHitbox: false, layer: 'default' },
   assetOptions:     [],
   selectedAssetUrl: '',
-  light:            { lightType: 0, radius: '1.0', power: '1.0' },
+  light:            { lightType: 0, radius: '1.0', power: '1.0', strength: '1.0' },
 };
 
 export const PropertyPanelComponent = forwardRef<PropertyPanel>(
@@ -77,6 +78,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
       onLightTypeChange: null as ((type: LightType) => void) | null,
       onAssetChange:     null as ((url: string) => void) | null,
       onPowerChange:     null as ((power: number) => void) | null,
+      onStrengthChange:  null as ((strength: number) => void) | null,
     });
 
     function _applyColor(hex: string): void {
@@ -112,12 +114,13 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
             colorHex = `${toHex(red)}${toHex(green)}${toHex(blue)}`;
           }
 
-          let lightState: LightState = { lightType: 0, radius: '1.0', power: '1.0' };
+          let lightState: LightState = { lightType: 0, radius: '1.0', power: '1.0', strength: '1.0' };
           if (gameObject instanceof LightGameObject) {
             lightState = {
               lightType: gameObject.lightType,
               radius:    gameObject.radius.toFixed(1),
               power:     gameObject.radius.toFixed(2),
+              strength:  gameObject.radius.toFixed(2),
             };
           }
 
@@ -166,8 +169,10 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
         set onLightTypeChange(fn) { callbacksRef.current.onLightTypeChange = fn; },
         get onAssetChange()     { return callbacksRef.current.onAssetChange; },
         set onAssetChange(fn)   { callbacksRef.current.onAssetChange = fn; },
-        get onPowerChange()     { return callbacksRef.current.onPowerChange; },
-        set onPowerChange(fn)   { callbacksRef.current.onPowerChange = fn; },
+        get onPowerChange()      { return callbacksRef.current.onPowerChange; },
+        set onPowerChange(fn)    { callbacksRef.current.onPowerChange = fn; },
+        get onStrengthChange()   { return callbacksRef.current.onStrengthChange; },
+        set onStrengthChange(fn) { callbacksRef.current.onStrengthChange = fn; },
       };
       return handle;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -175,7 +180,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
     const { isOpen, title, colorHex, visibleSections, physics, assetOptions, selectedAssetUrl, light } = state;
     const showPhysics = visibleSections.has('rigidbody') || visibleSections.has('hitbox');
-    const showLight   = visibleSections.has('lightType') || visibleSections.has('lightRadius') || visibleSections.has('lightPower');
+    const showLight   = visibleSections.has('lightType') || visibleSections.has('lightRadius') || visibleSections.has('lightPower') || visibleSections.has('lightStrength');
 
     if (!isOpen) return null;
 
@@ -258,6 +263,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
                 onTypeApply={(type) => callbacksRef.current.onLightTypeChange?.(type)}
                 onRadiusApply={(radius) => callbacksRef.current.onRadiusChange?.(radius)}
                 onPowerApply={(power) => callbacksRef.current.onPowerChange?.(power)}
+                onStrengthApply={(strength) => callbacksRef.current.onStrengthChange?.(strength)}
               />
             )}
 

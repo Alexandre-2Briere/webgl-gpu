@@ -71,7 +71,7 @@ struct FbxVOut {
     let lightDir = normalize(vec3f(0.577, 0.577, 0.577));
     let diff     = max(dot(worldNormal, lightDir), 0.0);
     let color    = diffuse.rgb * in.tint.rgb;
-    return vec4f(color * (0.3 + 0.7 * diff), diffuse.a * in.tint.a);
+    return vec4f(color * (0.7 * diff), diffuse.a * in.tint.a);
   }
 
   var totalAmbient : vec3f = vec3f(0.0);
@@ -80,7 +80,7 @@ struct FbxVOut {
   for (var i : u32 = 0u; i < lights.count; i++) {
     let light = lights.lights[i];
     if (light.lightType == 0u) {
-      totalAmbient += light.color;
+      totalAmbient += light.color.rgb * light.radius;
     } else if (light.lightType == 1u) {
       let toLight     = light.position - in.worldPos;
       let distance    = length(toLight);

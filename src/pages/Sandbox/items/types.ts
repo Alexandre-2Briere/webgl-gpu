@@ -1,6 +1,6 @@
 import type { Rigidbody3D, CubeHitbox, FbxAssetHandle } from '@engine';
 
-export type PropertyGroup = 'position' | 'rotation' | 'color' | 'scale' | 'rigidbody' | 'hitbox' | 'asset' | 'lightType' | 'lightRadius' | 'lightPower'
+export type PropertyGroup = 'position' | 'rotation' | 'color' | 'scale' | 'rigidbody' | 'hitbox' | 'asset' | 'lightType' | 'lightRadius' | 'lightPower' | 'lightStrength'
 
 export interface PhysicsConfig {
   hasRigidbody: boolean
