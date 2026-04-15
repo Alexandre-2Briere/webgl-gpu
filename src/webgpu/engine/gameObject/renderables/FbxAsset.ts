@@ -81,12 +81,6 @@ export class FbxAsset implements FbxAssetHandle {
         ? this._uploadImageBitmap(device, queue, mesh.material.normalMapImageData, `fbx:${mesh.name}:normal`)
         : fallbackNormal;
 
-      logger.debug(
-        `[FbxAsset] slice "${mesh.name}"`,
-        `baseColor=[${mesh.material.baseColor.map(v => v.toFixed(3)).join(', ')}]`,
-        `diffuse=${mesh.material.diffuseImageData ? 'texture' : mesh.material.baseColor ? 'baseColor' : 'FALLBACK(white)'}`,
-      );
-
       // ── Material bind group (group 2) ────────────────────────────────────
       const materialBindGroup = device.createBindGroup({
         label: `fbx:${mesh.name}:mat`,

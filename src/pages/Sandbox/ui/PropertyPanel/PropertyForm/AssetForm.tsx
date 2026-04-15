@@ -1,4 +1,5 @@
 import { SelectPrimitive } from '../../Primitive/Select/SelectPrimitive';
+import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
 
 export interface AssetOption {
   label: string;
@@ -15,8 +16,7 @@ export function AssetForm({ selectedAssetUrl, assetOptions, onChange }: AssetFor
   const selectOptions = assetOptions.map((option) => ({ value: option.url, label: option.label }));
 
   return (
-    <div id="prop-section-asset" className="prop-section">
-      <div className="prop-section-label">Asset</div>
+    <AccordionPrimitive title="Asset">
       <SelectPrimitive
         label="Asset"
         labelId="asset-select-label"
@@ -24,6 +24,6 @@ export function AssetForm({ selectedAssetUrl, assetOptions, onChange }: AssetFor
         options={selectOptions}
         onChange={onChange}
       />
-    </div>
+    </AccordionPrimitive>
   );
 }

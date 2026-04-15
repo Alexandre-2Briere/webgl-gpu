@@ -2,6 +2,7 @@ import { LightType, safeParseFloat } from '@engine';
 import type { PropertyGroup } from '../../../items/types';
 import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
 import { SelectPrimitive } from '../../Primitive/Select/SelectPrimitive';
+import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
 
 const LIGHT_TYPE_OPTIONS = [
   { value: '0', label: 'Ambient' },
@@ -27,8 +28,7 @@ interface LightFormProps {
 
 export function LightForm({ light, visibleSections, onLightChange, onTypeApply, onRadiusApply, onPowerApply, onStrengthApply }: LightFormProps) {
   return (
-    <div id="prop-section-light" className="prop-section">
-      <div className="prop-section-label">Light</div>
+    <AccordionPrimitive title="Light">
       {visibleSections.has('lightType') && (
         <SelectPrimitive
           label="Type"
@@ -75,6 +75,6 @@ export function LightForm({ light, visibleSections, onLightChange, onTypeApply, 
           />
         </div>
       )}
-    </div>
+    </AccordionPrimitive>
   );
 }

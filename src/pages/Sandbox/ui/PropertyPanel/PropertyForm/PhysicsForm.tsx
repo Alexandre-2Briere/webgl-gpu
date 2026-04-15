@@ -1,6 +1,7 @@
 import { Checkbox, FormControlLabel } from '@mui/material';
 import type { PropertyGroup } from '../../../items/types';
 import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
+import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
 
 export interface PhysicsState {
   hasRigidbody: boolean;
@@ -28,8 +29,7 @@ export function PhysicsForm({ physics, visibleSections, onChange, onApply }: Phy
   }
 
   return (
-    <div id="prop-section-physics" className="prop-section">
-      <div className="prop-section-label">Physics</div>
+    <AccordionPrimitive title="Physics">
       {showRigidbody && (
         <FormControlLabel
           id="prop-rb-row"
@@ -89,6 +89,6 @@ export function PhysicsForm({ physics, visibleSections, onChange, onApply }: Phy
           />
         </div>
       )}
-    </div>
+    </AccordionPrimitive>
   );
 }

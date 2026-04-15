@@ -1,4 +1,5 @@
 import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
+import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
 
 interface ColorFormProps {
   colorHex: string;
@@ -8,8 +9,7 @@ interface ColorFormProps {
 
 export function ColorForm({ colorHex, onChange, onApply }: ColorFormProps) {
   return (
-    <div id="prop-section-color" className="prop-section">
-      <div className="prop-section-label">Color (hex)</div>
+    <AccordionPrimitive title="Color (hex)">
       <div className="prop-row">
         <InputPrimitive
           type="text"
@@ -19,6 +19,6 @@ export function ColorForm({ colorHex, onChange, onApply }: ColorFormProps) {
           onApply={() => onApply(colorHex)}
         />
       </div>
-    </div>
+    </AccordionPrimitive>
   );
 }

@@ -1,6 +1,7 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { safeParseFloat } from '@engine';
 import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
+import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
 
 export interface Vector3FormHandle {
   setValues(a: number, b: number, c: number): void;
@@ -8,7 +9,6 @@ export interface Vector3FormHandle {
 
 interface Vector3FormProps {
   label:        string;
-  sectionId:    string;
   defaultValue: number;
   axisLabels:   [string, string, string];
   precision:    number;
@@ -17,7 +17,7 @@ interface Vector3FormProps {
 }
 
 export const Vector3Form = forwardRef<Vector3FormHandle, Vector3FormProps>(
-  function Vector3Form({ label, sectionId, defaultValue, axisLabels, precision, transform, onApply }, ref) {
+  function Vector3Form({ label, defaultValue, axisLabels, precision, transform, onApply }, ref) {
     const [aValue, setAValue] = useState(String(defaultValue));
     const [bValue, setBValue] = useState(String(defaultValue));
     const [cValue, setCValue] = useState(String(defaultValue));
@@ -39,8 +39,7 @@ export const Vector3Form = forwardRef<Vector3FormHandle, Vector3FormProps>(
     }
 
     return (
-      <div id={sectionId} className="prop-section">
-        <div className="prop-section-label">{label}</div>
+      <AccordionPrimitive title={label}>
         {[
           { label: axisLabels[0], value: aValue, onChange: setAValue },
           { label: axisLabels[1], value: bValue, onChange: setBValue },
@@ -56,7 +55,7 @@ export const Vector3Form = forwardRef<Vector3FormHandle, Vector3FormProps>(
             />
           </div>
         ))}
-      </div>
+      </AccordionPrimitive>
     );
   },
 );

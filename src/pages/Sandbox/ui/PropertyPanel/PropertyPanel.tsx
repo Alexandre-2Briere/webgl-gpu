@@ -216,7 +216,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
             {visibleSections.has('position') && (
               <Vector3Form
-                label="Position" sectionId="prop-section-position"
+                label="Position"
                 defaultValue={0} axisLabels={['X', 'Y', 'Z']} precision={3} transform={(v) => v}
                 ref={positionFormRef}
                 onApply={(x, y, z) => currentObjectRef.current?.setPosition([x, y, z])}
@@ -225,7 +225,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
             {visibleSections.has('rotation') && (
               <Vector3Form
-                label="Rotation (deg)" sectionId="prop-section-rotation"
+                label="Rotation (deg)"
                 defaultValue={0} axisLabels={['Yaw', 'Pitch', 'Roll']} precision={1} transform={(v) => v * DEG}
                 ref={rotationFormRef}
                 onApply={(yawRad, pitchRad, rollRad) => currentObjectRef.current?.setRotation(yawRad, pitchRad, rollRad)}
@@ -242,7 +242,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
             {visibleSections.has('scale') && (
               <Vector3Form
-                label="Scale" sectionId="prop-section-scale"
+                label="Scale"
                 defaultValue={1} axisLabels={['X', 'Y', 'Z']} precision={3} transform={(v) => v}
                 ref={scaleFormRef}
                 onApply={(x, y, z) => {

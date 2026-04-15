@@ -1,6 +1,6 @@
 import { Accordion, AccordionDetails, AccordionSummary, Typography } from '@mui/material';
 import { MdExpandMore } from 'react-icons/md';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface AccordionPrimitiveProps {
   title: string;
@@ -16,7 +16,7 @@ export function AccordionPrimitive({ title, children, defaultExpanded = false }:
       elevation={0}
       sx={{ background: 'transparent', '&:before': { display: 'none' } }}
     >
-      <AccordionSummary expandIcon={<MdExpandMore />} sx={{ padding: 0, minHeight: 0 }}>
+      <AccordionSummary expandIcon={<MdExpandMore />} sx={{ padding: 0, minHeight: 0, margin: 0, '& .MuiAccordionSummary-content': { margin: 0 } }}>
         <Typography variant="body2">{title}</Typography>
       </AccordionSummary>
       <AccordionDetails sx={{ padding: 0 }}>

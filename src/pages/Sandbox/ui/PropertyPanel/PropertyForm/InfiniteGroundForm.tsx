@@ -1,6 +1,7 @@
 import { safeParseFloat } from '@engine';
 import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
 import { SelectPrimitive } from '../../Primitive/Select/SelectPrimitive';
+import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
 
 const TILE_SIZES = [2, 4, 8, 16, 32, 64];
 const TILE_SIZE_OPTIONS = TILE_SIZES.map((size) => ({ value: String(size), label: String(size) }));
@@ -27,9 +28,7 @@ export function InfiniteGroundForm({
   onTileSizeApply,
 }: InfiniteGroundFormProps) {
   return (
-    <div id="prop-section-ground" className="prop-section">
-      <div className="prop-section-label">Ground</div>
-
+    <AccordionPrimitive title="Ground">
       <div className="prop-row">
         <InputPrimitive
           type="number"
@@ -61,6 +60,6 @@ export function InfiniteGroundForm({
           onTileSizeApply(size);
         }}
       />
-    </div>
+    </AccordionPrimitive>
   );
 }

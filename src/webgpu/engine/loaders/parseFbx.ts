@@ -423,14 +423,6 @@ async function extractMaterial(
   const normalMapTexturePath = normalMapTexNode
     ? (normalMapTexNode.node('RelativeFilename')?.prop(0, 'string') ?? normalMapTexNode.node('FileName')?.prop(0, 'string') ?? null)
     : null;
-
-  logger.debug(
-    `[parseFbx] material "${name}"`,
-    `baseColor=[${baseColor.map(v => v.toFixed(3)).join(', ')}]`,
-    `diffuseTex=${diffuseTexNode ? (diffuseImageData ? 'decoded' : 'DECODE_FAILED') : 'none'}`,
-    `normalTex=${normalMapTexNode ? (normalMapImageData ? 'decoded' : 'DECODE_FAILED') : 'none'}`,
-  );
-
   return { name, diffuseImageData, normalMapImageData, diffuseTexturePath, normalMapTexturePath, baseColor };
 }
 
