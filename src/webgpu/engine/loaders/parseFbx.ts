@@ -1,6 +1,12 @@
 import type { FBXReader, FBXReaderNode } from 'fbx-parser';
 import { logger } from '../utils';
 
+const MULTIMATERIAL_DEBUG_FILE = 'OakTree1.fbx';
+let multimaterialDebugEnabled = false;
+function dbg(...args: unknown[]): void {
+  if (multimaterialDebugEnabled) logger.debug('[parseFbx]', ...args);
+}
+
 let cachedFbxParser: typeof import('fbx-parser') | null = null;
 
 async function getFbxParser(): Promise<typeof import('fbx-parser')> {
@@ -48,7 +54,8 @@ export interface ParsedFbxData {
 const FBX_BINARY_MAGIC = 'Kaydara FBX Binary  ';
 
 /** @internal */
-export async function parseFbx(data: Uint8Array): Promise<ParsedFbxData> {
+export async function parseFbx(data: Uint8Array, fileName = ''): Promise<ParsedFbxData> {
+  multimaterialDebugEnabled = fileName.endsWith(MULTIMATERIAL_DEBUG_FILE);
   const { parseBinary, parseText, FBXReader } = await getFbxParser();
 
   const magic = new TextDecoder('ascii').decode(data.slice(0, 20));
@@ -113,6 +120,18 @@ async function extractScene(reader: FBXReader): Promise<ParsedFbxData> {
     textureById.set(id, tex);
   }
 
+  dbg(`Objects found — geometries: ${geometryById.size}, materials: ${materialById.size}, textures: ${textureById.size}`);
+  dbg(`Connections — OO pairs: ${childToParent.size}, OP pairs: ${opConnections.length}`);
+
+  for (const [matId, matNode] of materialById) {
+    // eslint-disable-next-line no-control-regex
+    const matName = (matNode.prop(1, 'string') ?? '?').replace(/\x00.*$/, '').replace(/::.*$/, '');
+    dbg(`  Material id=${matId} name="${matName}"`);
+  }
+  for (const conn of opConnections) {
+    dbg(`  OP connection child=${conn.childId} → parent=${conn.parentId} prop="${conn.prop}"`);
+  }
+
   // ── Process each geometry ─────────────────────────────────────────────────
   const meshes: ParsedFbxMesh[] = [];
 
@@ -124,15 +143,28 @@ async function extractScene(reader: FBXReader): Promise<ParsedFbxData> {
     const modelId = childToParent.get(geoId);
     let material: ParsedFbxMaterial = defaultMaterial();
 
+    dbg(`Geometry id=${geoId} name="${name}" → modelId=${modelId ?? 'NOT FOUND'}`);
+
     if (modelId !== undefined) {
       const siblings = parentToChildren.get(modelId) ?? [];
+      dbg(`  Model ${modelId} siblings: [${siblings.join(', ')}]`);
       for (const sibId of siblings) {
-        if (materialById.has(sibId)) {
+        const isMaterial = materialById.has(sibId);
+        dbg(`  Sibling ${sibId} isMaterial=${isMaterial}`);
+        if (isMaterial) {
           const matNode = materialById.get(sibId)!;
+          // eslint-disable-next-line no-control-regex
+          const matName = (matNode.prop(1, 'string') ?? '?').replace(/\x00.*$/, '').replace(/::.*$/, '');
+          dbg(`  → Assigned material id=${sibId} name="${matName}" to geometry "${name}"`);
           material = await extractMaterial(matNode, sibId, opConnections, textureById);
           break;
         }
       }
+      if (material.name === 'default') {
+        dbg(`  WARNING: no material sibling found for geometry "${name}" under model ${modelId}`);
+      }
+    } else {
+      dbg(`  WARNING: geometry "${name}" (id=${geoId}) has no parent model in OO connections`);
     }
 
     const mesh = buildMesh(name, geoNode, material);
@@ -402,6 +434,13 @@ async function extractMaterial(
   let diffuseTexNode: FBXReaderNode | null = null;
   let normalMapTexNode: FBXReaderNode | null = null;
 
+  const relevantOpConns = opConnections.filter(c => c.parentId === matId);
+  dbg(`  extractMaterial "${name}" (id=${matId}) — OP connections targeting this material: ${relevantOpConns.length}`);
+  for (const conn of relevantOpConns) {
+    const hasTexture = textureById.has(conn.childId);
+    dbg(`    OP child=${conn.childId} prop="${conn.prop}" hasTexture=${hasTexture}`);
+  }
+
   for (const conn of opConnections) {
     if (conn.parentId !== matId) continue;
     const texNode = textureById.get(conn.childId) ?? null;
@@ -414,8 +453,12 @@ async function extractMaterial(
     }
   }
 
+  dbg(`  Material "${name}" resolved — diffuseTex=${diffuseTexNode ? 'YES' : 'null'}, normalTex=${normalMapTexNode ? 'YES' : 'null'}, baseColor=[${baseColor.join(', ')}]`);
+
   const diffuseImageData = diffuseTexNode ? await decodeTexture(diffuseTexNode) : null;
   const normalMapImageData = normalMapTexNode ? await decodeTexture(normalMapTexNode) : null;
+
+  dbg(`  Material "${name}" decoded — diffuseImageData=${diffuseImageData ? 'OK' : 'null'}, normalMapImageData=${normalMapImageData ? 'OK' : 'null'}`);
 
   const diffuseTexturePath = diffuseTexNode
     ? (diffuseTexNode.node('RelativeFilename')?.prop(0, 'string') ?? diffuseTexNode.node('FileName')?.prop(0, 'string') ?? null)

@@ -16,7 +16,10 @@ function formatFbxLabel(rawPath: string): string {
   }
 
   const expandSegment = (segment: string): string => {
-    const words = segment.replace(/([a-z])([A-Z])/g, '$1 $2').split(' ');
+    const words = segment
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/([a-zA-Z])(\d)/g, '$1 $2')
+      .split(' ');
     return words.map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
@@ -33,9 +36,15 @@ const rawFbxUrls = import.meta.glob(
   { query: '?url', import: 'default', eager: true },
 ) as Record<string, string>;
 
-export const FBX_CATALOG: { label: string; url: string }[] = Object.entries(rawFbxUrls)
-  .map(([rawPath, url]) => ({ label: formatFbxLabel(rawPath), url }))
-  .sort((a, b) => a.label.localeCompare(b.label));
+const rawTreeUrls = import.meta.glob(
+  '../../../../src/assets/LowpolyForestPack/Trees/*.fbx',
+  { query: '?url', import: 'default', eager: true },
+) as Record<string, string>;
+
+export const FBX_CATALOG: { label: string; url: string }[] = [
+  ...Object.entries(rawFbxUrls).map(([rawPath, url]) => ({ label: formatFbxLabel(rawPath), url })),
+  ...Object.entries(rawTreeUrls).map(([rawPath, url]) => ({ label: formatFbxLabel(rawPath), url })),
+].sort((a, b) => a.label.localeCompare(b.label));
 
 // ── Spawn ─────────────────────────────────────────────────────────────────────
 

@@ -21,7 +21,7 @@ function axisIndex(plane: PlaneHitbox): 0 | 1 | 2 {
  * `depth` is the penetration magnitude.
  */
 function makeResult(signedDist: number, depth: number, planeNormal: Vec3): CollisionResult {
-  const sign = signedDist >= 0 ? 1 : -1;
+  const sign = signedDist >= 0 ? -1 : 1;
   return {
     hit: true,
     depth,

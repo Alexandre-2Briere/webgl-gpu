@@ -1,4 +1,5 @@
 import type { ModelAssetHandle, FbxAssetHandle } from '../types';
+import type { ParsedFbxData } from '../loaders/parseFbx';
 import { ModelAsset } from '../gameObject/renderables/ModelAsset';
 import { FbxAsset } from '../gameObject/renderables/FbxAsset';
 import { parseObj } from '../loaders/parseObj';
@@ -69,9 +70,46 @@ export async function loadObjAsset(
   return new ModelAsset(device, queue, vertices, indices);
 }
 
+// ── External texture helpers ──────────────────────────────────────────────────
+
+async function fetchExternalTexture(
+  texturePath: string,
+  baseUrl: string,
+  overrides: Record<string, string>,
+): Promise<ImageBitmap | null> {
+  const normalised = texturePath.replace(/\\/g, '/');
+  const filename   = normalised.split('/').pop() ?? normalised;
+  const resolved   = overrides[filename] ?? new URL(normalised, baseUrl).href;
+  try {
+    const response = await fetch(resolved);
+    if (!response.ok) return null;
+    return await createImageBitmap(await response.blob());
+  } catch { return null; }
+}
+
+async function resolveExternalTextures(
+  parsed: ParsedFbxData,
+  baseUrl: string,
+  overrides: Record<string, string>,
+): Promise<void> {
+  await Promise.all(parsed.meshes.map(async (mesh) => {
+    const mat = mesh.material;
+    if (!mat.diffuseImageData && mat.diffuseTexturePath) {
+      mat.diffuseImageData = await fetchExternalTexture(mat.diffuseTexturePath, baseUrl, overrides);
+    }
+    if (!mat.normalMapImageData && mat.normalMapTexturePath) {
+      mat.normalMapImageData = await fetchExternalTexture(mat.normalMapTexturePath, baseUrl, overrides);
+    }
+  }));
+}
+
+// ── Loaders ───────────────────────────────────────────────────────────────────
+
 /**
  * Fetches and parses a .fbx file, uploading all mesh geometry and textures to GPU once.
  * The returned handle can be passed to Engine.createFbxModel() many times.
+ * Pass textureOverrides (filename → URL) to resolve external textures that are not embedded
+ * in the FBX — Vite glob imports are the recommended source for these URLs.
  * @internal
  */
 export async function loadFbxAsset(
@@ -80,8 +118,10 @@ export async function loadFbxAsset(
   fbxMaterialLayout: GPUBindGroupLayout,
   url: string,
   timeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
+  textureOverrides: Record<string, string> = {},
 ): Promise<FbxAssetHandle> {
-  const bytes = await fetchWithLimit(url, 'loadFbxAsset', timeoutMs);
-  const parsed = await parseFbx(bytes);
+  const bytes  = await fetchWithLimit(url, 'loadFbxAsset', timeoutMs);
+  const parsed = await parseFbx(bytes, url.split('/').pop() ?? '');
+  await resolveExternalTextures(parsed, url, textureOverrides);
   return new FbxAsset(device, queue, fbxMaterialLayout, parsed);
 }
