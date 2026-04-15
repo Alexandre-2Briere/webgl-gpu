@@ -20,6 +20,7 @@
   --toolbar-height:    50px;
   --border-radius:     6px;
   --font-mono:         'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --row-hover:         rgba(255, 255, 255, 0.06);
 }
 
 /* ── Reset ──────────────────────────────────────────────────────────────────── */

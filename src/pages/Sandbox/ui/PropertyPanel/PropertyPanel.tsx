@@ -128,7 +128,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
             };
           }
 
-          let groundState: InfiniteGroundState = { yLevel: '0', alternateColorHex: '737373', tileSize: 16 };
+          let groundState: InfiniteGroundState = { yLevel: '0', alternateColorHex: '737373', tileSize: 2 };
           if (gameObject instanceof InfiniteGroundGameObject) {
             const toHex = (value: number) => Math.round(value * 255).toString(16).padStart(2, '0').toUpperCase();
             const [r2, g2, b2] = gameObject.alternateColor;

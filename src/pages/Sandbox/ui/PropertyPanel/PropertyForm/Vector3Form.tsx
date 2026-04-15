@@ -1,7 +1,6 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
-import { InputAdornment, TextField } from '@mui/material';
 import { safeParseFloat } from '@engine';
-import { ArrowRemover } from './Remover';
+import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
 
 export interface Vector3FormHandle {
   setValues(a: number, b: number, c: number): void;
@@ -48,20 +47,12 @@ export const Vector3Form = forwardRef<Vector3FormHandle, Vector3FormProps>(
           { label: axisLabels[2], value: cValue, onChange: setCValue },
         ].map(({ label: axisLabel, value, onChange }) => (
           <div key={axisLabel} className="prop-row">
-            <TextField
+            <InputPrimitive
               type="number"
+              label={axisLabel}
               value={value}
-              onChange={(event) => onChange(event.target.value)}
-              size="small"
-              variant="standard"
-              slotProps={{
-                input: {
-                  startAdornment: <InputAdornment position="start">{axisLabel}</InputAdornment>,
-                },
-              }}
-              onBlur={apply}
-              onKeyDown={(event) => { if (event.key === 'Enter') apply(); }}
-              sx={ArrowRemover}
+              onChange={onChange}
+              onApply={apply}
             />
           </div>
         ))}

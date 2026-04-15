@@ -31,14 +31,12 @@ export class SaveLoadManager {
   // ── Save ──────────────────────────────────────────────────────────────────────
 
   async saveScene(): Promise<string> {
-    const skyboxSnapshot    = this._buildSkyboxSnapshot();
-    const infiniteGround    = this._buildInfiniteGroundSnapshot();
     const segments: SaveSegments = {
       sceneConstants:   [this._buildSceneConstants()],
       gameObjects:      [this._buildGameObjects()],
       lightObjects:     [this._buildLightObjects()],
-      skyboxObjects:    skyboxSnapshot    ? [skyboxSnapshot]    : [],
-      infiniteGrounds:  infiniteGround    ? [infiniteGround]    : [],
+      skyboxObjects:    [this._buildSkyboxSnapshot()],
+      infiniteGrounds:  [this._buildInfiniteGroundSnapshot()],
     };
     return this._saveManager.save(segments);
   }
@@ -68,15 +66,15 @@ export class SaveLoadManager {
     };
   }
 
-  private _buildSkyboxSnapshot(): SkyboxSnapshot | null {
+  private _buildSkyboxSnapshot(): SkyboxSnapshot {
     const skyboxEntry = this._spawnManager.getObjects().find(o => o.key === 'Skybox');
-    if (!skyboxEntry) return null;
+    if (!skyboxEntry) return {} as SkyboxSnapshot;
     return { color: [...skyboxEntry.gameObject.color] as [number, number, number, number] };
   }
 
-  private _buildInfiniteGroundSnapshot(): InfiniteGroundSnapshot | null {
+  private _buildInfiniteGroundSnapshot(): InfiniteGroundSnapshot {
     const groundEntry = this._spawnManager.getObjects().find(o => o.key === 'InfiniteGround');
-    if (!groundEntry) return null;
+    if (!groundEntry) return {} as InfiniteGroundSnapshot;
     const ground = groundEntry.gameObject as InfiniteGroundGameObject;
     return {
       color:          [...ground.color]          as [number, number, number, number],

@@ -49,4 +49,16 @@
 .prop-subrow {
   padding-left: 20px;
 }
+.secondary-field.secondary-field {
+  margin-left: 1rem;
+  width: calc(100% - 1rem);
+}
 
+label.prop-row {
+  cursor: pointer;
+  border-radius: var(--border-radius);
+}
+
+label.prop-row:hover {
+  background-color: var(--row-hover);
+}

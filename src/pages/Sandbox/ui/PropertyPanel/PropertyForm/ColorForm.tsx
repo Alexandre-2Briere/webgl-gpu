@@ -1,5 +1,4 @@
-import { InputAdornment, TextField } from '@mui/material';
-import { PaddingRemover } from './Remover';
+import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
 
 interface ColorFormProps {
   colorHex: string;
@@ -12,20 +11,12 @@ export function ColorForm({ colorHex, onChange, onApply }: ColorFormProps) {
     <div id="prop-section-color" className="prop-section">
       <div className="prop-section-label">Color (hex)</div>
       <div className="prop-row">
-        <TextField
+        <InputPrimitive
           type="text"
+          label="#"
           value={colorHex}
-          size="small"
-          variant="standard"
-          onChange={(event) => onChange(event.target.value.toUpperCase())}
-          onBlur={() => onApply(colorHex)}
-          slotProps={{
-            input: {
-              startAdornment: <InputAdornment position="start">#</InputAdornment>,
-            },
-          }}
-          onKeyDown={(event) => { if (event.key === 'Enter') onApply(colorHex); }}
-          sx={PaddingRemover}
+          onChange={(value) => onChange(value.toUpperCase())}
+          onApply={() => onApply(colorHex)}
         />
       </div>
     </div>
