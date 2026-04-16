@@ -125,7 +125,7 @@ async function extractScene(reader: FBXReader): Promise<ParsedFbxData> {
 
   for (const [matId, matNode] of materialById) {
     // eslint-disable-next-line no-control-regex
-    const matName = (matNode.prop(1, 'string') ?? '?').replace(/\x00.*$/, '').replace(/::.*$/, '');
+    const matName = (matNode.prop(1, 'string') ?? '?').replace(/\x00.*$/, '').replace(/^.*::/, '');
     dbg(`  Material id=${matId} name="${matName}"`);
   }
   for (const conn of opConnections) {
@@ -137,38 +137,42 @@ async function extractScene(reader: FBXReader): Promise<ParsedFbxData> {
 
   for (const [geoId, geoNode] of geometryById) {
     // eslint-disable-next-line no-control-regex
-    const name = (geoNode.prop(1, 'string') ?? 'unnamed').replace(/\x00.*$/, '').replace(/::.*$/, '');
+    const name = (geoNode.prop(1, 'string') ?? 'unnamed').replace(/\x00.*$/, '').replace(/^.*::/, '');
 
     // Find the material connected to this geometry's parent model node
     const modelId = childToParent.get(geoId);
-    let material: ParsedFbxMaterial = defaultMaterial();
 
     dbg(`Geometry id=${geoId} name="${name}" → modelId=${modelId ?? 'NOT FOUND'}`);
 
     if (modelId !== undefined) {
       const siblings = parentToChildren.get(modelId) ?? [];
       dbg(`  Model ${modelId} siblings: [${siblings.join(', ')}]`);
+
+      // Collect ALL material siblings in declaration order
+      const materials: ParsedFbxMaterial[] = [];
       for (const sibId of siblings) {
         const isMaterial = materialById.has(sibId);
         dbg(`  Sibling ${sibId} isMaterial=${isMaterial}`);
         if (isMaterial) {
           const matNode = materialById.get(sibId)!;
           // eslint-disable-next-line no-control-regex
-          const matName = (matNode.prop(1, 'string') ?? '?').replace(/\x00.*$/, '').replace(/::.*$/, '');
-          dbg(`  → Assigned material id=${sibId} name="${matName}" to geometry "${name}"`);
-          material = await extractMaterial(matNode, sibId, opConnections, textureById);
-          break;
+          const matName = (matNode.prop(1, 'string') ?? '?').replace(/\x00.*$/, '').replace(/^.*::/, '');
+          dbg(`  → Collected material id=${sibId} name="${matName}" for geometry "${name}"`);
+          materials.push(await extractMaterial(matNode, sibId, opConnections, textureById));
         }
       }
-      if (material.name === 'default') {
+      if (materials.length === 0) {
         dbg(`  WARNING: no material sibling found for geometry "${name}" under model ${modelId}`);
+        materials.push(defaultMaterial());
       }
+
+      const newMeshes = buildMeshes(name, geoNode, materials);
+      meshes.push(...newMeshes);
     } else {
       dbg(`  WARNING: geometry "${name}" (id=${geoId}) has no parent model in OO connections`);
+      const newMeshes = buildMeshes(name, geoNode, [defaultMaterial()]);
+      meshes.push(...newMeshes);
     }
-
-    const mesh = buildMesh(name, geoNode, material);
-    if (mesh) meshes.push(mesh);
   }
 
   return { meshes };
@@ -176,14 +180,14 @@ async function extractScene(reader: FBXReader): Promise<ParsedFbxData> {
 
 // ── Geometry processing ───────────────────────────────────────────────────────
 
-function buildMesh(
+function buildMeshes(
   name: string,
   geoNode: FBXReaderNode,
-  material: ParsedFbxMaterial,
-): ParsedFbxMesh | null {
+  materials: ParsedFbxMaterial[],
+): ParsedFbxMesh[] {
   const rawPositions = geoNode.node('Vertices')?.prop(0, 'number[]');
   const rawPolyIdx = geoNode.node('PolygonVertexIndex')?.prop(0, 'number[]');
-  if (!rawPositions || !rawPolyIdx) return null;
+  if (!rawPositions || !rawPolyIdx) return [];
 
   // ── Normals ─────────────────────────────────────────────────────────────
   const normalLayer = geoNode.node('LayerElementNormal');
@@ -203,6 +207,11 @@ function buildMesh(
     ? (uvLayer?.node('UVIndex')?.prop(0, 'number[]') ?? [])
     : null;
 
+  // ── Material layer ───────────────────────────────────────────────────────
+  const materialLayer = geoNode.node('LayerElementMaterial');
+  const materialMapping = materialLayer?.node('MappingInformationType')?.prop(0, 'string') ?? 'AllSame';
+  const rawMaterialIdx = materialLayer?.node('Materials')?.prop(0, 'number[]') ?? [];
+
   // ── Expand polygons to triangles ─────────────────────────────────────────
   // polyVertIdx  — running index into ByPolygonVertex arrays
   // posIdx       — index into rawPositions (÷3)
@@ -210,8 +219,10 @@ function buildMesh(
   type FaceVert = { posIdx: number; polyVertIdx: number; uvIdx: number }
 
   const triangles: [FaceVert, FaceVert, FaceVert][] = [];
+  const triangleMaterialIndices: number[] = [];
   let poly: FaceVert[] = [];
   let polyVertCursor = 0;
+  let polygonCursor = 0;
 
   for (let i = 0; i < rawPolyIdx.length; i++) {
     const raw = rawPolyIdx[i];
@@ -233,10 +244,13 @@ function buildMesh(
 
     if (isLast) {
       // Fan triangulate
+      const matIdx = materialMapping === 'AllSame' ? 0 : (rawMaterialIdx[polygonCursor] ?? 0);
       for (let j = 1; j < poly.length - 1; j++) {
         triangles.push([poly[0], poly[j], poly[j + 1]]);
+        triangleMaterialIndices.push(matIdx);
       }
       poly = [];
+      polygonCursor++;
     }
   }
 
@@ -346,7 +360,6 @@ function buildMesh(
 
   // ── Build final vertex buffer ─────────────────────────────────────────────
   const finalVertData = new Float32Array(verts.length * 16);
-  const finalIdxData = new Uint32Array(triVertIndices.length * 3);
 
   for (let i = 0; i < verts.length; i++) {
     const v = verts[i];
@@ -389,17 +402,52 @@ function buildMesh(
     finalVertData[base + 15] = w;
   }
 
-  for (let t = 0; t < triVertIndices.length; t++) {
-    const [i0, i1, i2] = triVertIndices[t];
-    finalIdxData[t * 3 + 0] = i0;
-    finalIdxData[t * 3 + 1] = i1;
-    finalIdxData[t * 3 + 2] = i2;
-  }
-
-  // Unused pre-allocated arrays (replaced by finalVertData / finalIdxData)
+  // Unused pre-allocated arrays (replaced by finalVertData)
   void vertexData; void indexData;
 
-  return { name, vertices: finalVertData, indices: finalIdxData, material };
+  // ── Split geometry by material index ─────────────────────────────────────
+  const groupCount = materials.length;
+  const groups: number[][] = Array.from({ length: groupCount }, () => []);
+  for (let t = 0; t < triVertIndices.length; t++) {
+    const materialIndex = Math.min(triangleMaterialIndices[t], groupCount - 1);
+    groups[materialIndex].push(t);
+  }
+
+  const result: ParsedFbxMesh[] = [];
+  for (let materialIndex = 0; materialIndex < groupCount; materialIndex++) {
+    const tris = groups[materialIndex];
+    if (tris.length === 0) continue;
+
+    // Remap global vertex indices to a local contiguous range
+    const globalToLocal = new Map<number, number>();
+    const localVertList: number[] = [];
+    for (const triangleIndex of tris) {
+      for (const vertexIndex of triVertIndices[triangleIndex]) {
+        if (!globalToLocal.has(vertexIndex)) {
+          globalToLocal.set(vertexIndex, localVertList.length);
+          localVertList.push(vertexIndex);
+        }
+      }
+    }
+
+    const subVertData = new Float32Array(localVertList.length * 16);
+    for (let i = 0; i < localVertList.length; i++) {
+      const sourceBase = localVertList[i] * 16;
+      subVertData.set(finalVertData.subarray(sourceBase, sourceBase + 16), i * 16);
+    }
+
+    const subIdxData = new Uint32Array(tris.length * 3);
+    for (let t = 0; t < tris.length; t++) {
+      const [i0, i1, i2] = triVertIndices[tris[t]];
+      subIdxData[t * 3]     = globalToLocal.get(i0)!;
+      subIdxData[t * 3 + 1] = globalToLocal.get(i1)!;
+      subIdxData[t * 3 + 2] = globalToLocal.get(i2)!;
+    }
+
+    const meshName = groupCount > 1 ? `${name}_mat${materialIndex}` : name;
+    result.push({ name: meshName, vertices: subVertData, indices: subIdxData, material: materials[materialIndex] });
+  }
+  return result;
 }
 
 // ── Material extraction ───────────────────────────────────────────────────────
@@ -412,7 +460,7 @@ async function extractMaterial(
 ): Promise<ParsedFbxMaterial> {
   const rawName = matNode.prop(1, 'string') ?? 'material';
   // eslint-disable-next-line no-control-regex
-  const name = rawName.replace(/\x00.*$/, '').replace(/::.*$/, '');
+  const name = rawName.replace(/\x00.*$/, '').replace(/^.*::/, '');
 
   // Diffuse color from Properties70
   let baseColor: [number, number, number] = [1, 1, 1];
@@ -460,12 +508,30 @@ async function extractMaterial(
 
   dbg(`  Material "${name}" decoded — diffuseImageData=${diffuseImageData ? 'OK' : 'null'}, normalMapImageData=${normalMapImageData ? 'OK' : 'null'}`);
 
-  const diffuseTexturePath = diffuseTexNode
+  let diffuseTexturePath: string | null = diffuseTexNode
     ? (diffuseTexNode.node('RelativeFilename')?.prop(0, 'string') ?? diffuseTexNode.node('FileName')?.prop(0, 'string') ?? null)
     : null;
-  const normalMapTexturePath = normalMapTexNode
+  let normalMapTexturePath: string | null = normalMapTexNode
     ? (normalMapTexNode.node('RelativeFilename')?.prop(0, 'string') ?? normalMapTexNode.node('FileName')?.prop(0, 'string') ?? null)
     : null;
+
+  // Fallback: scan Properties70 for inline KString texture paths.
+  // Used by exporters that omit Texture nodes but embed paths directly in material properties.
+  // Only runs when no Texture node was found via OP connections.
+  if (props70 && !diffuseTexNode && !normalMapTexNode) {
+    for (const p of props70.nodes('P')) {
+      if (p.prop(1, 'string') !== 'KString') continue;
+      const pname = (p.prop(0, 'string') ?? '').toLowerCase();
+      const pathValue = p.prop(4, 'string');
+      if (!pathValue) continue;
+      if ((pname.includes('diffuse') || pname === 'diffusemap') && !diffuseTexturePath) {
+        diffuseTexturePath = pathValue;
+      } else if ((pname.includes('normal') || pname.includes('bump')) && !normalMapTexturePath) {
+        normalMapTexturePath = pathValue;
+      }
+    }
+  }
+
   return { name, diffuseImageData, normalMapImageData, diffuseTexturePath, normalMapTexturePath, baseColor };
 }
 

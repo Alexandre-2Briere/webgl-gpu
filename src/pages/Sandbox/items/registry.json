@@ -10,7 +10,7 @@
       "key": "Cube",
       "label": "Cube",
       "isReady": true,
-      "properties": ["position", "rotation", "color", "rigidbody", "hitbox"]
+      "properties": ["position", "rotation","scale", "color", "rigidbody", "hitbox"]
     },
     {
       "key": "FBX",

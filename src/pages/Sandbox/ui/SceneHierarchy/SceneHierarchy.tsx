@@ -110,6 +110,7 @@ export const SceneHierarchyComponent = forwardRef<SceneHierarchy, SceneHierarchy
               disablePadding
               secondaryAction={
                 <IconButton
+                  sx={{width: "32px", height: "32px"}}
                   size="small"
                   className="hier-remove"
                   title="Remove"

@@ -208,7 +208,11 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
             <Typography variant="subtitle2" id="prop-title" className="prop-panel-title">
               {title}
             </Typography>
-            <IconButton size="small" onClick={() => { currentObjectRef.current = null; setState((previous) => ({ ...previous, isOpen: false })); }}>
+            <IconButton 
+              sx={{width: "32px", height: "32px"}}
+              size="small" 
+              onClick={() => { currentObjectRef.current = null; setState((previous) => ({ ...previous, isOpen: false })); }}
+            >
               ×
             </IconButton>
           </div>

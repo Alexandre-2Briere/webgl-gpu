@@ -81,6 +81,12 @@ export interface Model3DOptions {
 /** Shared GPU resource produced by engine.loadFbx(). Safe to pass to createFbxModel() many times. */
 export interface FbxAssetHandle {
   readonly sliceCount: number
+  /**
+   * Replaces the diffuse texture of a single mesh slice at runtime.
+   * Fetches the image at `url`, uploads it to the GPU, and rebuilds the
+   * material bind group for `sliceIndex`. The previous texture is destroyed.
+   */
+  setSliceTexture(sliceIndex: number, url: string): Promise<void>
   destroy(): void
 }
 

@@ -79,7 +79,13 @@ async function fetchExternalTexture(
 ): Promise<ImageBitmap | null> {
   const normalised = texturePath.replace(/\\/g, '/');
   const filename   = normalised.split('/').pop() ?? normalised;
-  const resolved   = overrides[filename] ?? new URL(normalised, baseUrl).href;
+  let resolved: string;
+  if (overrides[filename]) {
+    resolved = overrides[filename];
+  } else {
+    try { resolved = new URL(normalised, baseUrl).href; }
+    catch { return null; }
+  }
   try {
     const response = await fetch(resolved);
     if (!response.ok) return null;
@@ -99,6 +105,11 @@ async function resolveExternalTextures(
     }
     if (!mat.normalMapImageData && mat.normalMapTexturePath) {
       mat.normalMapImageData = await fetchExternalTexture(mat.normalMapTexturePath, baseUrl, overrides);
+    }
+    // Fallback: FBX has no embedded texture paths — try mat.name + ".png" in overrides.
+    // Applies to Blender-exported FBX where textures are external and not referenced by path.
+    if (!mat.diffuseImageData && !mat.diffuseTexturePath && mat.name && mat.name !== 'default' && mat.name !== 'material') {
+      mat.diffuseImageData = await fetchExternalTexture(`${mat.name}.png`, baseUrl, overrides);
     }
   }));
 }
