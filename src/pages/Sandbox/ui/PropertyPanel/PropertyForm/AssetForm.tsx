@@ -17,13 +17,15 @@ export function AssetForm({ selectedAssetUrl, assetOptions, onChange }: AssetFor
 
   return (
     <AccordionPrimitive title="Asset">
-      <SelectPrimitive
-        label="Asset"
-        labelId="asset-select-label"
-        value={selectedAssetUrl}
-        options={selectOptions}
-        onChange={onChange}
-      />
+      <div className="prop-row">
+        <SelectPrimitive
+          label="Asset"
+          labelId="asset-select-label"
+          value={selectedAssetUrl}
+          options={selectOptions}
+          onChange={onChange}
+        />
+      </div>
     </AccordionPrimitive>
   );
 }

@@ -12,7 +12,7 @@ Review all files touched in the current change set. Output inline comments per f
 1. Only examine files that were actually touched — do not review untouched files.
 2. Always check for type safety: missing types, unsafe casts, implicit `any`.
 3. Read adjacent and related files to understand project conventions before flagging deviations.
-4. Write exactly one labeled comment per issue found:
+4. Write exactly one labeled comment above the issue in code per issue found:
    - `[BLOCKING]: <issue>` — must be fixed before merging (type errors, memory leaks, unhandled errors, security issues)
    - `[NITPICK]: <issue>` — minor style or naming deviation, low priority
    - `[BEST PRACTICE]: <issue>` — correct but could be improved for maintainability or clarity

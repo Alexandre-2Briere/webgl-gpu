@@ -12,8 +12,6 @@ const LIGHT_TYPE_OPTIONS = [
 export interface LightState {
   lightType: number;
   radius: string;
-  power: string;
-  strength: string;
 }
 
 interface LightFormProps {
@@ -22,11 +20,9 @@ interface LightFormProps {
   onLightChange: (light: LightState) => void;
   onTypeApply: (type: LightType) => void;
   onRadiusApply: (radius: number) => void;
-  onPowerApply: (power: number) => void;
-  onStrengthApply: (strength: number) => void;
 }
 
-export function LightForm({ light, visibleSections, onLightChange, onTypeApply, onRadiusApply, onPowerApply, onStrengthApply }: LightFormProps) {
+export function LightForm({ light, visibleSections, onLightChange, onTypeApply, onRadiusApply }: LightFormProps) {
   return (
     <AccordionPrimitive title="Light">
       {visibleSections.has('lightType') && (
@@ -36,13 +32,15 @@ export function LightForm({ light, visibleSections, onLightChange, onTypeApply, 
           value={String(light.lightType)}
           options={LIGHT_TYPE_OPTIONS}
           onChange={(value) => {
+            // REVIEW [BLOCKING]: parseInt without radix (ESLint radix rule) and unvalidated cast to LightType.
+            // Use parseInt(value, 10) and add a bounds check before casting.
             const newType = parseInt(value) as LightType;
             onLightChange({ ...light, lightType: newType });
             onTypeApply(newType);
           }}
         />
       )}
-      {visibleSections.has('lightRadius') && light.lightType === LightType.Point && (
+      {visibleSections.has('lightRadius') && (
         <div className="prop-row prop-subrow">
           <InputPrimitive
             type="number"
@@ -50,28 +48,6 @@ export function LightForm({ light, visibleSections, onLightChange, onTypeApply, 
             value={light.radius}
             onChange={(value) => onLightChange({ ...light, radius: value })}
             onApply={() => onRadiusApply(safeParseFloat(light.radius))}
-          />
-        </div>
-      )}
-      {visibleSections.has('lightPower') && (
-        <div className="prop-row">
-          <InputPrimitive
-            type="number"
-            label="Power"
-            value={light.power}
-            onChange={(value) => onLightChange({ ...light, power: value })}
-            onApply={() => onPowerApply(safeParseFloat(light.power))}
-          />
-        </div>
-      )}
-      {visibleSections.has('lightStrength') && light.lightType === LightType.Ambient && (
-        <div className="prop-row prop-subrow">
-          <InputPrimitive
-            type="number"
-            label="Strength"
-            value={light.strength}
-            onChange={(value) => onLightChange({ ...light, strength: value })}
-            onApply={() => onStrengthApply(safeParseFloat(light.strength))}
           />
         </div>
       )}

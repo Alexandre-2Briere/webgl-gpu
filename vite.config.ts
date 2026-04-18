@@ -15,7 +15,10 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/webgpu/engine/tests/**/*.test.ts'],
+    include: [
+      'src/webgpu/engine/tests/**/*.test.ts',
+      'src/lib/**/*.test.ts',
+    ],
     setupFiles: ['src/webgpu/engine/tests/setup.ts'],
   },
   build: {
