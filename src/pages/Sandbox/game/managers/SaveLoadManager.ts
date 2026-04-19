@@ -4,6 +4,7 @@ import type { Terminal }        from '../../ui/Terminal/Terminal';
 import type { PhysicsConfig, PropertyGroup, ItemEntry } from '../../items/types';
 import type { SpawnManager }    from './SpawnManager';
 import type { PhysicsManager }  from './PhysicsManager';
+import type { ISceneObject } from '@engine';
 
 const LIGHT_KEYS = new Set(['Light', 'DirectionalLight']);
 const SINGLETON_KEYS = new Set(['Skybox', 'InfiniteGround']);
@@ -31,15 +32,19 @@ export class SaveLoadManager {
   // ── Save ──────────────────────────────────────────────────────────────────────
 
   async saveScene(): Promise<string> {
-    const skyboxSnapshot    = this._buildSkyboxSnapshot();
-    const infiniteGround    = this._buildInfiniteGroundSnapshot();
     const segments: SaveSegments = {
       sceneConstants:   [this._buildSceneConstants()],
       gameObjects:      [this._buildGameObjects()],
       lightObjects:     [this._buildLightObjects()],
-      skyboxObjects:    skyboxSnapshot    ? [skyboxSnapshot]    : [],
-      infiniteGrounds:  infiniteGround    ? [infiniteGround]    : [],
     };
+    const skyboxSnapshot = this._buildSkyboxSnapshot();
+    if (skyboxSnapshot) {
+      segments.skyboxObjects = [skyboxSnapshot];
+    }
+    const infiniteGroundSnapshot = this._buildInfiniteGroundSnapshot();
+    if (infiniteGroundSnapshot) {
+      segments.infiniteGrounds = [infiniteGroundSnapshot];
+    }
     return this._saveManager.save(segments);
   }
 
@@ -146,7 +151,7 @@ export class SaveLoadManager {
     }
 
     if (segments.gameObjects.length > 0) {
-      this._removeObjectsByKeys(key => !LIGHT_KEYS.has(key));
+      this._removeObjectsByKeys(key => !LIGHT_KEYS.has(key) && !SINGLETON_KEYS.has(key));
       for (const snapshot of segments.gameObjects) {
         for (const objectRecord of snapshot.objects) {
           this._spawnGameObject(objectRecord);
@@ -224,7 +229,7 @@ export class SaveLoadManager {
     key: string,
     label: string,
     properties: PropertyGroup[],
-    apply: (gameObject: import('@engine').ISceneObject) => void,
+    apply: (gameObject: ISceneObject) => void,
   ): void {
     const itemEntry: ItemEntry = { key, label, isReady: true, properties };
     this._spawnManager.spawn(key, itemEntry);
@@ -254,10 +259,6 @@ function _applyLightRecord(
   lightObject.setPosition([objectRecord.position[0], objectRecord.position[1], objectRecord.position[2]]);
   lightObject.setColor(objectRecord.color[0], objectRecord.color[1], objectRecord.color[2], objectRecord.color[3]);
   lightObject.setLightType(objectRecord.lightType);
-  if (objectRecord.lightType !== 0) {
-    lightObject.setRadius(objectRecord.radius);
-  } else {
-    lightObject.setStrength(objectRecord.radius);
-  }
+  lightObject.setRadius(objectRecord.radius);
   lightObject.setDirection([objectRecord.direction[0], objectRecord.direction[1], objectRecord.direction[2]]);
 }

@@ -49,8 +49,6 @@ export interface PropertyPanel {
   onRadiusChange:    ((radius: number) => void) | null;
   onLightTypeChange: ((type: LightType) => void) | null;
   onAssetChange:     ((url: string) => void) | null;
-  onPowerChange:     ((power: number) => void) | null;
-  onStrengthChange:  ((strength: number) => void) | null;
 }
 
 const INITIAL_STATE: PanelViewState = {
@@ -61,8 +59,8 @@ const INITIAL_STATE: PanelViewState = {
   physics:          { hasRigidbody: false, isStatic: false, hasHitbox: false, layer: 'default' },
   assetOptions:     [],
   selectedAssetUrl: '',
-  light:            { lightType: 0, radius: '1.0', power: '1.0', strength: '1.0' },
-  ground:           { yLevel: '0', alternateColorHex: '737373', tileSize: 16 },
+  light:            { lightType: 0, radius: '1.0' },
+  ground:           { yLevel: '0', alternateColorHex: '737373', colorHex: 'FFFFFF', tileSize: 16 },
 };
 
 export const PropertyPanelComponent = forwardRef<PropertyPanel>(
@@ -81,8 +79,6 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
       onRadiusChange:    null as ((radius: number) => void) | null,
       onLightTypeChange: null as ((type: LightType) => void) | null,
       onAssetChange:     null as ((url: string) => void) | null,
-      onPowerChange:     null as ((power: number) => void) | null,
-      onStrengthChange:  null as ((strength: number) => void) | null,
     });
 
     function _applyColor(hex: string): void {
@@ -118,24 +114,25 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
             colorHex = `${toHex(red)}${toHex(green)}${toHex(blue)}`;
           }
 
-          let lightState: LightState = { lightType: 0, radius: '1.0', power: '1.0', strength: '1.0' };
+          let lightState: LightState = { lightType: 0, radius: '1.0'};
           if (gameObject instanceof LightGameObject) {
             lightState = {
               lightType: gameObject.lightType,
               radius:    gameObject.radius.toFixed(1),
-              power:     gameObject.radius.toFixed(2),
-              strength:  gameObject.radius.toFixed(2),
             };
           }
 
-          let groundState: InfiniteGroundState = { yLevel: '0', alternateColorHex: '737373', tileSize: 16 };
+          // REVIEW [NITPICK]: fallback tileSize is 2 here but 16 in INITIAL_STATE — pick one default.
+          let groundState: InfiniteGroundState = { yLevel: '0', colorHex: 'FFFFFF', alternateColorHex: '737373', tileSize: 2 };
           if (gameObject instanceof InfiniteGroundGameObject) {
             const toHex = (value: number) => Math.round(value * 255).toString(16).padStart(2, '0').toUpperCase();
+            const [r1, g1, b1] = gameObject.color;
             const [r2, g2, b2] = gameObject.alternateColor;
             groundState = {
-              yLevel:           gameObject.yLevel.toFixed(3),
+              yLevel:            gameObject.yLevel.toFixed(3),
+              colorHex:          `${toHex(r1)}${toHex(g1)}${toHex(b1)}`,
               alternateColorHex: `${toHex(r2)}${toHex(g2)}${toHex(b2)}`,
-              tileSize:         gameObject.tileSize,
+              tileSize:          gameObject.tileSize,
             };
           }
 
@@ -185,10 +182,6 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
         set onLightTypeChange(fn) { callbacksRef.current.onLightTypeChange = fn; },
         get onAssetChange()     { return callbacksRef.current.onAssetChange; },
         set onAssetChange(fn)   { callbacksRef.current.onAssetChange = fn; },
-        get onPowerChange()      { return callbacksRef.current.onPowerChange; },
-        set onPowerChange(fn)    { callbacksRef.current.onPowerChange = fn; },
-        get onStrengthChange()   { return callbacksRef.current.onStrengthChange; },
-        set onStrengthChange(fn) { callbacksRef.current.onStrengthChange = fn; },
       };
       return handle;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -208,7 +201,11 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
             <Typography variant="subtitle2" id="prop-title" className="prop-panel-title">
               {title}
             </Typography>
-            <IconButton size="small" onClick={() => { currentObjectRef.current = null; setState((previous) => ({ ...previous, isOpen: false })); }}>
+            <IconButton 
+              sx={{width: "32px", height: "32px"}}
+              size="small" 
+              onClick={() => { currentObjectRef.current = null; setState((previous) => ({ ...previous, isOpen: false })); }}
+            >
               ×
             </IconButton>
           </div>
@@ -216,7 +213,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
             {visibleSections.has('position') && (
               <Vector3Form
-                label="Position" sectionId="prop-section-position"
+                label="Position"
                 defaultValue={0} axisLabels={['X', 'Y', 'Z']} precision={3} transform={(v) => v}
                 ref={positionFormRef}
                 onApply={(x, y, z) => currentObjectRef.current?.setPosition([x, y, z])}
@@ -225,7 +222,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
             {visibleSections.has('rotation') && (
               <Vector3Form
-                label="Rotation (deg)" sectionId="prop-section-rotation"
+                label="Rotation (deg)"
                 defaultValue={0} axisLabels={['Yaw', 'Pitch', 'Roll']} precision={1} transform={(v) => v * DEG}
                 ref={rotationFormRef}
                 onApply={(yawRad, pitchRad, rollRad) => currentObjectRef.current?.setRotation(yawRad, pitchRad, rollRad)}
@@ -242,7 +239,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
             {visibleSections.has('scale') && (
               <Vector3Form
-                label="Scale" sectionId="prop-section-scale"
+                label="Scale"
                 defaultValue={1} axisLabels={['X', 'Y', 'Z']} precision={3} transform={(v) => v}
                 ref={scaleFormRef}
                 onApply={(x, y, z) => {
@@ -279,8 +276,6 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
                 onLightChange={(updated) => setState((previous) => ({ ...previous, light: updated }))}
                 onTypeApply={(type) => callbacksRef.current.onLightTypeChange?.(type)}
                 onRadiusApply={(radius) => callbacksRef.current.onRadiusChange?.(radius)}
-                onPowerApply={(power) => callbacksRef.current.onPowerChange?.(power)}
-                onStrengthApply={(strength) => callbacksRef.current.onStrengthChange?.(strength)}
               />
             )}
 
@@ -288,7 +283,17 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
               <InfiniteGroundForm
                 ground={ground}
                 onGroundChange={(updated) => setState((previous) => ({ ...previous, ground: updated }))}
+                // REVIEW [BLOCKING]: currentObjectRef.current can be null between render and callback invocation.
+                // Add a null guard inside each callback: const ground = currentObjectRef.current; if (!(ground instanceof InfiniteGroundGameObject)) return;
                 onYLevelApply={(y) => (currentObjectRef.current as InfiniteGroundGameObject).setYLevel(y)}
+                onColorApply={(hex) => {
+                  const upper = hex.trim().toUpperCase();
+                  if (!/^[0-9A-F]{6}$/.test(upper)) return;
+                  const red   = parseInt(upper.slice(0, 2), 16) / 255;
+                  const green = parseInt(upper.slice(2, 4), 16) / 255;
+                  const blue  = parseInt(upper.slice(4, 6), 16) / 255;
+                  (currentObjectRef.current as InfiniteGroundGameObject).setColor(red, green, blue, 1);
+                }}
                 onAltColorApply={(hex) => {
                   const upper = hex.trim().toUpperCase();
                   if (!/^[0-9A-F]{6}$/.test(upper)) return;

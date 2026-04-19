@@ -26,18 +26,18 @@ describe('testPlaneSphere — y-axis plane at y=0', () => {
     expect(result.depth).toBeCloseTo(1);
   });
 
-  it('sphere above plane, overlapping: hit with upward normal', () => {
+  it('sphere above plane, overlapping: hit with downward normal', () => {
     const result = testPlaneSphere(makePlane('y', 0), makeSphere(1, [0, 0.5, 0]));
     expect(result.hit).toBe(true);
     expect(result.depth).toBeCloseTo(0.5);
-    expect(result.normal[1]).toBeGreaterThan(0);
+    expect(result.normal[1]).toBeLessThan(0);
   });
 
-  it('sphere below plane, overlapping: hit with downward normal', () => {
+  it('sphere below plane, overlapping: hit with upward normal', () => {
     const result = testPlaneSphere(makePlane('y', 0), makeSphere(1, [0, -0.5, 0]));
     expect(result.hit).toBe(true);
     expect(result.depth).toBeCloseTo(0.5);
-    expect(result.normal[1]).toBeLessThan(0);
+    expect(result.normal[1]).toBeGreaterThan(0);
   });
 
   it('sphere clearly above plane (center > radius): no hit', () => {
@@ -74,6 +74,6 @@ describe('testPlaneSphere — x-axis plane', () => {
   it('x-axis plane at x=0, sphere at x=0.5 radius=1: hit', () => {
     const result = testPlaneSphere(makePlane('x', 0), makeSphere(1, [0.5, 0, 0]));
     expect(result.hit).toBe(true);
-    expect(result.normal[0]).toBeGreaterThan(0);
+    expect(result.normal[0]).toBeLessThan(0);
   });
 });

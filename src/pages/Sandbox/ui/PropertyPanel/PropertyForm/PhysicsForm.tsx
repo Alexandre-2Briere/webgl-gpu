@@ -1,25 +1,27 @@
-import { Checkbox, TextField } from '@mui/material';
+import { Checkbox, FormControlLabel } from '@mui/material';
 import type { PropertyGroup } from '../../../items/types';
+import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
+import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
 
 export interface PhysicsState {
   hasRigidbody: boolean;
-  isStatic:     boolean;
-  hasHitbox:    boolean;
-  layer:        string;
+  isStatic: boolean;
+  hasHitbox: boolean;
+  layer: string;
 }
 
 interface PhysicsFormProps {
-  physics:         PhysicsState;
+  physics: PhysicsState;
   visibleSections: Set<PropertyGroup>;
   /** Called on every change — parent updates state. */
-  onChange:        (physics: PhysicsState) => void;
+  onChange: (physics: PhysicsState) => void;
   /** Called when a change should be propagated to the engine — parent fires onPhysicsChange. */
-  onApply:         (physics: PhysicsState) => void;
+  onApply: (physics: PhysicsState) => void;
 }
 
 export function PhysicsForm({ physics, visibleSections, onChange, onApply }: PhysicsFormProps) {
   const showRigidbody = visibleSections.has('rigidbody');
-  const showHitbox    = visibleSections.has('hitbox');
+  const showHitbox = visibleSections.has('hitbox');
 
   function handleCheckbox(updated: PhysicsState): void {
     onChange(updated);
@@ -27,52 +29,73 @@ export function PhysicsForm({ physics, visibleSections, onChange, onApply }: Phy
   }
 
   return (
-    <div id="prop-section-physics" className="prop-section">
-      <div className="prop-section-label">Physics</div>
+    <AccordionPrimitive title="Physics">
       {showRigidbody && (
-        <div id="prop-rb-row" className="prop-row">
-          <span className="prop-label">Rigidbody</span>
-          <Checkbox
-            size="small"
-            checked={physics.hasRigidbody}
-            onChange={(event) => handleCheckbox({ ...physics, hasRigidbody: event.target.checked })}
+
+        <div className="prop-row">
+          <FormControlLabel
+            id="prop-rb-row"
+            labelPlacement="start"
+            label="Rigidbody"
+            control={
+              <Checkbox
+                size="small"
+                checked={physics.hasRigidbody}
+                onChange={(event) => handleCheckbox({ ...physics, hasRigidbody: event.target.checked })}
+              />
+            }
+            sx={{ margin: 0, width: '100%', '& .MuiFormControlLabel-label': { flex: 1 } }}
           />
         </div>
       )}
       {showRigidbody && physics.hasRigidbody && (
-        <div id="prop-static-row" className="prop-row prop-subrow">
-          <span className="prop-label">Static</span>
-          <Checkbox
-            size="small"
-            checked={physics.isStatic}
-            onChange={(event) => handleCheckbox({ ...physics, isStatic: event.target.checked })}
+
+        <div className="prop-row">
+          <FormControlLabel
+            id="prop-static-row"
+            labelPlacement="start"
+            label="Static"
+            control={
+              <Checkbox
+                size="small"
+                checked={physics.isStatic}
+                onChange={(event) => handleCheckbox({ ...physics, isStatic: event.target.checked })}
+              />
+            }
+            sx={{ margin: 0, width: '100%', '& .MuiFormControlLabel-label': { flex: 1 } }}
           />
         </div>
       )}
       {showHitbox && (
-        <div id="prop-hb-row" className="prop-row">
-          <span className="prop-label">Hitbox</span>
-          <Checkbox
-            size="small"
-            checked={physics.hasHitbox}
-            onChange={(event) => handleCheckbox({ ...physics, hasHitbox: event.target.checked })}
+
+        <div className="prop-row">
+          <FormControlLabel
+            id="prop-hb-row"
+            labelPlacement="start"
+            label="Hitbox"
+            control={
+              <Checkbox
+                size="small"
+                checked={physics.hasHitbox}
+                onChange={(event) => handleCheckbox({ ...physics, hasHitbox: event.target.checked })}
+              />
+            }
+            sx={{ margin: 0, width: '100%', '& .MuiFormControlLabel-label': { flex: 1 } }}
           />
         </div>
       )}
       {showHitbox && physics.hasHitbox && (
-        <div id="prop-layer-row" className="prop-row prop-subrow">
-          <span className="prop-label">Layer</span>
-          <TextField
+
+        <div className="prop-row">
+          <InputPrimitive
             type="text"
+            label="Layer"
             value={physics.layer}
-            size="small"
-            variant="standard"
-            onChange={(event) => onChange({ ...physics, layer: event.target.value })}
-            onBlur={() => onApply(physics)}
-            onKeyDown={(event) => { if (event.key === 'Enter') onApply(physics); }}
+            onChange={(value) => onChange({ ...physics, layer: value })}
+            onApply={() => onApply(physics)}
           />
         </div>
       )}
-    </div>
+    </AccordionPrimitive>
   );
 }

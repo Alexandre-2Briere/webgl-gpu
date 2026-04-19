@@ -83,18 +83,11 @@ export class LightGameObject implements ISceneObject {
     this._lightBuffer.markDirty();
   }
 
-  setStrength(strength: number): void {
-    if (this.lightType !== LightType.Ambient) {
-      logger.error('LightGameObject: setStrength() is only valid on ambient lights');
-      return;
-    }
-    this._radius = strength;
-    this._lightBuffer.markDirty();
-  }
 
   /** Set the light direction directly (normalized). Only meaningful for Directional lights. */
   setDirection(direction: Vec3): void {
     const length = Math.sqrt(direction[0] ** 2 + direction[1] ** 2 + direction[2] ** 2);
+    // REVIEW [BEST PRACTICE]: exact float equality — prefer `length < 1e-10` as a near-zero guard.
     if (length === 0) return;
     this._direction = [direction[0] / length, direction[1] / length, direction[2] / length];
     this._lightBuffer.markDirty();

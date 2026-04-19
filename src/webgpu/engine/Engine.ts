@@ -257,8 +257,12 @@ export class Engine {
     return loadObjAsset(this._renderer.device, this._renderer.queue, url, timeoutMs);
   }
 
-  async loadFbx(url: string, timeoutMs?: number): Promise<FbxAssetHandle> {
-    return loadFbxAsset(this._renderer.device, this._renderer.queue, this._layouts.fbxMaterial, url, timeoutMs);
+  async loadFbx(
+    url: string,
+    timeoutMs?: number,
+    textureOverrides: Record<string, string> = {},
+  ): Promise<FbxAssetHandle> {
+    return loadFbxAsset(this._renderer.device, this._renderer.queue, this._layouts.fbxMaterial, url, timeoutMs, textureOverrides);
   }
 
   createCamera(opts: CameraOptions = {}): Camera {

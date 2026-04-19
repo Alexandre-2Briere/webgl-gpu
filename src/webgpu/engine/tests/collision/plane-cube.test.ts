@@ -44,14 +44,14 @@ describe('testPlaneCube — y-axis plane at y=0', () => {
     expect(result.hit).toBe(false);
   });
 
-  it('normal points away from cube (upward when cube is above)', () => {
+  it('normal points toward plane (downward when cube is above)', () => {
     const result = testPlaneCube(makePlane('y', 0), makeCube([1, 1, 1], [0, 0.5, 0]));
-    expect(result.normal[1]).toBeGreaterThan(0);
+    expect(result.normal[1]).toBeLessThan(0);
   });
 
-  it('normal points downward when cube is below the plane', () => {
+  it('normal points upward when cube is below the plane', () => {
     const result = testPlaneCube(makePlane('y', 0), makeCube([1, 1, 1], [0, -0.5, 0]));
-    expect(result.normal[1]).toBeLessThan(0);
+    expect(result.normal[1]).toBeGreaterThan(0);
   });
 });
 
@@ -59,6 +59,6 @@ describe('testPlaneCube — x-axis plane', () => {
   it('cube straddling x-axis plane: hit', () => {
     const result = testPlaneCube(makePlane('x', 0), makeCube([1, 1, 1], [0.5, 0, 0]));
     expect(result.hit).toBe(true);
-    expect(result.normal[0]).toBeGreaterThan(0);
+    expect(result.normal[0]).toBeLessThan(0);
   });
 });

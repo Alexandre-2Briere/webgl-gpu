@@ -1,84 +1,78 @@
-import { InputAdornment, MenuItem, Select, TextField } from '@mui/material';
 import { safeParseFloat } from '@engine';
-import { PaddingRemover } from './Remover';
+import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
+import { SelectPrimitive } from '../../Primitive/Select/SelectPrimitive';
+import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
+import { safeParseInt } from '@lib/utils/math/math';
 
-const TILE_SIZES = [4, 8, 16, 32, 64];
+const TILE_SIZES = [2, 4, 8, 16, 32, 64];
+const TILE_SIZE_OPTIONS = TILE_SIZES.map((size) => ({ value: String(size), label: String(size) }));
 
 export interface InfiniteGroundState {
-  yLevel:          string;
+  yLevel:            string;
+  colorHex:          string;
   alternateColorHex: string;
-  tileSize:        number;
+  tileSize:          number;
 }
 
 interface InfiniteGroundFormProps {
-  ground:              InfiniteGroundState;
-  onGroundChange:      (ground: InfiniteGroundState) => void;
-  onYLevelApply:       (y: number) => void;
-  onAltColorApply:     (hex: string) => void;
-  onTileSizeApply:     (size: number) => void;
+  ground:          InfiniteGroundState;
+  onGroundChange:  (ground: InfiniteGroundState) => void;
+  onYLevelApply:   (y: number) => void;
+  onColorApply:    (hex: string) => void;
+  onAltColorApply: (hex: string) => void;
+  onTileSizeApply: (size: number) => void;
 }
 
 export function InfiniteGroundForm({
   ground,
   onGroundChange,
   onYLevelApply,
+  onColorApply,
   onAltColorApply,
   onTileSizeApply,
 }: InfiniteGroundFormProps) {
   return (
-    <div id="prop-section-ground" className="prop-section">
-      <div className="prop-section-label">Ground</div>
-
+    <AccordionPrimitive title="Ground">
       <div className="prop-row">
-        <span className="prop-label">Y Level</span>
-        <TextField
+        <InputPrimitive
           type="number"
+          label="Y-level"
           value={ground.yLevel}
-          size="small"
-          variant="standard"
-          onChange={(event) => onGroundChange({ ...ground, yLevel: event.target.value })}
-          onBlur={() => onYLevelApply(safeParseFloat(ground.yLevel))}
-          onKeyDown={(event) => { if (event.key === 'Enter') onYLevelApply(safeParseFloat(ground.yLevel)); }}
-          sx={PaddingRemover}
+          onChange={(event) => onGroundChange({ ...ground, yLevel: event })}
+          onApply={() => onYLevelApply(safeParseFloat(ground.yLevel))}
         />
       </div>
-
       <div className="prop-row">
-        <span className="prop-label">Alt Color</span>
-        <TextField
+        <InputPrimitive
           type="text"
-          value={ground.alternateColorHex}
-          size="small"
-          variant="standard"
-          onChange={(event) => onGroundChange({ ...ground, alternateColorHex: event.target.value.toUpperCase() })}
-          onBlur={() => onAltColorApply(ground.alternateColorHex)}
-          onKeyDown={(event) => { if (event.key === 'Enter') onAltColorApply(ground.alternateColorHex); }}
-          slotProps={{
-            input: {
-              startAdornment: <InputAdornment position="start">#</InputAdornment>,
-            },
-          }}
-          sx={PaddingRemover}
+          label="Color 1 #"
+          value={ground.colorHex}
+          onChange={(value) => onGroundChange({ ...ground, colorHex: value.toUpperCase() })}
+          onApply={() => onColorApply(ground.colorHex)}
         />
       </div>
-
       <div className="prop-row">
-        <span className="prop-label">Tile Size</span>
-        <Select
+        <InputPrimitive
+          type="text"
+          label="Color 2 #"
+          value={ground.alternateColorHex}
+          onChange={(value) => onGroundChange({ ...ground, alternateColorHex: value.toUpperCase() })}
+          onApply={() => onAltColorApply(ground.alternateColorHex)}
+        />
+      </div>
+      <div className='prop-row'>
+        <SelectPrimitive
+          label="Tile Size"
+          labelId="tile-size-label"
           value={String(ground.tileSize)}
-          size="small"
-          variant="standard"
-          onChange={(event) => {
-            const size = parseInt(event.target.value);
+          options={TILE_SIZE_OPTIONS}
+          onChange={(value) => {
+            const size = safeParseInt(value);
             onGroundChange({ ...ground, tileSize: size });
             onTileSizeApply(size);
           }}
-        >
-          {TILE_SIZES.map(size => (
-            <MenuItem key={size} value={String(size)}>{size}</MenuItem>
-          ))}
-        </Select>
+        />
       </div>
-    </div>
+    </AccordionPrimitive>
   );
 }

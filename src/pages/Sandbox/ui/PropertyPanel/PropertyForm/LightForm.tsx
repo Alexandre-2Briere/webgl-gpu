@@ -1,88 +1,56 @@
-import { MenuItem, Select, TextField } from '@mui/material';
 import { LightType, safeParseFloat } from '@engine';
 import type { PropertyGroup } from '../../../items/types';
+import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
+import { SelectPrimitive } from '../../Primitive/Select/SelectPrimitive';
+import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
+
+const LIGHT_TYPE_OPTIONS = [
+  { value: '0', label: 'Ambient' },
+  { value: '1', label: 'Point' },
+];
 
 export interface LightState {
   lightType: number;
-  radius:    string;
-  power:     string;
-  strength:  string;
+  radius: string;
 }
 
 interface LightFormProps {
-  light:            LightState;
-  visibleSections:  Set<PropertyGroup>;
-  onLightChange:    (light: LightState) => void;
-  onTypeApply:      (type: LightType) => void;
-  onRadiusApply:    (radius: number) => void;
-  onPowerApply:     (power: number) => void;
-  onStrengthApply:  (strength: number) => void;
+  light: LightState;
+  visibleSections: Set<PropertyGroup>;
+  onLightChange: (light: LightState) => void;
+  onTypeApply: (type: LightType) => void;
+  onRadiusApply: (radius: number) => void;
 }
 
-export function LightForm({ light, visibleSections, onLightChange, onTypeApply, onRadiusApply, onPowerApply, onStrengthApply }: LightFormProps) {
+export function LightForm({ light, visibleSections, onLightChange, onTypeApply, onRadiusApply }: LightFormProps) {
   return (
-    <div id="prop-section-light" className="prop-section">
-      <div className="prop-section-label">Light</div>
+    <AccordionPrimitive title="Light">
       {visibleSections.has('lightType') && (
-        <div className="prop-row">
-          <span className="prop-label">Type</span>
-          <Select
-            value={String(light.lightType)}
-            size="small"
-            variant="standard"
-            onChange={(event) => {
-              const newType = parseInt(event.target.value) as LightType;
-              onLightChange({ ...light, lightType: newType });
-              onTypeApply(newType);
-            }}
-          >
-            <MenuItem value="0">Ambient</MenuItem>
-            <MenuItem value="1">Point</MenuItem>
-          </Select>
-        </div>
+        <SelectPrimitive
+          label="Type"
+          labelId="light-type-label"
+          value={String(light.lightType)}
+          options={LIGHT_TYPE_OPTIONS}
+          onChange={(value) => {
+            // REVIEW [BLOCKING]: parseInt without radix (ESLint radix rule) and unvalidated cast to LightType.
+            // Use parseInt(value, 10) and add a bounds check before casting.
+            const newType = parseInt(value) as LightType;
+            onLightChange({ ...light, lightType: newType });
+            onTypeApply(newType);
+          }}
+        />
       )}
-      {visibleSections.has('lightRadius') && light.lightType === LightType.Point && (
+      {visibleSections.has('lightRadius') && (
         <div className="prop-row prop-subrow">
-          <span className="prop-label">Radius</span>
-          <TextField
+          <InputPrimitive
             type="number"
+            label="Radius"
             value={light.radius}
-            size="small"
-            variant="standard"
-            onChange={(event) => onLightChange({ ...light, radius: event.target.value })}
-            onBlur={() => onRadiusApply(safeParseFloat(light.radius))}
-            onKeyDown={(event) => { if (event.key === 'Enter') onRadiusApply(safeParseFloat(light.radius)); }}
+            onChange={(value) => onLightChange({ ...light, radius: value })}
+            onApply={() => onRadiusApply(safeParseFloat(light.radius))}
           />
         </div>
       )}
-      {visibleSections.has('lightPower') && (
-        <div className="prop-row">
-          <span className="prop-label">Power</span>
-          <TextField
-            type="number"
-            value={light.power}
-            size="small"
-            variant="standard"
-            onChange={(event) => onLightChange({ ...light, power: event.target.value })}
-            onBlur={() => onPowerApply(safeParseFloat(light.power))}
-            onKeyDown={(event) => { if (event.key === 'Enter') onPowerApply(safeParseFloat(light.power)); }}
-          />
-        </div>
-      )}
-      {visibleSections.has('lightStrength') && light.lightType === LightType.Ambient && (
-        <div className="prop-row prop-subrow">
-          <span className="prop-label">Strength</span>
-          <TextField
-            type="number"
-            value={light.strength}
-            size="small"
-            variant="standard"
-            onChange={(event) => onLightChange({ ...light, strength: event.target.value })}
-            onBlur={() => onStrengthApply(safeParseFloat(light.strength))}
-            onKeyDown={(event) => { if (event.key === 'Enter') onStrengthApply(safeParseFloat(light.strength)); }}
-          />
-        </div>
-      )}
-    </div>
+    </AccordionPrimitive>
   );
 }

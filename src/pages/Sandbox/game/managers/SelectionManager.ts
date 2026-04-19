@@ -74,10 +74,12 @@ export class SelectionManager {
     if (this._gizmo && !isPlaying) {
       const position   = obj.gameObject.position;
       const quaternion = obj.gameObject.quaternion;
-      this._gizmo.setPosition([position[0], position[1], position[2]]);
-      this._gizmo.setQuaternion([quaternion[0], quaternion[1], quaternion[2], quaternion[3]]);
-      this._gizmo.setScale(1, 1, 1);
-      this._gizmo.visible = true;
+      if(obj.key !== "InfiniteGround") {
+        this._gizmo.setPosition([position[0], position[1], position[2]]);
+        this._gizmo.setQuaternion([quaternion[0], quaternion[1], quaternion[2], quaternion[3]]);
+        this._gizmo.setScale(1, 1, 1);
+        this._gizmo.visible = true;
+      }
     }
   }
 

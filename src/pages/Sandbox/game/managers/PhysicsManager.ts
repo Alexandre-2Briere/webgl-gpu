@@ -76,8 +76,8 @@ export class PhysicsManager {
       if (!obj || !isGameObject(obj.gameObject)) return;
       const hitbox = obj.gameObject.hitbox;
       if (hitbox?.type === 'cube') {
-        const halfY = obj.key === 'Quad' ? 0.01 : y * 0.5
-        ;(hitbox as CubeHitbox).halfExtents = [x * 0.5, halfY, z * 0.5];
+        const halfY = obj.key === 'Quad' ? 0.01 : y * 0.5;
+        (hitbox as CubeHitbox).halfExtents = [x * 0.5, halfY, z * 0.5];
       }
     };
 
@@ -96,24 +96,6 @@ export class PhysicsManager {
       );
       if (obj?.gameObject instanceof LightGameObject) {
         obj.gameObject.setLightType(type);
-      }
-    };
-
-    propertyPanel.onPowerChange = (power) => {
-      const obj = this._spawnManager.getObjects().find(
-        s => s.gameObject === propertyPanel.currentObject,
-      );
-      if (obj?.gameObject instanceof LightGameObject) {
-        obj.gameObject.setRadius(power);
-      }
-    };
-
-    propertyPanel.onStrengthChange = (strength) => {
-      const obj = this._spawnManager.getObjects().find(
-        s => s.gameObject === propertyPanel.currentObject,
-      );
-      if (obj?.gameObject instanceof LightGameObject) {
-        obj.gameObject.setStrength(strength);
       }
     };
   }

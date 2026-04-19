@@ -1,32 +1,31 @@
-import { MenuItem, Select } from '@mui/material';
+import { SelectPrimitive } from '../../Primitive/Select/SelectPrimitive';
+import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
 
 export interface AssetOption {
   label: string;
-  url:   string;
+  url: string;
 }
 
 interface AssetFormProps {
   selectedAssetUrl: string;
-  assetOptions:     AssetOption[];
-  onChange:         (url: string) => void;
+  assetOptions: AssetOption[];
+  onChange: (url: string) => void;
 }
 
 export function AssetForm({ selectedAssetUrl, assetOptions, onChange }: AssetFormProps) {
+  const selectOptions = assetOptions.map((option) => ({ value: option.url, label: option.label }));
+
   return (
-    <div id="prop-section-asset" className="prop-section">
-      <div className="prop-section-label">Asset</div>
+    <AccordionPrimitive title="Asset">
       <div className="prop-row">
-        <Select
+        <SelectPrimitive
+          label="Asset"
+          labelId="asset-select-label"
           value={selectedAssetUrl}
-          size="small"
-          variant="standard"
-          onChange={(event) => onChange(event.target.value)}
-        >
-          {assetOptions.map((option) => (
-            <MenuItem key={option.url} value={option.url}>{option.label}</MenuItem>
-          ))}
-        </Select>
+          options={selectOptions}
+          onChange={onChange}
+        />
       </div>
-    </div>
+    </AccordionPrimitive>
   );
 }

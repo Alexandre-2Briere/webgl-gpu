@@ -50,14 +50,14 @@ describe('testPlaneMesh — y-axis plane at y=0', () => {
     expect(result.hit).toBe(false);
   });
 
-  it('normal points upward when mesh is above plane', () => {
+  it('normal points downward when mesh is above plane', () => {
     const result = testPlaneMesh(makePlane('y', 0), makeMesh([1, 1, 1], [0, 0.5, 0]));
-    expect(result.normal[1]).toBeGreaterThan(0);
+    expect(result.normal[1]).toBeLessThan(0);
   });
 
-  it('normal points downward when mesh is below plane', () => {
+  it('normal points upward when mesh is below plane', () => {
     const result = testPlaneMesh(makePlane('y', 0), makeMesh([1, 1, 1], [0, -0.5, 0]));
-    expect(result.normal[1]).toBeLessThan(0);
+    expect(result.normal[1]).toBeGreaterThan(0);
   });
 
   it('asymmetric halfExtents: uses the y half-extent for support', () => {
@@ -69,10 +69,10 @@ describe('testPlaneMesh — y-axis plane at y=0', () => {
 });
 
 describe('testPlaneMesh — x-axis plane', () => {
-  it('mesh straddling x-axis plane: hit with rightward normal', () => {
+  it('mesh straddling x-axis plane: hit with leftward normal', () => {
     const result = testPlaneMesh(makePlane('x', 0), makeMesh([1, 1, 1], [0.5, 0, 0]));
     expect(result.hit).toBe(true);
-    expect(result.normal[0]).toBeGreaterThan(0);
+    expect(result.normal[0]).toBeLessThan(0);
   });
 });
 

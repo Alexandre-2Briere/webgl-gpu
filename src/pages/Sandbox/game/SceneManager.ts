@@ -60,10 +60,18 @@ export class SceneManager {
     });
     engine.setCamera(camera);
 
+    const rawTextureUrls = import.meta.glob(
+      '../../../assets/LowpolyForestPack/TreesTexture/*.png',
+      { query: '?url', import: 'default', eager: true },
+    ) as Record<string, string>;
+    const textureOverrides: Record<string, string> = Object.fromEntries(
+      Object.entries(rawTextureUrls).map(([path, url]) => [path.split('/').pop()!, url]),
+    );
+
     this._terminal.print('Loading FBX assets...', 'log');
     const fbxCache: Map<string, FbxAssetHandle> = new Map();
     await Promise.all(FBX_CATALOG.map(({ url }) =>
-      engine.loadFbx(url).then(handle => fbxCache.set(url, handle))
+      engine.loadFbx(url, undefined, textureOverrides).then(handle => fbxCache.set(url, handle))
     ));
     this._propertyPanel.setFbxCatalog(FBX_CATALOG);
 
