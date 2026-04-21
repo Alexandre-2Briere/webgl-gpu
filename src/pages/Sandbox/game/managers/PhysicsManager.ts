@@ -1,8 +1,16 @@
 import type { Engine, ISceneObject, IGameObject, Vec3 } from '@engine';
 import { LightGameObject, applyPhysics, applyCollisions, Rigidbody3D, CubeHitbox } from '@engine';
-import type { PropertyPanel } from '../../ui/PropertyPanel/PropertyPanel';
 import type { SpawnManager } from './SpawnManager';
 import type { SpawnContext, PhysicsConfig } from '../../items/types';
+import { SANDBOX_EVENTS } from '../events';
+import type {
+  PubSubManager,
+  PropertyPhysicsChangedPayload,
+  PropertyScaleChangedPayload,
+  PropertyRadiusChangedPayload,
+  PropertyLightTypeChangedPayload,
+  PropertyAssetChangedPayload,
+} from '../events';
 import { spawn as spawnQuad } from '../../items/quad';
 import { spawn as spawnCube } from '../../items/cube';
 import { spawn as spawnFBX } from '../../items/fbx';
@@ -31,9 +39,51 @@ export class PhysicsManager {
   private readonly _engine:       Engine;
   private readonly _spawnManager: SpawnManager;
 
-  constructor(engine: Engine, spawnManager: SpawnManager) {
+  constructor(engine: Engine, spawnManager: SpawnManager, pubSub: PubSubManager) {
     this._engine       = engine;
     this._spawnManager = spawnManager;
+
+    pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_PHYSICS_CHANGED, (data: unknown) => {
+      const { objectIndex, data: { config } } = data as PropertyPhysicsChangedPayload;
+      this.rebuildObject(objectIndex, config);
+      pubSub.publish(SANDBOX_EVENTS.OBJECT_REBUILT, { objectIndex });
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_ASSET_CHANGED, (data: unknown) => {
+      const { objectIndex, data: { url } } = data as PropertyAssetChangedPayload;
+      const obj = this._spawnManager.getObject(objectIndex);
+      if (!obj) return;
+      obj.selectedFbxUrl = url;
+      this.rebuildObject(objectIndex, obj.physicsConfig);
+      pubSub.publish(SANDBOX_EVENTS.OBJECT_REBUILT, { objectIndex });
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_SCALE_CHANGED, (data: unknown) => {
+      const { objectIndex, data: { x, y, z } } = data as PropertyScaleChangedPayload;
+      const obj = this._spawnManager.getObject(objectIndex);
+      if (!obj || !isGameObject(obj.gameObject)) return;
+      const hitbox = obj.gameObject.hitbox;
+      if (hitbox?.type === 'cube') {
+        const halfY = obj.key === 'Quad' ? 0.01 : y * 0.5;
+        (hitbox as CubeHitbox).halfExtents = [x * 0.5, halfY, z * 0.5];
+      }
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_RADIUS_CHANGED, (data: unknown) => {
+      const { objectIndex, data: { radius } } = data as PropertyRadiusChangedPayload;
+      const obj = this._spawnManager.getObject(objectIndex);
+      if (obj?.gameObject instanceof LightGameObject) {
+        obj.gameObject.setRadius(radius);
+      }
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_LIGHT_TYPE_CHANGED, (data: unknown) => {
+      const { objectIndex, data: { lightType } } = data as PropertyLightTypeChangedPayload;
+      const obj = this._spawnManager.getObject(objectIndex);
+      if (obj?.gameObject instanceof LightGameObject) {
+        obj.gameObject.setLightType(lightType);
+      }
+    });
   }
 
   // ── Per-frame tick ────────────────────────────────────────────────────────────
@@ -43,61 +93,6 @@ export class PhysicsManager {
     const gameObjects = objects.map(s => s.gameObject).filter(isGameObject);
     applyPhysics(gameObjects, deltaTime);
     applyCollisions(this._spawnManager.getRigidbodyLayerMap(), gameObjects);
-  }
-
-  // ── Wire PropertyPanel callbacks ──────────────────────────────────────────────
-
-  wirePropertyPanel(propertyPanel: PropertyPanel): void {
-    propertyPanel.onPhysicsChange = (config) => {
-      const index = this._spawnManager.getObjects().findIndex(
-        s => s.gameObject === propertyPanel.currentObject,
-      );
-      if (index === -1) return;
-      this.rebuildObject(index, config);
-      const obj = this._spawnManager.getObject(index)!;
-      propertyPanel.show(obj.gameObject, obj.label, obj.properties, config, obj.selectedFbxUrl ?? undefined);
-    };
-
-    propertyPanel.onAssetChange = (url) => {
-      const index = this._spawnManager.getObjects().findIndex(
-        s => s.gameObject === propertyPanel.currentObject,
-      );
-      if (index === -1) return;
-      this._spawnManager.getObject(index)!.selectedFbxUrl = url;
-      this.rebuildObject(index, this._spawnManager.getObject(index)!.physicsConfig);
-      const obj = this._spawnManager.getObject(index)!;
-      propertyPanel.show(obj.gameObject, obj.label, obj.properties, obj.physicsConfig, url);
-    };
-
-    propertyPanel.onScaleChange = (x, y, z) => {
-      const obj = this._spawnManager.getObjects().find(
-        s => s.gameObject === propertyPanel.currentObject,
-      );
-      if (!obj || !isGameObject(obj.gameObject)) return;
-      const hitbox = obj.gameObject.hitbox;
-      if (hitbox?.type === 'cube') {
-        const halfY = obj.key === 'Quad' ? 0.01 : y * 0.5;
-        (hitbox as CubeHitbox).halfExtents = [x * 0.5, halfY, z * 0.5];
-      }
-    };
-
-    propertyPanel.onRadiusChange = (radius) => {
-      const obj = this._spawnManager.getObjects().find(
-        s => s.gameObject === propertyPanel.currentObject,
-      );
-      if (obj?.gameObject instanceof LightGameObject) {
-        obj.gameObject.setRadius(radius);
-      }
-    };
-
-    propertyPanel.onLightTypeChange = (type) => {
-      const obj = this._spawnManager.getObjects().find(
-        s => s.gameObject === propertyPanel.currentObject,
-      );
-      if (obj?.gameObject instanceof LightGameObject) {
-        obj.gameObject.setLightType(type);
-      }
-    };
   }
 
   // ── Object rebuild (physics config change) ────────────────────────────────────

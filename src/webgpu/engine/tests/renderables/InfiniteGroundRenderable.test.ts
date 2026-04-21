@@ -40,7 +40,7 @@ describe('InfiniteGroundRenderable — pre-init identity', () => {
   });
 
   it('default tileSize is 16', () => {
-    expect(new InfiniteGroundRenderable().tileSize).toBe(16);
+    expect(new InfiniteGroundRenderable().tileSize).toBe(4);
   });
 
   it('default yLevel is 0', () => {

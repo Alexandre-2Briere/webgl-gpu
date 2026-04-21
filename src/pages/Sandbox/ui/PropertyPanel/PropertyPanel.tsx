@@ -1,8 +1,9 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { IconButton, Typography } from '@mui/material';
-import type { ISceneObject } from '@engine';
-import { LightGameObject, LightType, InfiniteGroundGameObject } from '@engine';
+import type { ISceneObject, PubSubManager } from '@engine';
+import { LightGameObject, InfiniteGroundGameObject } from '@engine';
 import type { PhysicsConfig, PropertyGroup } from '../../items/types';
+import { SANDBOX_EVENTS } from '../../game/events';
 import { Vector3Form } from './PropertyForm/Vector3Form';
 import type { Vector3FormHandle } from './PropertyForm/Vector3Form';
 import { ColorForm } from './PropertyForm/ColorForm';
@@ -34,6 +35,7 @@ interface PanelViewState {
 export interface PropertyPanel {
   show(
     gameObject:        ISceneObject,
+    objectIndex:       number,
     label:             string,
     properties:        PropertyGroup[],
     physicsConfig?:    PhysicsConfig,
@@ -44,11 +46,7 @@ export interface PropertyPanel {
   setTitle(label: string): void;
   setFbxCatalog(catalog: { label: string; url: string }[]): void;
   readonly currentObject: ISceneObject | null;
-  onPhysicsChange:   ((config: PhysicsConfig) => void) | null;
-  onScaleChange:     ((x: number, y: number, z: number) => void) | null;
-  onRadiusChange:    ((radius: number) => void) | null;
-  onLightTypeChange: ((type: LightType) => void) | null;
-  onAssetChange:     ((url: string) => void) | null;
+  setPubSub(pubSub: PubSubManager): void;
 }
 
 const INITIAL_STATE: PanelViewState = {
@@ -71,15 +69,10 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
     const rotationFormRef = useRef<Vector3FormHandle>(null);
     const scaleFormRef    = useRef<Vector3FormHandle>(null);
 
-    const currentObjectRef  = useRef<ISceneObject | null>(null);
-    const assetOptionsRef   = useRef<AssetOption[]>([]);
-    const callbacksRef = useRef({
-      onPhysicsChange:   null as ((config: PhysicsConfig) => void) | null,
-      onScaleChange:     null as ((x: number, y: number, z: number) => void) | null,
-      onRadiusChange:    null as ((radius: number) => void) | null,
-      onLightTypeChange: null as ((type: LightType) => void) | null,
-      onAssetChange:     null as ((url: string) => void) | null,
-    });
+    const currentObjectRef      = useRef<ISceneObject | null>(null);
+    const currentObjectIndexRef = useRef<number>(-1);
+    const assetOptionsRef       = useRef<AssetOption[]>([]);
+    const pubSubRef             = useRef<PubSubManager | null>(null);
 
     function _applyColor(hex: string): void {
       if (!currentObjectRef.current) return;
@@ -93,8 +86,9 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
     useImperativeHandle(ref, () => {
       const handle: PropertyPanel = {
-        show(gameObject, label, properties, physicsConfig, selectedAssetUrl) {
-          currentObjectRef.current = gameObject;
+        show(gameObject, objectIndex, label, properties, physicsConfig, selectedAssetUrl) {
+          currentObjectRef.current      = gameObject;
+          currentObjectIndexRef.current = objectIndex;
 
           const [posX, posY, posZ] = gameObject.position;
           const [quaternionX, quaternionY, quaternionZ, quaternionW] = gameObject.quaternion;
@@ -172,19 +166,11 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
         get currentObject() { return currentObjectRef.current; },
 
-        get onPhysicsChange()   { return callbacksRef.current.onPhysicsChange; },
-        set onPhysicsChange(fn) { callbacksRef.current.onPhysicsChange = fn; },
-        get onScaleChange()     { return callbacksRef.current.onScaleChange; },
-        set onScaleChange(fn)   { callbacksRef.current.onScaleChange = fn; },
-        get onRadiusChange()    { return callbacksRef.current.onRadiusChange; },
-        set onRadiusChange(fn)  { callbacksRef.current.onRadiusChange = fn; },
-        get onLightTypeChange()   { return callbacksRef.current.onLightTypeChange; },
-        set onLightTypeChange(fn) { callbacksRef.current.onLightTypeChange = fn; },
-        get onAssetChange()     { return callbacksRef.current.onAssetChange; },
-        set onAssetChange(fn)   { callbacksRef.current.onAssetChange = fn; },
+        setPubSub(pubSub: PubSubManager): void {
+          pubSubRef.current = pubSub;
+        },
       };
       return handle;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const { isOpen, title, colorHex, visibleSections, physics, assetOptions, selectedAssetUrl, light, ground } = state;
@@ -244,7 +230,9 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
                 ref={scaleFormRef}
                 onApply={(x, y, z) => {
                   currentObjectRef.current?.setScale(x, y, z);
-                  callbacksRef.current.onScaleChange?.(x, y, z);
+                  pubSubRef.current?.publish(SANDBOX_EVENTS.PROPERTY_SCALE_CHANGED, {
+                    objectIndex: currentObjectIndexRef.current, data: { x, y, z }
+                  });
                 }}
               />
             )}
@@ -254,7 +242,10 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
                 physics={physics}
                 visibleSections={visibleSections}
                 onChange={(updated) => setState((previous) => ({ ...previous, physics: updated }))}
-                onApply={(updated) => callbacksRef.current.onPhysicsChange?.(updated)}
+                onApply={(updated) => pubSubRef.current?.publish(
+                  SANDBOX_EVENTS.PROPERTY_PHYSICS_CHANGED,
+                  { objectIndex: currentObjectIndexRef.current, data: { config: updated } },
+                )}
               />
             )}
 
@@ -264,7 +255,9 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
                 assetOptions={assetOptions}
                 onChange={(url) => {
                   setState((previous) => ({ ...previous, selectedAssetUrl: url }));
-                  callbacksRef.current.onAssetChange?.(url);
+                  pubSubRef.current?.publish(SANDBOX_EVENTS.PROPERTY_ASSET_CHANGED, {
+                    objectIndex: currentObjectIndexRef.current, data: { url }
+                  });
                 }}
               />
             )}
@@ -274,8 +267,14 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
                 light={light}
                 visibleSections={visibleSections}
                 onLightChange={(updated) => setState((previous) => ({ ...previous, light: updated }))}
-                onTypeApply={(type) => callbacksRef.current.onLightTypeChange?.(type)}
-                onRadiusApply={(radius) => callbacksRef.current.onRadiusChange?.(radius)}
+                onTypeApply={(type) => pubSubRef.current?.publish(
+                  SANDBOX_EVENTS.PROPERTY_LIGHT_TYPE_CHANGED,
+                  { objectIndex: currentObjectIndexRef.current, data: { lightType: type } },
+                )}
+                onRadiusApply={(radius) => pubSubRef.current?.publish(
+                  SANDBOX_EVENTS.PROPERTY_RADIUS_CHANGED,
+                  { objectIndex: currentObjectIndexRef.current, data: { radius } },
+                )}
               />
             )}
 

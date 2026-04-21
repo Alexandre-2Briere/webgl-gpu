@@ -81,7 +81,7 @@ export class SceneManager {
     this._inputManager     = new InputManager(this._canvas, pubSub);
     this._spawnManager     = new SpawnManager(engine, this._terminal, this._propertyPanel, this._sceneHierarchy, fbxCache, pubSub);
     this._selectionManager = new SelectionManager(this._spawnManager, this._propertyPanel, this._sceneHierarchy, this._canvas, pubSub);
-    this._physicsManager   = new PhysicsManager(engine, this._spawnManager);
+    this._physicsManager   = new PhysicsManager(engine, this._spawnManager, pubSub);
     this._playStateManager = new PlayStateManager(this._canvas, this._spawnManager, this._physicsManager, this._terminal, pubSub);
     this._cameraController = new CameraController(engine, this._inputManager, () => this._playStateManager.isPlaying());
     this._gizmoController  = new GizmoController(
@@ -100,8 +100,7 @@ export class SceneManager {
     this._selectionManager.setPickingDisabled(() => this._playStateManager.isPlaying());
     this._selectionManager.setCameraDataGetter(() => engine.camera.getData());
 
-    // Wire PropertyPanel physics callbacks into PhysicsManager
-    this._physicsManager.wirePropertyPanel(this._propertyPanel);
+    this._propertyPanel.setPubSub(pubSub);
 
     // Bridge internal pointer-lock event to the DOM for UI consumers outside the game folder
     pubSub.subscribe(SANDBOX_EVENTS.INPUT_POINTER_LOCK_RELEASED, () => {

@@ -3,7 +3,7 @@ import type { PropertyPanel } from '../../ui/PropertyPanel/PropertyPanel';
 import type { SceneHierarchy } from '../../ui/SceneHierarchy/SceneHierarchy';
 import type { ArrowGizmo } from '@engine';
 import { SANDBOX_EVENTS } from '../events';
-import type { PubSubManager, ObjectSpawnedPayload, ObjectRemovedPayload } from '../events';
+import type { PubSubManager, ObjectSpawnedPayload, ObjectRemovedPayload, ObjectRebuiltPayload } from '../events';
 
 export class SelectionManager {
   private readonly _spawnManager:   SpawnManager;
@@ -45,6 +45,11 @@ export class SelectionManager {
       this.deselect();
     });
 
+    pubSub.subscribe(SANDBOX_EVENTS.OBJECT_REBUILT, (data: unknown) => {
+      const { objectIndex } = data as ObjectRebuiltPayload;
+      this.select(objectIndex, false);
+    });
+
     this._attachClickPicker();
   }
 
@@ -65,6 +70,7 @@ export class SelectionManager {
     this._sceneHierarchy.setSelected(index);
     this._propertyPanel.show(
       obj.gameObject,
+      index,
       obj.label,
       obj.properties,
       obj.physicsConfig,
