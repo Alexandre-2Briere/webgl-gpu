@@ -2,7 +2,7 @@ import type { Renderable, RenderableInitArgs } from './Renderable';
 import type { Quad3DOptions } from '../../types';
 import type { Camera } from '../../core/Camera';
 import { VertexBuffer } from '../../buffers/VertexBuffer';
-import type { UniformSlot } from '../../buffers/UniformPool';
+import type { UniformPool, UniformSlot } from '../../buffers/UniformPool';
 import { COMMON } from '../../shaders/common';
 import { QUAD3D } from '../../shaders/quad3d';
 import { cross3, norm3, makeTransformMatrix } from '../../math';
@@ -30,6 +30,7 @@ export class Quad3D implements Renderable {
   private _vertexBuf!: VertexBuffer;
   private _indexBuf!: GPUBuffer;
   private _uniformSlot!: UniformSlot;
+  private _uniformPool!: UniformPool;
   private _objectBindGroup!: GPUBindGroup;
   private _pipeline!: GPURenderPipeline;
   private _device!: GPUDevice;
@@ -48,6 +49,7 @@ export class Quad3D implements Renderable {
   init(args: RenderableInitArgs): void {
     const { device, queue, format, pipelineCache, layouts, uniformPool } = args;
     this._device = device;
+    this._uniformPool = uniformPool;
 
     // ── Vertex buffer ────────────────────────────────────────────────────────
     const verts = this._buildVerts(this._opts);
@@ -217,6 +219,7 @@ export class Quad3D implements Renderable {
   }
 
   destroy(): void {
+    this._uniformPool.free(this._uniformSlot);
     this._vertexBuf.destroy();
     this._indexBuf.destroy();
   }

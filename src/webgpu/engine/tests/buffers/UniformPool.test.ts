@@ -44,7 +44,7 @@ describe('UniformPool', () => {
     }
   });
 
-  it('all slots reference the same underlying GPUBuffer', () => {
+  it('slots within the same chunk reference the same GPUBuffer', () => {
     const pool = new UniformPool(device as unknown as GPUDevice, ALIGNMENT * 3);
     const a = pool.allocate(ALIGNMENT);
     const b = pool.allocate(ALIGNMENT);
@@ -53,7 +53,7 @@ describe('UniformPool', () => {
 
   // ── Capacity boundary ─────────────────────────────────────────────────────
 
-  it('does not throw when the last allocation exactly fills the pool', () => {
+  it('does not throw when the last allocation exactly fills the chunk', () => {
     const pool = new UniformPool(device as unknown as GPUDevice, ALIGNMENT * 2);
     expect(() => {
       pool.allocate(ALIGNMENT);
@@ -61,20 +61,48 @@ describe('UniformPool', () => {
     }).not.toThrow();
   });
 
-  it('throws when an allocation would exceed pool capacity', () => {
-    const pool = new UniformPool(device as unknown as GPUDevice, ALIGNMENT);
-    pool.allocate(ALIGNMENT); // fills the pool exactly
+  // ── Auto-growth ───────────────────────────────────────────────────────────
 
-    expect(() => pool.allocate(1)).toThrow();
+  it('allocates beyond initial capacity without throwing', () => {
+    const pool = new UniformPool(device as unknown as GPUDevice, ALIGNMENT);
+    pool.allocate(ALIGNMENT); // fills initial chunk
+
+    expect(() => pool.allocate(ALIGNMENT)).not.toThrow();
   });
 
-  it('throws even for a 1-byte request after the pool is exhausted', () => {
-    const pool = new UniformPool(device as unknown as GPUDevice, ALIGNMENT * 3);
-    pool.allocate(ALIGNMENT);
-    pool.allocate(ALIGNMENT);
-    pool.allocate(ALIGNMENT); // pool full
+  it('slots from different chunks reference different GPUBuffers', () => {
+    const pool = new UniformPool(device as unknown as GPUDevice, ALIGNMENT);
+    const first  = pool.allocate(ALIGNMENT); // fills initial chunk
+    const second = pool.allocate(ALIGNMENT); // triggers new chunk
+    expect(first.buffer).not.toBe(second.buffer);
+  });
 
-    expect(() => pool.allocate(1)).toThrow();
+  // ── Freelist ──────────────────────────────────────────────────────────────
+
+  it('free() + allocate() reuses the freed slot', () => {
+    const pool = new UniformPool(device as unknown as GPUDevice, ALIGNMENT * 2);
+    const slot = pool.allocate(ALIGNMENT);
+    const { buffer, offset, size } = slot;
+
+    pool.free(slot);
+    const reused = pool.allocate(ALIGNMENT);
+
+    expect(reused.buffer).toBe(buffer);
+    expect(reused.offset).toBe(offset);
+    expect(reused.size).toBe(size);
+  });
+
+  it('freelist is checked before growing', () => {
+    const pool = new UniformPool(device as unknown as GPUDevice, ALIGNMENT);
+    const slot = pool.allocate(ALIGNMENT); // fills the only chunk
+
+    pool.free(slot);
+    // Should reuse the freed slot rather than creating a new chunk
+    const createCountBefore = (device.createBuffer as ReturnType<typeof import('vitest').vi.fn>).mock.calls.length;
+    pool.allocate(ALIGNMENT);
+    const createCountAfter = (device.createBuffer as ReturnType<typeof import('vitest').vi.fn>).mock.calls.length;
+
+    expect(createCountAfter).toBe(createCountBefore); // no new buffer created
   });
 
   // ── write() ───────────────────────────────────────────────────────────────
@@ -93,10 +121,17 @@ describe('UniformPool', () => {
 
   // ── destroy() ─────────────────────────────────────────────────────────────
 
-  it('delegates destroy() to the underlying GPUBuffer', () => {
+  it('destroy() destroys all allocated chunk buffers', () => {
     const pool = new UniformPool(device as unknown as GPUDevice, ALIGNMENT);
-    const gpuBuf = pool.buffer as unknown as MockGPUBuffer;
+    const firstSlot  = pool.allocate(ALIGNMENT); // chunk 0
+    const secondSlot = pool.allocate(ALIGNMENT); // chunk 1 (auto-grew)
+
+    const chunk0 = firstSlot.buffer as unknown as MockGPUBuffer;
+    const chunk1 = secondSlot.buffer as unknown as MockGPUBuffer;
+
     pool.destroy();
-    expect(gpuBuf.destroy).toHaveBeenCalledOnce();
+
+    expect(chunk0.destroy).toHaveBeenCalledOnce();
+    expect(chunk1.destroy).toHaveBeenCalledOnce();
   });
 });

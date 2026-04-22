@@ -1,7 +1,7 @@
 import type { Renderable, RenderableInitArgs } from './Renderable';
 import type { ArrowGizmoOptions } from '../../types';
 import type { Camera } from '../../core/Camera';
-import type { UniformSlot } from '../../buffers/UniformPool';
+import type { UniformPool, UniformSlot } from '../../buffers/UniformPool';
 import { COMMON } from '../../shaders/common';
 import { ARROW_GIZMO, ARROW_GIZMO_VISIBLE_KEY, ARROW_GIZMO_OCCLUDED_KEY } from '../../shaders/arrowGizmo';
 import { makeTransformMatrix } from '../../math';
@@ -37,6 +37,7 @@ export class ArrowGizmo implements Renderable {
   // GPU resources — set during init()
   private _queue!:               GPUQueue;
   private _objectSlot!:          UniformSlot;
+  private _uniformPool!:         UniformPool;
   private _objectBindGroup!:     GPUBindGroup;
   private _gizmoBuffer!:         GPUBuffer;
   private _gizmoBindGroup!:      GPUBindGroup;
@@ -89,6 +90,7 @@ export class ArrowGizmo implements Renderable {
 
     const { device, queue, format, pipelineCache, layouts, uniformPool } = args;
     this._queue = queue;
+    this._uniformPool = uniformPool;
 
     // ── Object uniform (group 1) ─────────────────────────────────────────────
     this._objectSlot = uniformPool.allocate(80);
@@ -250,6 +252,7 @@ export class ArrowGizmo implements Renderable {
   }
 
   destroy(): void {
+    this._uniformPool.free(this._objectSlot);
     this._gizmoBuffer.destroy();
   }
 }

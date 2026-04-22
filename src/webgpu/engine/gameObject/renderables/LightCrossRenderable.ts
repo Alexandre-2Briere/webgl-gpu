@@ -1,6 +1,6 @@
 import type { Renderable, RenderableInitArgs } from './Renderable';
 import type { Camera } from '../../core/Camera';
-import type { UniformSlot } from '../../buffers/UniformPool';
+import type { UniformPool, UniformSlot } from '../../buffers/UniformPool';
 import type { Vec3, Vec4 } from '../../math';
 import { COMMON } from '../../shaders/common';
 import { LIGHT, LIGHT_CROSS_PIPELINE_KEY } from '../../shaders/light';
@@ -17,6 +17,7 @@ export class LightCrossRenderable implements Renderable {
   private readonly _light:            LightGameObject;
   private readonly _queue:            GPUQueue;
   private readonly _uniformSlot:      UniformSlot;
+  private readonly _uniformPool:      UniformPool;
   private readonly _objectBindGroup:  GPUBindGroup;
   private readonly _pipeline:         GPURenderPipeline;
   private readonly _uniformData =     new Float32Array(20);  // 16 (model) + 4 (tint)
@@ -24,6 +25,7 @@ export class LightCrossRenderable implements Renderable {
   constructor(light: LightGameObject, args: RenderableInitArgs) {
     this._light = light;
     this._queue = args.queue;
+    this._uniformPool = args.uniformPool;
 
     // ── Object uniform ───────────────────────────────────────────────────────
     this._uniformSlot = args.uniformPool.allocate(80);
@@ -148,6 +150,6 @@ export class LightCrossRenderable implements Renderable {
   }
 
   destroy(): void {
-    // UniformPool slots are not individually freed — no cleanup needed here.
+    this._uniformPool.free(this._uniformSlot);
   }
 }

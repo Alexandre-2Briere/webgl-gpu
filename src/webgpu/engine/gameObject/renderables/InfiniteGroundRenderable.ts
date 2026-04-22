@@ -1,6 +1,6 @@
 import type { Renderable, RenderableInitArgs } from './Renderable';
 import type { Camera } from '../../core/Camera';
-import type { UniformSlot } from '../../buffers/UniformPool';
+import type { UniformPool, UniformSlot } from '../../buffers/UniformPool';
 import { COMMON } from '../../shaders/common';
 import { INFINITE_GROUND } from '../../shaders/infiniteGround';
 import { makeTransformMatrix } from '../../math';
@@ -36,6 +36,7 @@ export class InfiniteGroundRenderable implements Renderable {
   visible = true;
 
   private _uniformSlot!: UniformSlot;
+  private _uniformPool!: UniformPool;
   private _objectBindGroup!: GPUBindGroup;
   private _groundExtraBuf!: GPUBuffer;
   private _groundExtraBindGroup!: GPUBindGroup;
@@ -81,6 +82,7 @@ export class InfiniteGroundRenderable implements Renderable {
   init(args: RenderableInitArgs): void {
     const { device, queue, format, pipelineCache, layouts, uniformPool } = args;
     this._device = device;
+    this._uniformPool = uniformPool;
 
     // ── Vertex buffer ────────────────────────────────────────────────────────
     this._vertexBuf = device.createBuffer({
@@ -249,6 +251,7 @@ export class InfiniteGroundRenderable implements Renderable {
   }
 
   destroy(): void {
+    this._uniformPool.free(this._uniformSlot);
     this._vertexBuf.destroy();
     this._indexBuf.destroy();
     this._groundExtraBuf.destroy();

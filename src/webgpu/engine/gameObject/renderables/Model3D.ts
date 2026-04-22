@@ -1,7 +1,7 @@
 import type { Renderable, RenderableInitArgs } from './Renderable';
 import type { Model3DOptions } from '../../types';
 import type { Camera } from '../../core/Camera';
-import type { UniformSlot } from '../../buffers/UniformPool';
+import type { UniformPool, UniformSlot } from '../../buffers/UniformPool';
 import { ModelAsset } from './ModelAsset';
 import { MESH_PIPELINE_KEY } from './Mesh';
 import { COMMON } from '../../shaders/common';
@@ -26,6 +26,7 @@ export class Model3D implements Renderable {
   private readonly _asset: ModelAsset;
   private readonly _label?: string;
   private _uniformSlot!: UniformSlot;
+  private _uniformPool!: UniformPool;
   private _objectBindGroup!: GPUBindGroup;
   private _pipeline!: GPURenderPipeline;
   private _device!: GPUDevice;
@@ -52,6 +53,7 @@ export class Model3D implements Renderable {
   init(args: RenderableInitArgs): void {
     const { device, format, pipelineCache, layouts, uniformPool } = args;
     this._device = device;
+    this._uniformPool = uniformPool;
 
     // ── Object uniform ───────────────────────────────────────────────────────
     this._uniformSlot = uniformPool.allocate(80);
@@ -161,7 +163,7 @@ export class Model3D implements Renderable {
   }
 
   destroy(): void {
-    // Vertex/index buffers belong to ModelAsset — do not destroy them here.
+    this._uniformPool.free(this._uniformSlot);
   }
 
   // ── Private ──────────────────────────────────────────────────────────────────

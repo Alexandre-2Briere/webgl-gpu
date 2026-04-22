@@ -1,6 +1,6 @@
 import type { Renderable, RenderableInitArgs } from './Renderable';
 import type { Camera } from '../../core/Camera';
-import type { UniformSlot } from '../../buffers/UniformPool';
+import type { UniformPool, UniformSlot } from '../../buffers/UniformPool';
 import { COMMON } from '../../shaders/common';
 import { SKYBOX } from '../../shaders/skybox';
 import type { Vec3, Vec4 } from '../../math';
@@ -21,6 +21,7 @@ export class SkyboxRenderable implements Renderable {
   visible = true;
 
   private _uniformSlot!: UniformSlot;
+  private _uniformPool!: UniformPool;
   private _objectBindGroup!: GPUBindGroup;
   private _pipeline!: GPURenderPipeline;
   private _device!: GPUDevice;
@@ -37,6 +38,7 @@ export class SkyboxRenderable implements Renderable {
   init(args: RenderableInitArgs): void {
     const { device, format, pipelineCache, layouts, uniformPool } = args;
     this._device = device;
+    this._uniformPool = uniformPool;
 
     // ── Object uniform ───────────────────────────────────────────────────────
     this._uniformSlot = uniformPool.allocate(80);
@@ -119,6 +121,6 @@ export class SkyboxRenderable implements Renderable {
   }
 
   destroy(): void {
-    // No GPU buffers owned by this renderable (uniform slot is pool-managed)
+    this._uniformPool.free(this._uniformSlot);
   }
 }

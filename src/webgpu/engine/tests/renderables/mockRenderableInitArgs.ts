@@ -14,6 +14,7 @@ export interface MockUniformSlot {
 export interface MockUniformPool {
   allocate: ReturnType<typeof vi.fn>
   write: ReturnType<typeof vi.fn>
+  free: ReturnType<typeof vi.fn>
 }
 
 export interface MockPipelineCache {
@@ -50,6 +51,7 @@ export function makeMockRenderableInitArgs(): MockRenderableInitArgs {
   const uniformPool: MockUniformPool = {
     allocate: vi.fn().mockReturnValue(uniformSlot),
     write: vi.fn(),
+    free: vi.fn(),
   };
 
   const pipelineCache: MockPipelineCache = {

@@ -46,8 +46,8 @@ import { SaveManager } from './saveManager/SaveManager';
 import { restoreFromSnapshot } from './saveManager/restoreScene';
 import { PubSubManager } from './core/PubSub';
 
-/** Pool size for per-object uniforms: supports up to 512 renderables. */
-const UNIFORM_POOL_SIZE = 512 * 256;
+/** Initial chunk size for the UniformPool. Grows automatically when exceeded. */
+const INITIAL_CHUNK_SIZE = 512 * 256;
 
 export class Engine {
   private readonly _canvas: HTMLCanvasElement;
@@ -104,7 +104,7 @@ export class Engine {
 
     const renderer = new Renderer(device, canvas);
     const pipelineCache = new PipelineCache(device);
-    const uniformPool = new UniformPool(device, UNIFORM_POOL_SIZE);
+    const uniformPool = new UniformPool(device, INITIAL_CHUNK_SIZE);
     const layouts = createEngineLayouts(device);
     const lightBuffer = new LightBuffer(device, layouts.lights);
     const camera = new Camera(device, layouts.camera, {});

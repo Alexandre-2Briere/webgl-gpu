@@ -2,7 +2,7 @@ import type { Renderable, RenderableInitArgs } from './Renderable';
 import type { MeshOptions } from '../../types';
 import type { Camera } from '../../core/Camera';
 import { VertexBuffer } from '../../buffers/VertexBuffer';
-import type { UniformSlot } from '../../buffers/UniformPool';
+import type { UniformPool, UniformSlot } from '../../buffers/UniformPool';
 import { COMMON } from '../../shaders/common';
 import { MESH } from '../../shaders/mesh';
 import { makeTransformMatrix, identityMat } from '../../math';
@@ -28,6 +28,7 @@ export class Mesh implements Renderable {
   private _indexCount = 0;
   private _vertexCount = 0;
   private _uniformSlot!: UniformSlot;
+  private _uniformPool!: UniformPool;
   private _objectBindGroup!: GPUBindGroup;
   private _pipeline!: GPURenderPipeline;
   private _device!: GPUDevice;
@@ -48,6 +49,7 @@ export class Mesh implements Renderable {
     const { device, queue, format, pipelineCache, layouts, uniformPool } = args;
     this._device = device;
     this._queue = queue;
+    this._uniformPool = uniformPool;
 
     // ── Vertex buffer ────────────────────────────────────────────────────────
     const verts = this._opts.vertices;
@@ -206,6 +208,7 @@ export class Mesh implements Renderable {
   }
 
   destroy(): void {
+    this._uniformPool.free(this._uniformSlot);
     this._vertexBuf.destroy();
     this._indexBuf?.destroy();
   }

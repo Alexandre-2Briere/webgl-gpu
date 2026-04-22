@@ -51,7 +51,7 @@ Lightweight modular 3D rendering engine, ~5 K lines. See `src/webgpu/engine/READ
 
 **Key invariants:**
 - `Engine.create(canvas, opts?)` is an async factory — the only way to get an `Engine`.
-- `setCamera()` must be called before `start()`. UniformPool caps at **512 renderable objects**.
+- `setCamera()` must be called before `start()`. UniformPool starts at 512 slots and grows automatically in 512-slot chunks as needed.
 - Two independent RAFs: the engine's render loop (`engine.start()`) and a caller-managed physics/logic loop that calls `applyPhysics` + `applyCollisions`.
 
 **Frame order per tick:**
@@ -65,7 +65,7 @@ Lightweight modular 3D rendering engine, ~5 K lines. See `src/webgpu/engine/READ
 
 **Physics:** `Rigidbody3D` + hitbox types (`SphereHitbox`, `CubeHitbox`, `CapsuleHitbox`, `MeshHitbox`). Bodies only collide within the same `layer` string. `rigidbodyOffset` separates visual center from physics center (local space, rotated by object quaternion).
 
-**Resource lifecycle:** Create → mutate via handle methods → optionally hide (`visible = false`) → `destroy()`. `UniformPool` slots are not individually freed; avoid high-frequency create/destroy cycles.
+**Resource lifecycle:** Create → mutate via handle methods → optionally hide (`visible = false`) → `destroy()`. `destroy()` returns the uniform slot to the pool freelist for reuse.
 
 ## Architectural Rules
 

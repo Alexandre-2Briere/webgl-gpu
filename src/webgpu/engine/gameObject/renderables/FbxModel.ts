@@ -1,7 +1,7 @@
 import type { Renderable, RenderableInitArgs } from './Renderable';
 import type { FbxModelOptions } from '../../types';
 import type { Camera } from '../../core/Camera';
-import type { UniformSlot } from '../../buffers/UniformPool';
+import type { UniformPool, UniformSlot } from '../../buffers/UniformPool';
 import { FbxAsset } from './FbxAsset';
 import { COMMON } from '../../shaders/common';
 import { FBX } from '../../shaders/fbx';
@@ -29,6 +29,7 @@ export class FbxModel implements Renderable {
   private readonly _asset: FbxAsset;
   private readonly _label?: string;
   private _uniformSlot!: UniformSlot;
+  private _uniformPool!: UniformPool;
   private _objectBindGroup!: GPUBindGroup;
   private _pipeline!: GPURenderPipeline;
   private _device!: GPUDevice;
@@ -55,6 +56,7 @@ export class FbxModel implements Renderable {
   init(args: RenderableInitArgs): void {
     const { device, format, pipelineCache, layouts, uniformPool } = args;
     this._device = device;
+    this._uniformPool = uniformPool;
 
     // ── Object uniform ───────────────────────────────────────────────────────
     this._uniformSlot = uniformPool.allocate(80);
@@ -166,7 +168,7 @@ export class FbxModel implements Renderable {
   }
 
   destroy(): void {
-    // Slices (vertex/index buffers + textures) belong to FbxAsset — do not destroy them here.
+    this._uniformPool.free(this._uniformSlot);
   }
 
   // ── Private ──────────────────────────────────────────────────────────────────
