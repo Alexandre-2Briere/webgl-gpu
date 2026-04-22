@@ -11,6 +11,7 @@ import { PhysicsForm } from './PropertyForm/PhysicsForm';
 import type { PhysicsState } from './PropertyForm/PhysicsForm';
 import { AssetForm } from './PropertyForm/AssetForm';
 import type { AssetOption } from './PropertyForm/AssetForm';
+import { ScriptForm } from './PropertyForm/ScriptForm';
 import { LightForm } from './PropertyForm/LightForm';
 import type { LightState } from './PropertyForm/LightForm';
 import { InfiniteGroundForm } from './PropertyForm/InfiniteGroundForm';
@@ -18,6 +19,12 @@ import type { InfiniteGroundState } from './PropertyForm/InfiniteGroundForm';
 import './PropertyPanel.css';
 
 const DEG = Math.PI / 180;
+
+const SCRIPT_NAMES = Object.keys(
+  import.meta.glob('../../game/scripts/*.ts'),
+)
+  .map(path => path.split('/').pop()!.replace(/\.ts$/, ''))
+  .filter(name => name !== 'ScriptContract');
 
 interface PanelViewState {
   isOpen:           boolean;
@@ -29,6 +36,7 @@ interface PanelViewState {
   selectedAssetUrl: string;
   light:            LightState;
   ground:           InfiniteGroundState;
+  selectedScript:   string;
 }
 
 // ── Exported interface — named PropertyPanel so SceneManager import type works ──
@@ -40,6 +48,7 @@ export interface PropertyPanel {
     properties:        PropertyGroup[],
     physicsConfig?:    PhysicsConfig,
     selectedAssetUrl?: string,
+    selectedScript?:   string,
   ): void;
   hide(): void;
   setPosition(x: number, y: number, z: number): void;
@@ -59,6 +68,7 @@ const INITIAL_STATE: PanelViewState = {
   selectedAssetUrl: '',
   light:            { lightType: 0, radius: '1.0' },
   ground:           { yLevel: '0', alternateColorHex: '737373', colorHex: 'FFFFFF', tileSize: 16 },
+  selectedScript:   '',
 };
 
 export const PropertyPanelComponent = forwardRef<PropertyPanel>(
@@ -86,7 +96,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
     useImperativeHandle(ref, () => {
       const handle: PropertyPanel = {
-        show(gameObject, objectIndex, label, properties, physicsConfig, selectedAssetUrl) {
+        show(gameObject, objectIndex, label, properties, physicsConfig, selectedAssetUrl, selectedScript) {
           currentObjectRef.current      = gameObject;
           currentObjectIndexRef.current = objectIndex;
 
@@ -142,6 +152,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
             selectedAssetUrl: selectedAssetUrl ?? '',
             light: lightState,
             ground: groundState,
+            selectedScript: selectedScript ?? '',
           });
         },
 
@@ -173,7 +184,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
       return handle;
     }, []);
 
-    const { isOpen, title, colorHex, visibleSections, physics, assetOptions, selectedAssetUrl, light, ground } = state;
+    const { isOpen, title, colorHex, visibleSections, physics, assetOptions, selectedAssetUrl, light, ground, selectedScript } = state;
     const showPhysics = visibleSections.has('rigidbody') || visibleSections.has('hitbox');
     const showLight   = visibleSections.has('lightType') || visibleSections.has('lightRadius') || visibleSections.has('lightPower') || visibleSections.has('lightStrength');
     const showGround  = visibleSections.has('groundSettings');
@@ -257,6 +268,19 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
                   setState((previous) => ({ ...previous, selectedAssetUrl: url }));
                   pubSubRef.current?.publish(SANDBOX_EVENTS.PROPERTY_ASSET_CHANGED, {
                     objectIndex: currentObjectIndexRef.current, data: { url }
+                  });
+                }}
+              />
+            )}
+
+            {visibleSections.has('script') && (
+              <ScriptForm
+                scriptNames={SCRIPT_NAMES}
+                selectedScript={selectedScript}
+                onChange={(name) => {
+                  setState((previous) => ({ ...previous, selectedScript: name }));
+                  pubSubRef.current?.publish(SANDBOX_EVENTS.PROPERTY_SCRIPT_CHANGED, {
+                    objectIndex: currentObjectIndexRef.current, data: { scriptName: name }
                   });
                 }}
               />

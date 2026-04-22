@@ -1,12 +1,24 @@
-import { LightGameObject } from '@engine';
+import { Engine, LightGameObject } from '@engine';
+import type { IGameObject } from '@engine';
 import type { SpawnManager } from './SpawnManager';
 import type { PhysicsManager } from './PhysicsManager';
 import type { Terminal } from '../../ui/Terminal/Terminal';
 import { SANDBOX_EVENTS } from '../events';
 import type { PubSubManager } from '../events';
+import type { ExecuteFn, ScriptContext } from '../scripts/ScriptContract';
+
+const SCRIPT_LOADERS = import.meta.glob<{ execute: ExecuteFn }>('../scripts/*.ts');
+
+function _findLoader(scriptName: string): (() => Promise<{ execute: ExecuteFn }>) | null {
+  const entry = Object.entries(SCRIPT_LOADERS).find(
+    ([path]) => !path.includes('ScriptContract') && path.endsWith(`/${scriptName}.ts`),
+  );
+  return entry ? entry[1] : null;
+}
 
 export class PlayStateManager {
   private readonly _canvas:          HTMLCanvasElement;
+  private readonly _engine:          Engine;
   private readonly _spawnManager:    SpawnManager;
   private readonly _physicsManager:  PhysicsManager;
   private readonly _terminal:        Terminal;
@@ -16,12 +28,14 @@ export class PlayStateManager {
 
   constructor(
     canvas:         HTMLCanvasElement,
+    engine:         Engine,
     spawnManager:   SpawnManager,
     physicsManager: PhysicsManager,
     terminal:       Terminal,
     pubSub:         PubSubManager,
   ) {
     this._canvas         = canvas;
+    this._engine         = engine;
     this._spawnManager   = spawnManager;
     this._physicsManager = physicsManager;
     this._terminal       = terminal;
@@ -49,6 +63,27 @@ export class PlayStateManager {
       if (spawnedObject.gameObject instanceof LightGameObject) {
         spawnedObject.gameObject.setVisualizationVisible(false);
       }
+
+      if (spawnedObject.key === 'ScriptObject') {
+        (spawnedObject.gameObject as IGameObject).renderable.visible = false;
+
+        if (spawnedObject.selectedScript) {
+          const loader = _findLoader(spawnedObject.selectedScript);
+          if (loader) {
+            const context: ScriptContext = {
+              position: [...spawnedObject.gameObject.position] as [number, number, number],
+              scale:    [...spawnedObject.gameObject.scale]    as [number, number, number],
+            };
+            const engine = this._engine;
+            loader()
+              .then(module => module.execute(context, engine))
+              .then(handle => { spawnedObject.scriptHandle = handle; })
+              .catch((error: unknown) => {
+                this._terminal.print(`Script error (${spawnedObject.selectedScript}): ${String(error)}`, 'error');
+              });
+          }
+        }
+      }
     }
 
     this._terminal.print('Play started.', 'log');
@@ -68,6 +103,15 @@ export class PlayStateManager {
     for (const spawnedObject of this._spawnManager.getObjects()) {
       if (spawnedObject.gameObject instanceof LightGameObject) {
         spawnedObject.gameObject.setVisualizationVisible(true);
+      }
+
+      if (spawnedObject.key === 'ScriptObject') {
+        (spawnedObject.gameObject as IGameObject).renderable.visible = true;
+
+        if (spawnedObject.scriptHandle) {
+          spawnedObject.scriptHandle.destroy();
+          spawnedObject.scriptHandle = null;
+        }
       }
     }
 

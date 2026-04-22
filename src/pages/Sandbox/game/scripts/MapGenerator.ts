@@ -1,4 +1,5 @@
-import type { Engine, FbxAssetHandle, IGameObject } from '@engine';
+import { type Engine, type FbxAssetHandle, type IGameObject } from '@engine';
+import type { ScriptContext, ScriptHandle } from './ScriptContract';
 
 // ── Fragment definitions ───────────────────────────────────────────────────────
 
@@ -17,6 +18,12 @@ const mapFragmentMap: Record<string, string[]> = {
     'D': [Direction.Down, Direction.Right, Direction.Left],
     'E': [Direction.Down, Direction.Right, Direction.Left, Direction.Up],
 };
+
+// ── Script defaults (edit these to configure the map) ──────────────────────────
+
+const DEFAULT_THEME: Theme = 'forest';
+const DEFAULT_WIDTH         = 30;
+const DEFAULT_DEPTH         = 30;
 
 // ── Public types ───────────────────────────────────────────────────────────────
 
@@ -242,7 +249,7 @@ function runWFC(width: number, depth: number, allVariants: TileVariant[]): TileV
 
 const MAX_RETRIES = 10;
 
-export async function execute(params: MapParams, engine: Engine): Promise<MapHandle> {
+async function _generate(params: MapParams, engine: Engine): Promise<MapHandle> {
     const { theme, scale, width, depth, centerPosition = [0, 0] } = params;
     const [centerX, centerZ] = centerPosition;
 
@@ -275,8 +282,10 @@ export async function execute(params: MapParams, engine: Engine): Promise<MapHan
         for (let col = 0; col < width; col++) {
             const variant   = collapsed[row][col];
             const asset     = assets.get(variant.type)!;
-            const positionX = centerX + (col - (width  - 1) / 2) * scale;
-            const positionZ = centerZ + (row - (depth  - 1) / 2) * scale;
+            const tileSize  = 2;
+            const positionX = centerX + (col - (width  - 1)) * scale * tileSize;
+            const positionZ = centerZ + (row - (depth  - 1)) * scale * tileSize;
+            console.log(`Placing tile at row ${row}, col ${col}: type=${variant.type}, rotation=${variant.rotation * 90}°`);
             const quaternion = rotationQuaternion[variant.rotation];
 
             const existing = firstModels.get(variant.type);
@@ -305,4 +314,19 @@ export async function execute(params: MapParams, engine: Engine): Promise<MapHan
             for (const asset of assets.values()) asset.destroy();
         },
     };
+}
+
+// ── Script contract entry point ────────────────────────────────────────────────
+
+export async function execute(context: ScriptContext, engine: Engine): Promise<ScriptHandle> {
+    return _generate(
+        {
+            theme:          DEFAULT_THEME,
+            scale:          context.scale[0],
+            width:          DEFAULT_WIDTH,
+            depth:          DEFAULT_DEPTH,
+            centerPosition: [context.position[0], context.position[2]],
+        },
+        engine,
+    );
 }

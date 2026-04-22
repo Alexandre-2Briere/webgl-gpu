@@ -11,8 +11,10 @@ import { spawn as spawnLight } from '../../items/lights';
 import { spawn as spawnDirectionalLight } from '../../items/directionalLight';
 import { spawn as spawnSkybox } from '../../items/skybox';
 import { spawn as spawnInfiniteGround } from '../../items/infiniteGround';
+import { spawn as spawnScriptObject } from '../../items/scriptObject';
 import { SANDBOX_EVENTS } from '../events';
-import type { PubSubManager } from '../events';
+import type { PubSubManager, PropertyScriptChangedPayload } from '../events';
+import type { ScriptHandle } from '../scripts/ScriptContract';
 
 const DEFAULT_PHYSICS: PhysicsConfig = {
   hasRigidbody: false,
@@ -31,6 +33,7 @@ const SPAWN_MAP: Record<string, (engine: Engine, context: SpawnContext) => IScen
   DirectionalLight: (engine, context) => spawnDirectionalLight(engine, context as LightSpawnContext),
   Skybox:           (engine, context) => spawnSkybox(engine, context as SingletonSpawnContext),
   InfiniteGround:   (engine, context) => spawnInfiniteGround(engine, context as SingletonSpawnContext),
+  ScriptObject:     (engine, _context) => spawnScriptObject(engine),
 };
 
 export interface SpawnedObject {
@@ -41,6 +44,8 @@ export interface SpawnedObject {
   physicsConfig:  PhysicsConfig
   selectedFbxUrl: string | null
   playSnapshot:   [number, number, number] | null
+  selectedScript: string | null
+  scriptHandle:   ScriptHandle | null
 }
 
 export class SpawnManager {
@@ -67,6 +72,12 @@ export class SpawnManager {
     this._sceneHierarchy = sceneHierarchy;
     this._fbxCache       = fbxCache;
     this._pubSub         = pubSub;
+
+    pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_SCRIPT_CHANGED, (raw) => {
+      const payload = raw as unknown as PropertyScriptChangedPayload;
+      const object = this._spawnedObjects[payload.objectIndex];
+      if (object) object.selectedScript = payload.data.scriptName;
+    });
   }
 
   // ── Read ──────────────────────────────────────────────────────────────────────
@@ -136,6 +147,8 @@ export class SpawnManager {
       physicsConfig,
       selectedFbxUrl,
       playSnapshot:   null,
+      selectedScript: null,
+      scriptHandle:   null,
     });
 
     const index = this._spawnedObjects.length - 1;

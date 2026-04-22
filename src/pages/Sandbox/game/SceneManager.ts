@@ -82,7 +82,7 @@ export class SceneManager {
     this._spawnManager     = new SpawnManager(engine, this._terminal, this._propertyPanel, this._sceneHierarchy, fbxCache, pubSub);
     this._selectionManager = new SelectionManager(this._spawnManager, this._propertyPanel, this._sceneHierarchy, this._canvas, pubSub);
     this._physicsManager   = new PhysicsManager(engine, this._spawnManager, pubSub);
-    this._playStateManager = new PlayStateManager(this._canvas, this._spawnManager, this._physicsManager, this._terminal, pubSub);
+    this._playStateManager = new PlayStateManager(this._canvas, engine, this._spawnManager, this._physicsManager, this._terminal, pubSub);
     this._cameraController = new CameraController(engine, this._inputManager, () => this._playStateManager.isPlaying(), pubSub);
     this._gizmoController  = new GizmoController(
       engine,

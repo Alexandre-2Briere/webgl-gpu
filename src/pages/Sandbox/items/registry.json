@@ -33,6 +33,14 @@
       "properties": ["position", "rotation", "color", "lightPower"]
     }
   ],
+  "Scripts": [
+    {
+      "key": "ScriptObject",
+      "label": "Script Object",
+      "isReady": true,
+      "properties": ["position", "scale", "script"]
+    }
+  ],
   "Environment": [
     {
       "key": "Skybox",

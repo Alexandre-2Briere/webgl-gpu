@@ -13,6 +13,7 @@ export const SANDBOX_EVENTS = {
   PROPERTY_RADIUS_CHANGED:     'property:radiusChanged',
   PROPERTY_LIGHT_TYPE_CHANGED: 'property:lightTypeChanged',
   PROPERTY_ASSET_CHANGED:      'property:assetChanged',
+  PROPERTY_SCRIPT_CHANGED:     'property:scriptChanged',
   UI_RESIZE_STARTED:           'ui:resizeDragStarted',
   UI_RESIZE_ENDED:             'ui:resizeDragEnded',
   CAMERA_DRAG_STARTED:         'camera:dragStarted',
@@ -27,4 +28,5 @@ export type PropertyScaleChangedPayload     = { objectIndex: number; data: { x: 
 export type PropertyRadiusChangedPayload    = { objectIndex: number; data: { radius: number } };
 export type PropertyLightTypeChangedPayload = { objectIndex: number; data: { lightType: LightType } };
 export type PropertyAssetChangedPayload     = { objectIndex: number; data: { url: string } };
+export type PropertyScriptChangedPayload    = { objectIndex: number; data: { scriptName: string } };
 export type { PubSubManager };
