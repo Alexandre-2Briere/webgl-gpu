@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Toolbar }                  from './ui/Toolbar/Toolbar';
 import type { ToolbarHandle }       from './ui/Toolbar/Toolbar';
 import { ItemMenu }                 from './ui/ItemMenu/ItemMenu';
@@ -11,7 +11,9 @@ import { SceneHierarchyComponent }  from './ui/SceneHierarchy/SceneHierarchy';
 import type { SceneHierarchy }      from './ui/SceneHierarchy/SceneHierarchy';
 import { PropertyPanelComponent }   from './ui/PropertyPanel/PropertyPanel';
 import type { PropertyPanel }       from './ui/PropertyPanel/PropertyPanel';
+import { ResizeDivider }            from './ui/ResizeDivider/ResizeDivider';
 import { SceneManager }             from './game/SceneManager';
+import { getStoredNumber, setStoredNumber } from '@lib/storage';
 import registryJson                 from './items/registry.json';
 import type { ItemRegistry, ItemEntry } from './items/types';
 import './Sandbox.css';
@@ -27,6 +29,45 @@ export default function Sandbox() {
   const itemMenuRef      = useRef<ItemMenuHandle>(null);
   const loadModalRef     = useRef<LoadModalHandle>(null);
   const controllerRef    = useRef<SceneManager | null>(null);
+
+  const [terminalHeight, setTerminalHeight] = useState(() =>
+    getStoredNumber('sandbox.panel.terminalHeight', 12.5)
+  );
+  const [sidebarWidth, setSidebarWidth] = useState(() =>
+    getStoredNumber('sandbox.panel.sidebarWidth', 13.75)
+  );
+  const [itemMenuHeight, setItemMenuHeight] = useState(() =>
+    getStoredNumber('sandbox.panel.itemMenuHeight', 10)
+  );
+  const [isCameraDragging, setIsCameraDragging] = useState(false);
+
+  function pixelsToRem(pixels: number): number {
+    return pixels / parseFloat(getComputedStyle(document.documentElement).fontSize);
+  }
+
+  function handleTerminalResize(deltaInPixels: number): void {
+    setTerminalHeight((previous) => {
+      const next = Math.min(37.5, Math.max(5, previous - pixelsToRem(deltaInPixels)));
+      setStoredNumber('sandbox.panel.terminalHeight', next);
+      return next;
+    });
+  }
+
+  function handleSidebarResize(deltaInPixels: number): void {
+    setSidebarWidth((previous) => {
+      const next = Math.min(25, Math.max(9.375, previous + pixelsToRem(deltaInPixels)));
+      setStoredNumber('sandbox.panel.sidebarWidth', next);
+      return next;
+    });
+  }
+
+  function handleItemMenuResize(deltaInPixels: number): void {
+    setItemMenuHeight((previous) => {
+      const next = Math.min(31.25, Math.max(5, previous + pixelsToRem(deltaInPixels)));
+      setStoredNumber('sandbox.panel.itemMenuHeight', next);
+      return next;
+    });
+  }
 
   useEffect(() => {
     const terminal      = terminalRef.current!;
@@ -58,8 +99,12 @@ export default function Sandbox() {
       });
     });
 
-    const stopHandler = () => toolbar.setPlaying(false);
-    document.addEventListener('sandbox:stopped', stopHandler);
+    const stopHandler          = () => toolbar.setPlaying(false);
+    const cameraDragStartHandler = () => setIsCameraDragging(true);
+    const cameraDragEndHandler   = () => setIsCameraDragging(false);
+    document.addEventListener('sandbox:stopped',   stopHandler);
+    document.addEventListener('camera:dragStarted', cameraDragStartHandler);
+    document.addEventListener('camera:dragEnded',   cameraDragEndHandler);
 
     controller.init()
       .then(() => {
@@ -72,13 +117,22 @@ export default function Sandbox() {
       });
 
     return () => {
-      document.removeEventListener('sandbox:stopped', stopHandler);
+      document.removeEventListener('sandbox:stopped',   stopHandler);
+      document.removeEventListener('camera:dragStarted', cameraDragStartHandler);
+      document.removeEventListener('camera:dragEnded',   cameraDragEndHandler);
       terminal.restoreConsole();
     };
   }, []);
 
   return (
-    <div id="app">
+    <div
+      id="app"
+      style={{
+        '--terminal-height':  `${terminalHeight}rem`,
+        '--left-panel-width': `${sidebarWidth}rem`,
+        '--item-menu-height': `${itemMenuHeight}rem`,
+      } as React.CSSProperties}
+    >
       <Toolbar ref={toolbarRef} />
       <div id="main-area">
         <div id="left-sidebar">
@@ -86,6 +140,13 @@ export default function Sandbox() {
             ref={itemMenuRef}
             registry={registry}
             onSpawn={(key: string, entry: ItemEntry) => controllerRef.current?.spawn(key, entry)}
+          />
+          <ResizeDivider
+            direction="horizontal"
+            onResize={handleItemMenuResize}
+            disabled={isCameraDragging}
+            onDragStart={() => controllerRef.current?.notifyResizeDragStart()}
+            onDragEnd={() => controllerRef.current?.notifyResizeDragEnd()}
           />
           <SceneHierarchyComponent
             ref={hierarchyRef}
@@ -95,12 +156,28 @@ export default function Sandbox() {
             onDeselect={() => controllerRef.current?.deselectObject()}
           />
         </div>
+        <ResizeDivider
+          direction="vertical"
+          onResize={handleSidebarResize}
+          disabled={isCameraDragging}
+          onDragStart={() => controllerRef.current?.notifyResizeDragStart()}
+          onDragEnd={() => controllerRef.current?.notifyResizeDragEnd()}
+        />
         <div id="canvas-wrapper">
           <canvas ref={canvasRef} id="webgpu-canvas" />
         </div>
         <PropertyPanelComponent ref={propertyPanelRef} />
       </div>
-      <TerminalComponent ref={terminalRef} />
+      <div id="terminal-area">
+        <ResizeDivider
+          direction="horizontal"
+          onResize={handleTerminalResize}
+          disabled={isCameraDragging}
+          onDragStart={() => controllerRef.current?.notifyResizeDragStart()}
+          onDragEnd={() => controllerRef.current?.notifyResizeDragEnd()}
+        />
+        <TerminalComponent ref={terminalRef} />
+      </div>
       <LoadModal ref={loadModalRef} />
     </div>
   );

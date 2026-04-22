@@ -1,5 +1,8 @@
 #item-menu {
     padding-left: 1rem;
+    height: var(--item-menu-height);
+    overflow-y: auto;
+    flex-shrink: 0;
 }
 #item-menu li:last-child {
     margin: 0.5rem 0;

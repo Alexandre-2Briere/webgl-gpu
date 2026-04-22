@@ -60,6 +60,8 @@ export class Engine {
   private _camera: Camera;
   private _rafHandle = 0;
   private _onFrame: ((deltaTime: number) => void) | null = null;
+  private _referenceFovX = 0;
+  private _previousAspect = 0;
   private _skybox: SkyboxGameObject | null = null;
   private _infiniteGround: InfiniteGroundGameObject | null = null;
   public readonly PubSubManager: PubSubManager;
@@ -122,6 +124,7 @@ export class Engine {
   setCamera(camera: Camera): void {
     this._camera?.destroy();
     this._camera = camera;
+    this._previousAspect = 0;
   }
 
   get camera(): Camera { return this._camera; }
@@ -289,9 +292,35 @@ export class Engine {
       const deltaTime = Math.min((timestamp - lastTimestamp) / 1000, 0.1);
       lastTimestamp = timestamp;
       this._onFrame?.(deltaTime);
+      this._compensateCameraForAspectChange();
       this._scene.frame(this._camera, this._canvas);
     };
     this._rafHandle = requestAnimationFrame(loop);
+  }
+
+  /**
+   * Adjusts camera fovY each frame to preserve horizontal FOV when the canvas
+   * aspect ratio changes. Without this, resizing any panel causes objects to
+   * appear to shift horizontally as the projection X-scale changes.
+   *
+   * Strategy: lock horizontal FOV (fovX) as the invariant.
+   *   fovX = 2 * atan(tan(fovY/2) * aspect)
+   * When aspect changes, recompute fovY = 2 * atan(tan(fovX/2) / aspect).
+   */
+  private _compensateCameraForAspectChange(): void {
+    const currentAspect = this._canvas.width / this._canvas.height;
+    if (!isFinite(currentAspect) || currentAspect <= 0) return;
+
+    if (this._previousAspect === 0) {
+      this._referenceFovX = 2 * Math.atan(Math.tan(this._camera.fovY * 0.5) * currentAspect);
+      this._previousAspect = currentAspect;
+      return;
+    }
+
+    if (currentAspect === this._previousAspect) return;
+
+    this._camera.fovY = 2 * Math.atan(Math.tan(this._referenceFovX * 0.5) / currentAspect);
+    this._previousAspect = currentAspect;
   }
 
   stop(): void {

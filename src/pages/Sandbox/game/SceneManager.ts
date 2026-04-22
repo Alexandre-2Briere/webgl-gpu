@@ -83,7 +83,7 @@ export class SceneManager {
     this._selectionManager = new SelectionManager(this._spawnManager, this._propertyPanel, this._sceneHierarchy, this._canvas, pubSub);
     this._physicsManager   = new PhysicsManager(engine, this._spawnManager, pubSub);
     this._playStateManager = new PlayStateManager(this._canvas, this._spawnManager, this._physicsManager, this._terminal, pubSub);
-    this._cameraController = new CameraController(engine, this._inputManager, () => this._playStateManager.isPlaying());
+    this._cameraController = new CameraController(engine, this._inputManager, () => this._playStateManager.isPlaying(), pubSub);
     this._gizmoController  = new GizmoController(
       engine,
       this._inputManager,
@@ -102,9 +102,15 @@ export class SceneManager {
 
     this._propertyPanel.setPubSub(pubSub);
 
-    // Bridge internal pointer-lock event to the DOM for UI consumers outside the game folder
+    // Bridge internal events to the DOM for UI consumers outside the game folder
     pubSub.subscribe(SANDBOX_EVENTS.INPUT_POINTER_LOCK_RELEASED, () => {
       document.dispatchEvent(new CustomEvent('sandbox:stopped'));
+    });
+    pubSub.subscribe(SANDBOX_EVENTS.CAMERA_DRAG_STARTED, () => {
+      document.dispatchEvent(new CustomEvent('camera:dragStarted'));
+    });
+    pubSub.subscribe(SANDBOX_EVENTS.CAMERA_DRAG_ENDED, () => {
+      document.dispatchEvent(new CustomEvent('camera:dragEnded'));
     });
 
     this._terminal.print('Engine initialised.', 'log');
@@ -174,6 +180,14 @@ export class SceneManager {
 
   removeObject(index: number): void {
     this._spawnManager.removeObject(index);
+  }
+
+  notifyResizeDragStart(): void {
+    this._engine.PubSubManager.publish(SANDBOX_EVENTS.UI_RESIZE_STARTED);
+  }
+
+  notifyResizeDragEnd(): void {
+    this._engine.PubSubManager.publish(SANDBOX_EVENTS.UI_RESIZE_ENDED);
   }
 
   async saveScene(): Promise<string> {

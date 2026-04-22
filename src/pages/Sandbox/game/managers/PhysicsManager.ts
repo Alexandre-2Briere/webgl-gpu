@@ -55,6 +55,7 @@ export class PhysicsManager {
       if (!obj) return;
       obj.selectedFbxUrl = url;
       this.rebuildObject(objectIndex, obj.physicsConfig);
+      console.log('Asset changed, rebuilding object with new FBX.', obj); // Debug log
       pubSub.publish(SANDBOX_EVENTS.OBJECT_REBUILT, { objectIndex });
     });
 

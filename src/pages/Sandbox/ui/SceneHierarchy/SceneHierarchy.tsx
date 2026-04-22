@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
 import { IconButton, List, ListItem, ListItemText, TextField } from '@mui/material';
 import './SceneHierarchy.css';
 
@@ -35,10 +35,12 @@ export const SceneHierarchyComponent = forwardRef<SceneHierarchy, SceneHierarchy
     const onRenameRef   = useRef(onRename);
     const onRemoveRef   = useRef(onRemove);
     const onDeselectRef = useRef(onDeselect);
-    onSelectRef.current   = onSelect;
-    onRenameRef.current   = onRename;
-    onRemoveRef.current   = onRemove;
-    onDeselectRef.current = onDeselect;
+    useLayoutEffect(() => {
+      onSelectRef.current   = onSelect;
+      onRenameRef.current   = onRename;
+      onRemoveRef.current   = onRemove;
+      onDeselectRef.current = onDeselect;
+    });
 
     useImperativeHandle(ref, () => ({
       addObject(name: string) {

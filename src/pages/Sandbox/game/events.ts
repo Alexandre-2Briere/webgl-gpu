@@ -13,6 +13,10 @@ export const SANDBOX_EVENTS = {
   PROPERTY_RADIUS_CHANGED:     'property:radiusChanged',
   PROPERTY_LIGHT_TYPE_CHANGED: 'property:lightTypeChanged',
   PROPERTY_ASSET_CHANGED:      'property:assetChanged',
+  UI_RESIZE_STARTED:           'ui:resizeDragStarted',
+  UI_RESIZE_ENDED:             'ui:resizeDragEnded',
+  CAMERA_DRAG_STARTED:         'camera:dragStarted',
+  CAMERA_DRAG_ENDED:           'camera:dragEnded',
 } as const;
 
 export type ObjectSpawnedPayload            = { index: number };

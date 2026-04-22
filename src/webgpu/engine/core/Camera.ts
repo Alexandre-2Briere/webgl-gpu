@@ -17,7 +17,7 @@ export class Camera {
   yaw   = 0;  // radians, rotation around Y axis
   pitch = 0;  // radians, rotation around X axis
 
-  private readonly _fovY: number;
+  private _fovY: number;
   private readonly _near: number;
   private readonly _far: number;
 
@@ -58,6 +58,8 @@ export class Camera {
   }
 
   get bindGroup(): GPUBindGroup { return this._bindGroup; }
+  get fovY(): number { return this._fovY; }
+  set fovY(value: number) { this._fovY = value; }
 
   // ── Movement ────────────────────────────────────────────────────────────────
 

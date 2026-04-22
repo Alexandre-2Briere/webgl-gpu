@@ -1,4 +1,5 @@
 #terminal-panel {
+  flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -34,4 +35,55 @@
 
 .log-time {
   flex-shrink: 0;
+}
+
+.log-body {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+}
+
+.log-value-primitive {
+  opacity: 0.75;
+}
+
+.log-value-key {
+  color: #9ecbff;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.log-value-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+}
+
+.log-value-children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-entry .MuiAccordion-root {
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.log-entry .MuiAccordionSummary-root {
+  min-height: 0 !important;
+  padding: 0;
+}
+
+.log-entry .MuiAccordionDetails-root {
+  padding-left: 1.2em;
+  border-left: 1px solid #444;
+  padding-top: 2px;
+  padding-bottom: 2px;
 }

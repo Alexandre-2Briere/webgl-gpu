@@ -1,24 +1,54 @@
 import type { Engine } from '@engine';
 import type { InputManager } from '../managers/InputManager';
+import type { PubSubManager } from '../events';
+import { SANDBOX_EVENTS } from '../events';
 
 const CAMERA_MOVE_SPEED = 5.0;   // units per second
 const CAMERA_YAW_SPEED  = 1.5;   // radians per second (Q/E keys)
 const MOUSE_SENSITIVITY = 0.003;  // radians per pixel
 
+export const CameraState = {
+  Idle:     0,
+  Dragging: 1,
+  Blocked:  2,
+} as const;
+
+export type CameraState = typeof CameraState[keyof typeof CameraState];
+
 export class CameraController {
   private readonly _engine:       Engine;
   private readonly _inputManager: InputManager;
   private readonly _isPlaying:    () => boolean;
+  private readonly _pubSub:       PubSubManager;
 
-  constructor(engine: Engine, inputManager: InputManager, isPlaying: () => boolean) {
+  private _state:                          CameraState = CameraState.Idle;
+  private _mouseRotationCalledPreviousFrame             = false;
+
+  constructor(engine: Engine, inputManager: InputManager, isPlaying: () => boolean, pubSub: PubSubManager) {
     this._engine       = engine;
     this._inputManager = inputManager;
     this._isPlaying    = isPlaying;
+    this._pubSub       = pubSub;
+
+    pubSub.subscribe(SANDBOX_EVENTS.UI_RESIZE_STARTED, () => {
+      this._state = CameraState.Blocked;
+    });
+    pubSub.subscribe(SANDBOX_EVENTS.UI_RESIZE_ENDED, () => {
+      if (this._state === CameraState.Blocked) this._state = CameraState.Idle;
+    });
   }
 
   // ── Per-frame: keyboard movement ──────────────────────────────────────────────
 
   tick(deltaTime: number): void {
+    if (this._state === CameraState.Blocked) return;
+
+    if (this._state === CameraState.Dragging && !this._mouseRotationCalledPreviousFrame) {
+      this._state = CameraState.Idle;
+      this._pubSub.publish(SANDBOX_EVENTS.CAMERA_DRAG_ENDED);
+    }
+    this._mouseRotationCalledPreviousFrame = false;
+
     if (!this._isPlaying()) return;
 
     const camera = this._engine.camera;
@@ -54,6 +84,15 @@ export class CameraController {
   // ── Mouse rotation: edit mode (drag) ─────────────────────────────────────────
 
   applyMouseRotation(deltaX: number, deltaY: number): void {
+    if (this._state === CameraState.Blocked) return;
+
+    this._mouseRotationCalledPreviousFrame = true;
+
+    if (this._state === CameraState.Idle) {
+      this._state = CameraState.Dragging;
+      this._pubSub.publish(SANDBOX_EVENTS.CAMERA_DRAG_STARTED);
+    }
+
     this._engine.camera.rotate(
       -deltaX * MOUSE_SENSITIVITY,
       -deltaY * MOUSE_SENSITIVITY,
@@ -63,6 +102,8 @@ export class CameraController {
   // ── Mouse rotation: play mode (pointer lock) ──────────────────────────────────
 
   applyPointerLockRotation(deltaX: number, deltaY: number): void {
+    if (this._state === CameraState.Blocked) return;
+
     this._engine.camera.rotate(
       deltaX * MOUSE_SENSITIVITY,
       deltaY * MOUSE_SENSITIVITY,
