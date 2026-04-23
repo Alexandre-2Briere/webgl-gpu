@@ -2,9 +2,8 @@ import type { Engine, ArrowGizmo } from '@engine';
 import type { InputManager } from '../managers/InputManager';
 import type { SelectionManager } from '../managers/SelectionManager';
 import type { SpawnManager } from '../managers/SpawnManager';
-import type { PropertyPanel } from '../../ui/PropertyPanel/PropertyPanel';
-import { SANDBOX_EVENTS } from '../events';
-import type { PubSubManager } from '../events';
+import type { PropertyPanel } from '../../ui/components/PropertyPanel/PropertyPanel';
+import { SANDBOX_EVENTS, type PubSubManager } from '../events';
 
 const DRAG_SPEED = 0.01;  // world units per pixel
 

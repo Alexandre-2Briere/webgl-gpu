@@ -1,7 +1,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useReducer, useRef } from 'react';
 import { Tab, Tabs } from '@mui/material';
-import { AccordionPrimitive } from '../Primitive/Accordion/AccordionPrimitive';
 import './Terminal.css';
+import { AccordionPrimitive } from '@components/Primitive/Accordion/AccordionPrimitive';
 
 type LogLevel = 'log' | 'warn' | 'error';
 

@@ -1,8 +1,7 @@
-import { Engine } from '@engine';
-import type { FbxAssetHandle } from '@engine';
-import type { Terminal } from '../ui/Terminal/Terminal';
-import type { PropertyPanel } from '../ui/PropertyPanel/PropertyPanel';
-import type { SceneHierarchy } from '../ui/SceneHierarchy/SceneHierarchy';
+import { Engine, type FbxAssetHandle } from '@engine';
+import type { Terminal } from '../ui/components/Terminal/Terminal';
+import type { PropertyPanel } from '../ui/components/PropertyPanel/PropertyPanel';
+import type { SceneHierarchy } from '../ui/components/SceneHierarchy/SceneHierarchy';
 import type { ItemEntry } from '../items/types';
 import { FBX_CATALOG } from '../items/fbx';
 import { InputManager } from './managers/InputManager';

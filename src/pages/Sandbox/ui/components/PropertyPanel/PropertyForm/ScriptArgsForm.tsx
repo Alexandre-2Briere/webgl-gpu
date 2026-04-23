@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import type { ScriptArgValues } from '../../../game/scripts/ScriptContract';
-import { getRuntimeType } from '../../../game/utils/functionParser';
-import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
-import { CheckboxPrimitive } from '../../Primitive/Checkbox/CheckboxPrimitive';
-import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
+import type { ScriptArgValues } from '../../../../game/scripts/ScriptContract';
+import { getRuntimeType } from '../../../../game/utils/functionParser';
+import { AccordionPrimitive } from '@components/Primitive/Accordion/AccordionPrimitive';
+import { CheckboxPrimitive } from '@components/Primitive/Checkbox/CheckboxPrimitive';
+import { InputPrimitive } from '@components/Primitive/Input/InputPrimitive';
+
 
 interface ScriptArgsFormProps {
   params:  string[];

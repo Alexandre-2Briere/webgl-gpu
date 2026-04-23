@@ -1,5 +1,5 @@
 import { InputAdornment, TextField } from '@mui/material';
-import { ArrowRemover, PaddingRemover } from '../../PropertyPanel/PropertyForm/Remover';
+import { ArrowRemover, PaddingRemover } from '@pages/Sandbox/ui/components/PropertyPanel/PropertyForm/Remover';
 
 interface InputPrimitiveProps {
   type: 'number' | 'text';

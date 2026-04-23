@@ -1,10 +1,14 @@
-import type { Engine, SaveSegments, SceneConstantsSnapshot, GameObjectsSnapshot, LightObjectsSnapshot, GameObjectSnapshot, LightObjectSnapshot, LightSnapshot, DirectionalLightSnapshot, SkyboxSnapshot, InfiniteGroundSnapshot } from '@engine';
-import { LightGameObject, InfiniteGroundGameObject, SaveManager } from '@engine';
-import type { Terminal }        from '../../ui/Terminal/Terminal';
+import {
+  type Engine, type SaveSegments, type SceneConstantsSnapshot, type GameObjectsSnapshot,
+  type LightObjectsSnapshot, type GameObjectSnapshot, type LightObjectSnapshot,
+  type LightSnapshot, type DirectionalLightSnapshot, type SkyboxSnapshot,
+  type InfiniteGroundSnapshot, type ISceneObject,
+  LightGameObject, InfiniteGroundGameObject, SaveManager,
+} from '@engine';
+import type { Terminal }        from '../../ui/components/Terminal/Terminal';
 import type { PhysicsConfig, PropertyGroup, ItemEntry } from '../../items/types';
 import type { SpawnManager }    from './SpawnManager';
 import type { PhysicsManager }  from './PhysicsManager';
-import type { ISceneObject } from '@engine';
 
 const LIGHT_KEYS = new Set(['Light', 'DirectionalLight']);
 const SINGLETON_KEYS = new Set(['Skybox', 'InfiniteGround']);

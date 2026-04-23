@@ -1,9 +1,8 @@
 import type { SpawnManager } from './SpawnManager';
-import type { PropertyPanel } from '../../ui/PropertyPanel/PropertyPanel';
-import type { SceneHierarchy } from '../../ui/SceneHierarchy/SceneHierarchy';
+import type { PropertyPanel } from '../../ui/components/PropertyPanel/PropertyPanel';
+import type { SceneHierarchy } from '../../ui/components/SceneHierarchy/SceneHierarchy';
 import type { ArrowGizmo } from '@engine';
-import { SANDBOX_EVENTS } from '../events';
-import type { PubSubManager, ObjectSpawnedPayload, ObjectRemovedPayload, ObjectRebuiltPayload } from '../events';
+import { SANDBOX_EVENTS, type PubSubManager, type ObjectSpawnedPayload, type ObjectRemovedPayload, type ObjectRebuiltPayload } from '../events';
 
 export class SelectionManager {
   private readonly _spawnManager:   SpawnManager;

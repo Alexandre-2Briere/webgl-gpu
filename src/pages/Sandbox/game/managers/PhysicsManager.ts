@@ -1,22 +1,12 @@
-import type { Engine, ISceneObject, IGameObject, Vec3 } from '@engine';
-import { LightGameObject, applyPhysics, applyCollisions, Rigidbody3D, CubeHitbox } from '@engine';
+import { type Engine, type ISceneObject, type IGameObject, type Vec3, LightGameObject, applyPhysics, applyCollisions, Rigidbody3D, CubeHitbox } from '@engine';
 import type { SpawnManager } from './SpawnManager';
-import type { SpawnContext, PhysicsConfig } from '../../items/types';
-import { SANDBOX_EVENTS } from '../events';
-import type {
-  PubSubManager,
-  PropertyPhysicsChangedPayload,
-  PropertyScaleChangedPayload,
-  PropertyRadiusChangedPayload,
-  PropertyLightTypeChangedPayload,
-  PropertyAssetChangedPayload,
-} from '../events';
+import type { SpawnContext, PhysicsConfig, PrimitiveSpawnContext, FbxSpawnContext, LightSpawnContext } from '../../items/types';
+import { SANDBOX_EVENTS, type PubSubManager, type PropertyPhysicsChangedPayload, type PropertyScaleChangedPayload, type PropertyRadiusChangedPayload, type PropertyLightTypeChangedPayload, type PropertyAssetChangedPayload } from '../events';
 import { spawn as spawnQuad } from '../../items/quad';
 import { spawn as spawnCube } from '../../items/cube';
 import { spawn as spawnFBX } from '../../items/fbx';
 import { spawn as spawnLight } from '../../items/lights';
 import { spawn as spawnDirectionalLight } from '../../items/directionalLight';
-import type { PrimitiveSpawnContext, FbxSpawnContext, LightSpawnContext } from '../../items/types';
 
 const REBUILD_MAP: Record<string, (engine: Engine, context: SpawnContext) => ISceneObject> = {
   Quad:             (engine, context) => spawnQuad(engine, context as PrimitiveSpawnContext),

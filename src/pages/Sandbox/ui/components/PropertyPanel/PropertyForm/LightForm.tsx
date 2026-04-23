@@ -1,8 +1,8 @@
 import { LightType, safeParseFloat } from '@engine';
-import type { PropertyGroup } from '../../../items/types';
-import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
-import { SelectPrimitive } from '../../Primitive/Select/SelectPrimitive';
-import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
+import type { PropertyGroup } from '../../../../items/types';
+import { SelectPrimitive } from '@components/Primitive/Select/SelectPrimitive';
+import { AccordionPrimitive } from '@components/Primitive/Accordion/AccordionPrimitive';
+import { InputPrimitive } from '@components/Primitive/Input/InputPrimitive';
 
 const LIGHT_TYPE_OPTIONS = [
   { value: '0', label: 'Ambient' },

@@ -1,7 +1,7 @@
+import { AccordionPrimitive } from '@components/Primitive/Accordion/AccordionPrimitive';
+import { InputPrimitive } from '@components/Primitive/Input/InputPrimitive';
+import { SelectPrimitive } from '@components/Primitive/Select/SelectPrimitive';
 import { safeParseFloat } from '@engine';
-import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
-import { SelectPrimitive } from '../../Primitive/Select/SelectPrimitive';
-import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
 import { safeParseInt } from '@lib/utils/math/math';
 
 const TILE_SIZES = [2, 4, 8, 16, 32, 64];

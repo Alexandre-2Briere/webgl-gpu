@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { safeParseFloat } from '@engine';
-import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
-import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
+import { AccordionPrimitive } from '@components/Primitive/Accordion/AccordionPrimitive';
+import { InputPrimitive } from '@components/Primitive/Input/InputPrimitive';
 
 export interface Vector3FormHandle {
   setValues(a: number, b: number, c: number): void;

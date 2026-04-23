@@ -1,5 +1,5 @@
-import { SelectPrimitive } from '../../Primitive/Select/SelectPrimitive';
-import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
+import { AccordionPrimitive } from "@components/Primitive/Accordion/AccordionPrimitive";
+import { SelectPrimitive } from "@components/Primitive/Select/SelectPrimitive";
 
 interface ScriptFormProps {
   scriptNames:    string[];

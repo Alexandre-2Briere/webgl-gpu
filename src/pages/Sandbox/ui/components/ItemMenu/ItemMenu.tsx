@@ -1,6 +1,6 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { Chip, Divider, List, ListItemButton, Typography } from '@mui/material';
-import type { ItemEntry, ItemRegistry } from '../../items/types';
+import type { ItemEntry, ItemRegistry } from '../../../items/types';
 import './ItemMenu.css';
 
 export interface ItemMenuHandle {

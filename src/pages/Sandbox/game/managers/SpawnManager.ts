@@ -1,8 +1,7 @@
-import type { Engine, FbxAssetHandle, ISceneObject } from '@engine';
-import { Rigidbody3D } from '@engine';
-import type { Terminal } from '../../ui/Terminal/Terminal';
-import type { PropertyPanel } from '../../ui/PropertyPanel/PropertyPanel';
-import type { SceneHierarchy } from '../../ui/SceneHierarchy/SceneHierarchy';
+import { type Engine, type FbxAssetHandle, type ISceneObject, Rigidbody3D } from '@engine';
+import type { Terminal } from '../../ui/components/Terminal/Terminal';
+import type { PropertyPanel } from '../../ui/components/PropertyPanel/PropertyPanel';
+import type { SceneHierarchy } from '../../ui/components/SceneHierarchy/SceneHierarchy';
 import type { ItemEntry, PhysicsConfig, SpawnContext, PrimitiveSpawnContext, FbxSpawnContext, LightSpawnContext, SingletonSpawnContext } from '../../items/types';
 import { spawn as spawnQuad } from '../../items/quad';
 import { spawn as spawnCube } from '../../items/cube';
@@ -12,8 +11,7 @@ import { spawn as spawnDirectionalLight } from '../../items/directionalLight';
 import { spawn as spawnSkybox } from '../../items/skybox';
 import { spawn as spawnInfiniteGround } from '../../items/infiniteGround';
 import { spawn as spawnScriptObject } from '../../items/scriptObject';
-import { SANDBOX_EVENTS } from '../events';
-import type { PubSubManager, PropertyScriptChangedPayload, PropertyScriptArgsChangedPayload } from '../events';
+import { SANDBOX_EVENTS, type PubSubManager, type PropertyScriptChangedPayload, type PropertyScriptArgsChangedPayload } from '../events';
 import type { SpawnedObject } from './SpawnedObject';
 
 export type { SpawnedObject };

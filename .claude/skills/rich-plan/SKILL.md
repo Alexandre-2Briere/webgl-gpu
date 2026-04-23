@@ -1,7 +1,6 @@
 ---
 name: rich-plan
-description: Produce a rich, human-readable plan file with TL;DR, [CHANGED]/[ADDED]/[REMOVED] step tags, ASCII diagrams, and diff blocks
-invocation: /rich-plan
+description: Produce a rich, human-readable plan file with TL;DR, [CHANGED]/[ADDED]/[REMOVED] step tags, ASCII diagrams, and diff blocks use this when in planning mode, or when the user explicitly requests a rich plan. always use this format for the plan file — never the default format.
 ---
 
 The user wants a detailed implementation plan. Your job is to research the
@@ -119,3 +118,13 @@ Tell the user:
 - The full path of the written plan file.
 - A one-sentence summary of what the plan covers.
 - "Review it and run `/rich-plan` again with corrections if anything needs adjusting."
+
+## Step 5 — Print summary table in chat
+
+After writing the plan file, always output a Markdown summary table directly in the conversation. The table must list every changed file, what is being done to it, and the net line delta. Use this format:
+
+| File | Change | Lines Δ |
+|---|---|---|
+| `src/foo/bar.ts` | merge @engine type+value imports | -2 |
+
+End with a one-sentence total (e.g. "**9 files, ~23 lines removed.**") and invite the user to confirm before implementation begins.

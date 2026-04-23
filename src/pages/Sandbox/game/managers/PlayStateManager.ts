@@ -1,10 +1,8 @@
-import { Engine, LightGameObject } from '@engine';
-import type { IGameObject } from '@engine';
+import { Engine, LightGameObject, type IGameObject } from '@engine';
 import type { SpawnManager } from './SpawnManager';
 import type { PhysicsManager } from './PhysicsManager';
-import type { Terminal } from '../../ui/Terminal/Terminal';
-import { SANDBOX_EVENTS } from '../events';
-import type { PubSubManager } from '../events';
+import type { Terminal } from '../../ui/components/Terminal/Terminal';
+import { SANDBOX_EVENTS, type PubSubManager } from '../events';
 import type { ExecuteFn } from '../scripts/ScriptContract';
 import { getParamNames } from '../utils/functionParser';
 

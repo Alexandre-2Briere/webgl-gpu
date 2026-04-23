@@ -1,5 +1,6 @@
-import { InputPrimitive } from '../../Primitive/Input/InputPrimitive';
-import { AccordionPrimitive } from '../../Primitive/Accordion/AccordionPrimitive';
+import { AccordionPrimitive } from "@components/Primitive/Accordion/AccordionPrimitive";
+import { InputPrimitive } from "@components/Primitive/Input/InputPrimitive";
+
 
 interface ColorFormProps {
   colorHex: string;

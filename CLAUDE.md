@@ -27,6 +27,11 @@ ALWAYS fix the root cause and not the symptom
 ALWAYS ask question in case of multiple solution possible
 NEVER repeat yourself unless ask specificly
 
+### Search Rules
+NEVER run `grep`, `find`, or any search shell command directly.
+When you need to search for a file or pattern, give the exact command to the user and wait for them to paste the result.
+The only file-access tool allowed by default is `Read` (for known paths).
+
 ### Two-Tier Structure
 
 **Tier 1 — React SPA (`/`)**
