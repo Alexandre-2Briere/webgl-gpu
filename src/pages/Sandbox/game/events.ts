@@ -1,5 +1,6 @@
 import type { PubSubManager, LightType } from '@engine';
 import type { PhysicsConfig } from '../items/types';
+import type { ScriptArgValues } from './scripts/ScriptContract';
 
 export const SANDBOX_EVENTS = {
   OBJECT_SPAWNED:              'object:spawned',
@@ -14,6 +15,7 @@ export const SANDBOX_EVENTS = {
   PROPERTY_LIGHT_TYPE_CHANGED: 'property:lightTypeChanged',
   PROPERTY_ASSET_CHANGED:      'property:assetChanged',
   PROPERTY_SCRIPT_CHANGED:     'property:scriptChanged',
+  PROPERTY_SCRIPT_ARGS_CHANGED: 'property:scriptArgsChanged',
   UI_RESIZE_STARTED:           'ui:resizeDragStarted',
   UI_RESIZE_ENDED:             'ui:resizeDragEnded',
   CAMERA_DRAG_STARTED:         'camera:dragStarted',
@@ -28,5 +30,6 @@ export type PropertyScaleChangedPayload     = { objectIndex: number; data: { x: 
 export type PropertyRadiusChangedPayload    = { objectIndex: number; data: { radius: number } };
 export type PropertyLightTypeChangedPayload = { objectIndex: number; data: { lightType: LightType } };
 export type PropertyAssetChangedPayload     = { objectIndex: number; data: { url: string } };
-export type PropertyScriptChangedPayload    = { objectIndex: number; data: { scriptName: string } };
+export type PropertyScriptChangedPayload     = { objectIndex: number; data: { scriptName: string } };
+export type PropertyScriptArgsChangedPayload = { objectIndex: number; data: { args: ScriptArgValues } };
 export type { PubSubManager };

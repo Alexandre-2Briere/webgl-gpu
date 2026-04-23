@@ -1,5 +1,5 @@
 import { type Engine, type FbxAssetHandle, type IGameObject } from '@engine';
-import type { ScriptContext, ScriptHandle } from './ScriptContract';
+import type { ScriptHandle } from './ScriptContract';
 
 // ── Fragment definitions ───────────────────────────────────────────────────────
 
@@ -18,12 +18,6 @@ const mapFragmentMap: Record<string, string[]> = {
     'D': [Direction.Down, Direction.Right, Direction.Left],
     'E': [Direction.Down, Direction.Right, Direction.Left, Direction.Up],
 };
-
-// ── Script defaults (edit these to configure the map) ──────────────────────────
-
-const DEFAULT_THEME: Theme = 'forest';
-const DEFAULT_WIDTH         = 30;
-const DEFAULT_DEPTH         = 30;
 
 // ── Public types ───────────────────────────────────────────────────────────────
 
@@ -318,14 +312,22 @@ async function _generate(params: MapParams, engine: Engine): Promise<MapHandle> 
 
 // ── Script contract entry point ────────────────────────────────────────────────
 
-export async function execute(context: ScriptContext, engine: Engine): Promise<ScriptHandle> {
+export async function execute(
+    engine:          Engine,
+    theme_string:    string = "forest",
+    scale_number:    number = 1,
+    width_number:    number = 30,
+    depth_number:    number = 30,
+    centerX_number:  number = 0,
+    centerZ_number:  number = 0,
+): Promise<ScriptHandle> {
     return _generate(
         {
-            theme:          DEFAULT_THEME,
-            scale:          context.scale[0],
-            width:          DEFAULT_WIDTH,
-            depth:          DEFAULT_DEPTH,
-            centerPosition: [context.position[0], context.position[2]],
+            theme:          (theme_string as Theme) || 'forest',
+            scale:          scale_number || 1,
+            width:          width_number || 30,
+            depth:          depth_number || 30,
+            centerPosition: [centerX_number, centerZ_number],
         },
         engine,
     );

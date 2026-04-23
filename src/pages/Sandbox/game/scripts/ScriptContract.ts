@@ -1,12 +1,8 @@
 import type { Engine } from '@engine';
 
-export interface ScriptContext {
-  position: [number, number, number];
-  scale:    [number, number, number];
-}
-
 export interface ScriptHandle {
   destroy(): void;
 }
 
-export type ExecuteFn = (context: ScriptContext, engine: Engine) => Promise<ScriptHandle>;
+export type ExecuteFn = (engine: Engine, ...args: unknown[]) => Promise<ScriptHandle>;
+export type ScriptArgValues = Record<string, string | number | boolean>;

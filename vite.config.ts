@@ -18,6 +18,7 @@ export default defineConfig({
     include: [
       'src/webgpu/engine/tests/**/*.test.ts',
       'src/lib/**/*.test.ts',
+      'src/pages/**/*.test.ts',
     ],
     setupFiles: ['src/webgpu/engine/tests/setup.ts'],
   },

@@ -76,6 +76,7 @@ export class SelectionManager {
       obj.physicsConfig,
       obj.selectedFbxUrl ?? undefined,
       obj.selectedScript ?? undefined,
+      obj.selectedScriptArgs,
     );
 
     if (this._gizmo && !isPlaying) {

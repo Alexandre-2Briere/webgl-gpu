@@ -45,7 +45,7 @@ export class InputManager {
       this._pressedKeys.delete(event.code);
     });
 
-    window.addEventListener('mousedown', (event: MouseEvent) => {
+    this._canvas.addEventListener('mousedown', (event: MouseEvent) => {
       if (event.button === 0) this._mouseButtonDown = true;
     });
 

@@ -37,6 +37,7 @@ export const Toolbar = forwardRef<ToolbarHandle>(function Toolbar(_, ref) {
       onPlayRef.current?.();
       setIsPlaying(true);
     }
+    (document.activeElement as HTMLElement)?.blur();
   }
 
   return (

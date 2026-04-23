@@ -38,7 +38,7 @@
       "key": "ScriptObject",
       "label": "Script Object",
       "isReady": true,
-      "properties": ["position", "scale", "script"]
+      "properties": ["script"]
     }
   ],
   "Environment": [

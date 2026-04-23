@@ -3,7 +3,7 @@ import { Rigidbody3D } from '@engine';
 import type { Terminal } from '../../ui/Terminal/Terminal';
 import type { PropertyPanel } from '../../ui/PropertyPanel/PropertyPanel';
 import type { SceneHierarchy } from '../../ui/SceneHierarchy/SceneHierarchy';
-import type { ItemEntry, PropertyGroup, PhysicsConfig, SpawnContext, PrimitiveSpawnContext, FbxSpawnContext, LightSpawnContext, SingletonSpawnContext } from '../../items/types';
+import type { ItemEntry, PhysicsConfig, SpawnContext, PrimitiveSpawnContext, FbxSpawnContext, LightSpawnContext, SingletonSpawnContext } from '../../items/types';
 import { spawn as spawnQuad } from '../../items/quad';
 import { spawn as spawnCube } from '../../items/cube';
 import { spawn as spawnFBX, FBX_CATALOG } from '../../items/fbx';
@@ -13,8 +13,10 @@ import { spawn as spawnSkybox } from '../../items/skybox';
 import { spawn as spawnInfiniteGround } from '../../items/infiniteGround';
 import { spawn as spawnScriptObject } from '../../items/scriptObject';
 import { SANDBOX_EVENTS } from '../events';
-import type { PubSubManager, PropertyScriptChangedPayload } from '../events';
-import type { ScriptHandle } from '../scripts/ScriptContract';
+import type { PubSubManager, PropertyScriptChangedPayload, PropertyScriptArgsChangedPayload } from '../events';
+import type { SpawnedObject } from './SpawnedObject';
+
+export type { SpawnedObject };
 
 const DEFAULT_PHYSICS: PhysicsConfig = {
   hasRigidbody: false,
@@ -36,17 +38,6 @@ const SPAWN_MAP: Record<string, (engine: Engine, context: SpawnContext) => IScen
   ScriptObject:     (engine, _context) => spawnScriptObject(engine),
 };
 
-export interface SpawnedObject {
-  gameObject:     ISceneObject
-  key:            string
-  label:          string
-  properties:     PropertyGroup[]
-  physicsConfig:  PhysicsConfig
-  selectedFbxUrl: string | null
-  playSnapshot:   [number, number, number] | null
-  selectedScript: string | null
-  scriptHandle:   ScriptHandle | null
-}
 
 export class SpawnManager {
   private readonly _engine:          Engine;
@@ -77,6 +68,12 @@ export class SpawnManager {
       const payload = raw as unknown as PropertyScriptChangedPayload;
       const object = this._spawnedObjects[payload.objectIndex];
       if (object) object.selectedScript = payload.data.scriptName;
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_SCRIPT_ARGS_CHANGED, (raw) => {
+      const payload = raw as unknown as PropertyScriptArgsChangedPayload;
+      const object = this._spawnedObjects[payload.objectIndex];
+      if (object) object.selectedScriptArgs = payload.data.args;
     });
   }
 
@@ -146,9 +143,10 @@ export class SpawnManager {
       properties:     entry.properties,
       physicsConfig,
       selectedFbxUrl,
-      playSnapshot:   null,
-      selectedScript: null,
-      scriptHandle:   null,
+      playSnapshot:       null,
+      selectedScript:     null,
+      selectedScriptArgs: {},
+      scriptHandle:       null,
     });
 
     const index = this._spawnedObjects.length - 1;

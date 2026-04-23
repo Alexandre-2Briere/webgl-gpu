@@ -5,11 +5,12 @@ import type { PhysicsManager } from './PhysicsManager';
 import type { Terminal } from '../../ui/Terminal/Terminal';
 import { SANDBOX_EVENTS } from '../events';
 import type { PubSubManager } from '../events';
-import type { ExecuteFn, ScriptContext } from '../scripts/ScriptContract';
+import type { ExecuteFn } from '../scripts/ScriptContract';
+import { getParamNames } from '../utils/functionParser';
 
-const SCRIPT_LOADERS = import.meta.glob<{ execute: ExecuteFn }>('../scripts/*.ts');
+const SCRIPT_LOADERS = import.meta.glob<{ newExecute: ExecuteFn }>('../scripts/*.ts');
 
-function _findLoader(scriptName: string): (() => Promise<{ execute: ExecuteFn }>) | null {
+function _findLoader(scriptName: string): (() => Promise<{ newExecute: ExecuteFn }>) | null {
   const entry = Object.entries(SCRIPT_LOADERS).find(
     ([path]) => !path.includes('ScriptContract') && path.endsWith(`/${scriptName}.ts`),
   );
@@ -70,13 +71,14 @@ export class PlayStateManager {
         if (spawnedObject.selectedScript) {
           const loader = _findLoader(spawnedObject.selectedScript);
           if (loader) {
-            const context: ScriptContext = {
-              position: [...spawnedObject.gameObject.position] as [number, number, number],
-              scale:    [...spawnedObject.gameObject.scale]    as [number, number, number],
-            };
             const engine = this._engine;
+            const scriptArgs = spawnedObject.selectedScriptArgs;
             loader()
-              .then(module => module.execute(context, engine))
+              .then(module => {
+                const params = getParamNames(module.newExecute).filter(p => p !== 'engine');
+                const args = params.map(p => scriptArgs[p] ?? 0);
+                return module.newExecute(engine, ...args);
+              })
               .then(handle => { spawnedObject.scriptHandle = handle; })
               .catch((error: unknown) => {
                 this._terminal.print(`Script error (${spawnedObject.selectedScript}): ${String(error)}`, 'error');

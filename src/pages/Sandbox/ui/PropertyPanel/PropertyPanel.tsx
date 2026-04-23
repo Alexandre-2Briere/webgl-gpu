@@ -12,6 +12,9 @@ import type { PhysicsState } from './PropertyForm/PhysicsForm';
 import { AssetForm } from './PropertyForm/AssetForm';
 import type { AssetOption } from './PropertyForm/AssetForm';
 import { ScriptForm } from './PropertyForm/ScriptForm';
+import { ScriptArgsForm } from './PropertyForm/ScriptArgsForm';
+import type { ScriptArgValues } from '../../game/scripts/ScriptContract';
+import { getParamNames, getParamDefaults } from '../../game/utils/functionParser';
 import { LightForm } from './PropertyForm/LightForm';
 import type { LightState } from './PropertyForm/LightForm';
 import { InfiniteGroundForm } from './PropertyForm/InfiniteGroundForm';
@@ -20,11 +23,23 @@ import './PropertyPanel.css';
 
 const DEG = Math.PI / 180;
 
-const SCRIPT_NAMES = Object.keys(
-  import.meta.glob('../../game/scripts/*.ts'),
-)
+const SCRIPT_LOADERS = import.meta.glob<{ newExecute: (...args: unknown[]) => unknown }>('../../game/scripts/*.ts');
+
+const SCRIPT_NAMES = Object.keys(SCRIPT_LOADERS)
   .map(path => path.split('/').pop()!.replace(/\.ts$/, ''))
   .filter(name => name !== 'ScriptContract');
+
+async function _loadScriptParams(scriptName: string): Promise<{ params: string[]; defaults: ScriptArgValues }> {
+  const entry = Object.entries(SCRIPT_LOADERS).find(
+    ([path]) => !path.includes('ScriptContract') && path.endsWith(`/${scriptName}.ts`),
+  );
+  if (!entry) return { params: [], defaults: {} };
+  const module = await entry[1]();
+  if (typeof module.newExecute !== 'function') return { params: [], defaults: {} };
+  const params   = getParamNames(module.newExecute).filter(p => p !== 'engine');
+  const defaults = getParamDefaults(module.newExecute) as ScriptArgValues;
+  return { params, defaults };
+}
 
 interface PanelViewState {
   isOpen:           boolean;
@@ -36,19 +51,22 @@ interface PanelViewState {
   selectedAssetUrl: string;
   light:            LightState;
   ground:           InfiniteGroundState;
-  selectedScript:   string;
+  selectedScript:    string;
+  scriptParams:      string[];
+  scriptArgValues:   ScriptArgValues;
 }
 
 // ── Exported interface — named PropertyPanel so SceneManager import type works ──
 export interface PropertyPanel {
   show(
-    gameObject:        ISceneObject,
-    objectIndex:       number,
-    label:             string,
-    properties:        PropertyGroup[],
-    physicsConfig?:    PhysicsConfig,
-    selectedAssetUrl?: string,
-    selectedScript?:   string,
+    gameObject:          ISceneObject,
+    objectIndex:         number,
+    label:               string,
+    properties:          PropertyGroup[],
+    physicsConfig?:      PhysicsConfig,
+    selectedAssetUrl?:   string,
+    selectedScript?:     string,
+    selectedScriptArgs?: ScriptArgValues,
   ): void;
   hide(): void;
   setPosition(x: number, y: number, z: number): void;
@@ -69,6 +87,8 @@ const INITIAL_STATE: PanelViewState = {
   light:            { lightType: 0, radius: '1.0' },
   ground:           { yLevel: '0', alternateColorHex: '737373', colorHex: 'FFFFFF', tileSize: 16 },
   selectedScript:   '',
+  scriptParams:     [],
+  scriptArgValues:  {},
 };
 
 export const PropertyPanelComponent = forwardRef<PropertyPanel>(
@@ -96,7 +116,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
     useImperativeHandle(ref, () => {
       const handle: PropertyPanel = {
-        show(gameObject, objectIndex, label, properties, physicsConfig, selectedAssetUrl, selectedScript) {
+        show(gameObject, objectIndex, label, properties, physicsConfig, selectedAssetUrl, selectedScript, selectedScriptArgs) {
           currentObjectRef.current      = gameObject;
           currentObjectIndexRef.current = objectIndex;
 
@@ -140,6 +160,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
             };
           }
 
+          const resolvedScript = selectedScript ?? '';
           setState({
             isOpen: true,
             title:  label,
@@ -148,12 +169,24 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
             physics: physicsConfig
               ? { hasRigidbody: physicsConfig.hasRigidbody, isStatic: physicsConfig.isStatic, hasHitbox: physicsConfig.hasHitbox, layer: physicsConfig.layer }
               : { hasRigidbody: false, isStatic: false, hasHitbox: false, layer: 'default' },
-            assetOptions: assetOptionsRef.current,
+            assetOptions:     assetOptionsRef.current,
             selectedAssetUrl: selectedAssetUrl ?? '',
-            light: lightState,
-            ground: groundState,
-            selectedScript: selectedScript ?? '',
+            light:            lightState,
+            ground:           groundState,
+            selectedScript:   resolvedScript,
+            scriptParams:     [],
+            scriptArgValues:  selectedScriptArgs ?? {},
           });
+
+          if (resolvedScript) {
+            _loadScriptParams(resolvedScript).then(({ params, defaults }) => {
+              setState(previous => ({
+                ...previous,
+                scriptParams: params,
+                scriptArgValues: { ...defaults, ...previous.scriptArgValues },
+              }));
+            });
+          }
         },
 
         hide() {
@@ -184,7 +217,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
       return handle;
     }, []);
 
-    const { isOpen, title, colorHex, visibleSections, physics, assetOptions, selectedAssetUrl, light, ground, selectedScript } = state;
+    const { isOpen, title, colorHex, visibleSections, physics, assetOptions, selectedAssetUrl, light, ground, selectedScript, scriptParams, scriptArgValues } = state;
     const showPhysics = visibleSections.has('rigidbody') || visibleSections.has('hitbox');
     const showLight   = visibleSections.has('lightType') || visibleSections.has('lightRadius') || visibleSections.has('lightPower') || visibleSections.has('lightStrength');
     const showGround  = visibleSections.has('groundSettings');
@@ -278,9 +311,27 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
                 scriptNames={SCRIPT_NAMES}
                 selectedScript={selectedScript}
                 onChange={(name) => {
-                  setState((previous) => ({ ...previous, selectedScript: name }));
+                  setState((previous) => ({ ...previous, selectedScript: name, scriptParams: [], scriptArgValues: {} }));
                   pubSubRef.current?.publish(SANDBOX_EVENTS.PROPERTY_SCRIPT_CHANGED, {
                     objectIndex: currentObjectIndexRef.current, data: { scriptName: name }
+                  });
+                  if (name) {
+                    _loadScriptParams(name).then(({ params, defaults }) => {
+                      setState(previous => ({ ...previous, scriptParams: params, scriptArgValues: defaults }));
+                    });
+                  }
+                }}
+              />
+            )}
+
+            {visibleSections.has('script') && scriptParams.length > 0 && (
+              <ScriptArgsForm
+                params={scriptParams}
+                values={scriptArgValues}
+                onApply={(args) => {
+                  setState((previous) => ({ ...previous, scriptArgValues: args }));
+                  pubSubRef.current?.publish(SANDBOX_EVENTS.PROPERTY_SCRIPT_ARGS_CHANGED, {
+                    objectIndex: currentObjectIndexRef.current, data: { args },
                   });
                 }}
               />
