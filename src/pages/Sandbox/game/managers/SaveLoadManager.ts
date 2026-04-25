@@ -5,10 +5,10 @@ import {
   type InfiniteGroundSnapshot, type ISceneObject,
   LightGameObject, InfiniteGroundGameObject, SaveManager,
 } from '@engine';
-import type { Terminal }        from '../../ui/components/Terminal/Terminal';
 import type { PhysicsConfig, PropertyGroup, ItemEntry } from '../../items/types';
 import type { SpawnManager }    from './SpawnManager';
 import type { PhysicsManager }  from './PhysicsManager';
+import { SANDBOX_EVENTS, type PubSubManager } from '../events';
 
 const LIGHT_KEYS = new Set(['Light', 'DirectionalLight']);
 const SINGLETON_KEYS = new Set(['Skybox', 'InfiniteGround']);
@@ -17,19 +17,19 @@ export class SaveLoadManager {
   private readonly _engine:          Engine;
   private readonly _spawnManager:    SpawnManager;
   private readonly _physicsManager:  PhysicsManager;
-  private readonly _terminal:        Terminal;
+  private readonly _pubSub:          PubSubManager;
   private readonly _saveManager:     SaveManager;
 
   constructor(
     engine:          Engine,
     spawnManager:    SpawnManager,
     physicsManager:  PhysicsManager,
-    terminal:        Terminal,
+    pubSub:          PubSubManager,
   ) {
     this._engine         = engine;
     this._spawnManager   = spawnManager;
     this._physicsManager = physicsManager;
-    this._terminal       = terminal;
+    this._pubSub         = pubSub;
     this._saveManager    = new SaveManager();
   }
 
@@ -194,7 +194,7 @@ export class SaveLoadManager {
 
     const totalObjects = segments.gameObjects.reduce((sum: number, s: GameObjectsSnapshot) => sum + s.objects.length, 0)
       + segments.lightObjects.reduce((sum: number, s: LightObjectsSnapshot) => sum + s.objects.length, 0);
-    this._terminal.print(`Scene loaded: ${totalObjects} object(s) restored.`, 'log');
+    this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: `Scene loaded: ${totalObjects} object(s) restored.`, level: 'log' });
   }
 
   private _removeObjectsByKeys(predicate: (key: string) => boolean): void {

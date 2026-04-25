@@ -1,8 +1,10 @@
-import { LightType, safeParseFloat } from '@engine';
+import { useState } from 'react';
+import { LightType, safeParseFloat, type PubSubManager } from '@engine';
 import type { PropertyGroup } from '../../../../items/types';
 import { SelectPrimitive } from '@components/Primitive/Select/SelectPrimitive';
 import { AccordionPrimitive } from '@components/Primitive/Accordion/AccordionPrimitive';
 import { InputPrimitive } from '@components/Primitive/Input/InputPrimitive';
+import { SANDBOX_EVENTS } from '../../../../game/events';
 
 const LIGHT_TYPE_OPTIONS = [
   { value: '0', label: 'Ambient' },
@@ -15,14 +17,15 @@ export interface LightState {
 }
 
 interface LightFormProps {
-  light: LightState;
+  initialLight:    LightState;
   visibleSections: Set<PropertyGroup>;
-  onLightChange: (light: LightState) => void;
-  onTypeApply: (type: LightType) => void;
-  onRadiusApply: (radius: number) => void;
+  pubSub:          PubSubManager;
+  objectIndex:     number;
 }
 
-export function LightForm({ light, visibleSections, onLightChange, onTypeApply, onRadiusApply }: LightFormProps) {
+export function LightForm({ initialLight, visibleSections, pubSub, objectIndex }: LightFormProps) {
+  const [light, setLight] = useState(initialLight);
+
   return (
     <AccordionPrimitive title="Light">
       {visibleSections.has('lightType') && (
@@ -32,11 +35,9 @@ export function LightForm({ light, visibleSections, onLightChange, onTypeApply, 
           value={String(light.lightType)}
           options={LIGHT_TYPE_OPTIONS}
           onChange={(value) => {
-            // REVIEW [BLOCKING]: parseInt without radix (ESLint radix rule) and unvalidated cast to LightType.
-            // Use parseInt(value, 10) and add a bounds check before casting.
-            const newType = parseInt(value) as LightType;
-            onLightChange({ ...light, lightType: newType });
-            onTypeApply(newType);
+            const newType = parseInt(value, 10) as LightType;
+            setLight({ ...light, lightType: newType });
+            pubSub.publish(SANDBOX_EVENTS.PROPERTY_LIGHT_TYPE_CHANGED, { objectIndex, data: { lightType: newType } });
           }}
         />
       )}
@@ -46,8 +47,8 @@ export function LightForm({ light, visibleSections, onLightChange, onTypeApply, 
             type="number"
             label="Radius"
             value={light.radius}
-            onChange={(value) => onLightChange({ ...light, radius: value })}
-            onApply={() => onRadiusApply(safeParseFloat(light.radius))}
+            onChange={(value) => setLight({ ...light, radius: value })}
+            onApply={() => pubSub.publish(SANDBOX_EVENTS.PROPERTY_RADIUS_CHANGED, { objectIndex, data: { radius: safeParseFloat(light.radius) } })}
           />
         </div>
       )}

@@ -1,40 +1,47 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AppBar, Button, Toolbar as MuiToolbar, Typography } from '@mui/material';
+import { SANDBOX_EVENTS, type PubSubManager, type SceneSavedPayload } from '../../../game/events';
 import "./Toolbar.css";
 
-export interface ToolbarHandle {
-  setPlaying(playing: boolean): void;
-  setEnabled(enabled: boolean): void;
-  setOnPlay(fn: () => void): void;
-  setOnStop(fn: () => void): void;
-  setOnSave(fn: () => Promise<void>): void;
-  setOnLoad(fn: () => void): void;
+interface ToolbarProps {
+  pubSub: PubSubManager;
 }
 
-export const Toolbar = forwardRef<ToolbarHandle>(function Toolbar(_, ref) {
+export function Toolbar({ pubSub }: ToolbarProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false);
 
-  const onPlayRef = useRef<(() => void) | null>(null);
-  const onStopRef = useRef<(() => void) | null>(null);
-  const onSaveRef = useRef<(() => Promise<void>) | null>(null);
-  const onLoadRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    const onPlayStopped = () => setIsPlaying(false);
+    const onInitialized = () => setIsEnabled(true);
+    const onSceneSaved  = async (raw: unknown) => {
+      const { encodedString } = raw as SceneSavedPayload;
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(encodedString);
+        pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: 'Scene saved — string copied to clipboard.', level: 'log' });
+      } else {
+        console.log(encodedString);
+        pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: 'Scene saved (see console for string).', level: 'log' });
+      }
+    };
 
-  useImperativeHandle(ref, () => ({
-    setPlaying: setIsPlaying,
-    setEnabled: setIsEnabled,
-    setOnPlay:  (fn) => { onPlayRef.current  = fn; },
-    setOnStop:  (fn) => { onStopRef.current  = fn; },
-    setOnSave:  (fn) => { onSaveRef.current  = fn; },
-    setOnLoad:  (fn) => { onLoadRef.current  = fn; },
-  }), []);
+    pubSub.subscribe(SANDBOX_EVENTS.PLAY_STOPPED,       onPlayStopped);
+    pubSub.subscribe(SANDBOX_EVENTS.ENGINE_INITIALIZED, onInitialized);
+    pubSub.subscribe(SANDBOX_EVENTS.SCENE_SAVED,        onSceneSaved);
+
+    return () => {
+      pubSub.unsubscribe(SANDBOX_EVENTS.PLAY_STOPPED,       onPlayStopped);
+      pubSub.unsubscribe(SANDBOX_EVENTS.ENGINE_INITIALIZED, onInitialized);
+      pubSub.unsubscribe(SANDBOX_EVENTS.SCENE_SAVED,        onSceneSaved);
+    };
+  }, [pubSub]);
 
   function handlePlayStop(): void {
     if (isPlaying) {
-      onStopRef.current?.();
+      pubSub.publish(SANDBOX_EVENTS.TOOLBAR_STOP);
       setIsPlaying(false);
     } else {
-      onPlayRef.current?.();
+      pubSub.publish(SANDBOX_EVENTS.TOOLBAR_PLAY);
       setIsPlaying(true);
     }
     (document.activeElement as HTMLElement)?.blur();
@@ -66,7 +73,7 @@ export const Toolbar = forwardRef<ToolbarHandle>(function Toolbar(_, ref) {
             variant="outlined"
             size="small"
             disabled={!isEnabled}
-            onClick={() => { onSaveRef.current?.(); }}
+            onClick={() => pubSub.publish(SANDBOX_EVENTS.TOOLBAR_SAVE)}
           >
             Save
           </Button>
@@ -74,7 +81,7 @@ export const Toolbar = forwardRef<ToolbarHandle>(function Toolbar(_, ref) {
             variant="outlined"
             size="small"
             disabled={!isEnabled}
-            onClick={() => { onLoadRef.current?.(); }}
+            onClick={() => pubSub.publish(SANDBOX_EVENTS.TOOLBAR_LOAD)}
           >
             Load
           </Button>
@@ -82,4 +89,4 @@ export const Toolbar = forwardRef<ToolbarHandle>(function Toolbar(_, ref) {
       </MuiToolbar>
     </AppBar>
   );
-});
+}

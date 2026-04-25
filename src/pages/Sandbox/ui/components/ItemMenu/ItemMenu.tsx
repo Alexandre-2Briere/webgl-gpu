@@ -1,49 +1,48 @@
-import { forwardRef, useImperativeHandle, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Chip, Divider, List, ListItemButton, Typography } from '@mui/material';
 import type { ItemEntry, ItemRegistry } from '../../../items/types';
+import { SANDBOX_EVENTS, type PubSubManager } from '../../../game/events';
 import './ItemMenu.css';
 
-export interface ItemMenuHandle {
-  setEnabled(enabled: boolean): void;
-}
-
 interface ItemMenuProps {
+  pubSub:   PubSubManager;
   registry: ItemRegistry;
-  onSpawn: (key: string, entry: ItemEntry) => void;
 }
 
-export const ItemMenu = forwardRef<ItemMenuHandle, ItemMenuProps>(
-  function ItemMenu({ registry, onSpawn }, ref) {
-    const [isEnabled, setIsEnabled] = useState(false);
+export function ItemMenu({ pubSub, registry }: ItemMenuProps) {
+  const [isEnabled, setIsEnabled] = useState(false);
 
-    useImperativeHandle(ref, () => ({ setEnabled: setIsEnabled }), []);
+  useEffect(() => {
+    const onInitialized = () => setIsEnabled(true);
+    pubSub.subscribe(SANDBOX_EVENTS.ENGINE_INITIALIZED, onInitialized);
+    return () => pubSub.unsubscribe(SANDBOX_EVENTS.ENGINE_INITIALIZED, onInitialized);
+  }, [pubSub]);
 
-    return (
-      <aside id="item-menu">
-        <List dense disablePadding>
-          {Object.entries(registry).map(([sectionName, entries]) => (
-            <li key={sectionName}>
-              <Typography variant="caption" className="menu-section-label">
-                {sectionName}
-              </Typography>
-              {entries.map((entry) => (
-                <ListItemButton
-                  key={entry.key}
-                  disabled={!entry.isReady || !isEnabled}
-                  onClick={() => onSpawn(entry.key, entry)}
-                  className="sb-btn-sidebar"
-                >
-                  <span className="sb-btn-label">{entry.label}</span>
-                  {!entry.isReady && (
-                    <Chip label="soon" size="small" className="item-badge" />
-                  )}
-                </ListItemButton>
-              ))}
-            </li>
-          ))}
-          <Divider className='separator' variant="middle" component="li" />
-        </List>
-      </aside>
-    );
-  },
-);
+  return (
+    <aside id="item-menu">
+      <List dense disablePadding>
+        {Object.entries(registry).map(([sectionName, entries]) => (
+          <li key={sectionName}>
+            <Typography variant="caption" className="menu-section-label">
+              {sectionName}
+            </Typography>
+            {entries.map((entry: ItemEntry) => (
+              <ListItemButton
+                key={entry.key}
+                disabled={!entry.isReady || !isEnabled}
+                onClick={() => pubSub.publish(SANDBOX_EVENTS.ITEM_SPAWN, { key: entry.key, entry })}
+                className="sb-btn-sidebar"
+              >
+                <span className="sb-btn-label">{entry.label}</span>
+                {!entry.isReady && (
+                  <Chip label="soon" size="small" className="item-badge" />
+                )}
+              </ListItemButton>
+            ))}
+          </li>
+        ))}
+        <Divider className='separator' variant="middle" component="li" />
+      </List>
+    </aside>
+  );
+}

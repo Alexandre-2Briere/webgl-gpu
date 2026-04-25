@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Button,
   Dialog,
@@ -7,33 +7,33 @@ import {
   DialogTitle,
   TextField,
 } from '@mui/material';
+import { SANDBOX_EVENTS, type PubSubManager } from '../../game/events';
 
-export interface LoadModalHandle {
-  open(onConfirm: (encodedString: string) => void): void;
+interface LoadModalProps {
+  pubSub: PubSubManager;
 }
 
-export const LoadModal = forwardRef<LoadModalHandle>(function LoadModal(_, ref) {
-  const [isOpen, setIsOpen]     = useState(false);
-  const [value, setValue]       = useState('');
-  const onConfirmRef            = useRef<((encodedString: string) => void) | null>(null);
+export function LoadModal({ pubSub }: LoadModalProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [value, setValue]   = useState('');
 
-  useImperativeHandle(ref, () => ({
-    open(onConfirm) {
-      onConfirmRef.current = onConfirm;
+  useEffect(() => {
+    const onLoad = () => {
       setValue('');
       setIsOpen(true);
-    },
-  }), []);
+    };
+    pubSub.subscribe(SANDBOX_EVENTS.TOOLBAR_LOAD, onLoad);
+    return () => pubSub.unsubscribe(SANDBOX_EVENTS.TOOLBAR_LOAD, onLoad);
+  }, [pubSub]);
 
   function handleClose(): void {
     setIsOpen(false);
-    onConfirmRef.current = null;
   }
 
   function handleLoad(): void {
     const trimmed = value.trim();
     if (trimmed.length > 0) {
-      onConfirmRef.current?.(trimmed);
+      pubSub.publish(SANDBOX_EVENTS.SCENE_LOAD_REQUESTED, { encodedString: trimmed });
     }
     handleClose();
   }
@@ -62,4 +62,4 @@ export const LoadModal = forwardRef<LoadModalHandle>(function LoadModal(_, ref) 
       </DialogActions>
     </Dialog>
   );
-});
+}

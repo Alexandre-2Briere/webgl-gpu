@@ -1,92 +1,71 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { IconButton, Typography } from '@mui/material';
 import { type ISceneObject, type PubSubManager, LightGameObject, InfiniteGroundGameObject } from '@engine';
-import type { PhysicsConfig, PropertyGroup } from '../../../items/types';
-import { SANDBOX_EVENTS } from '../../../game/events';
+import type { PropertyGroup } from '../../../items/types';
+import {
+  SANDBOX_EVENTS,
+  type PropertyPanelShowPayload,
+  type PropertyPanelSetPositionPayload,
+  type PropertyPanelSetTitlePayload,
+  type PropertyPanelFbxCatalogPayload,
+  type ObjectRemovedPayload,
+  type HierarchyRowRenamedPayload,
+} from '../../../game/events';
 import { type Vector3FormHandle, Vector3Form } from './PropertyForm/Vector3Form';
 import { ColorForm } from './PropertyForm/ColorForm';
 import { type PhysicsState, PhysicsForm } from './PropertyForm/PhysicsForm';
 import { type AssetOption, AssetForm } from './PropertyForm/AssetForm';
 import { ScriptForm } from './PropertyForm/ScriptForm';
-import { ScriptArgsForm } from './PropertyForm/ScriptArgsForm';
 import type { ScriptArgValues } from '../../../game/scripts/ScriptContract';
-import { getParamNames, getParamDefaults } from '../../../game/utils/functionParser';
 import { type LightState, LightForm } from './PropertyForm/LightForm';
 import { type InfiniteGroundState, InfiniteGroundForm } from './PropertyForm/InfiniteGroundForm';
 import './PropertyPanel.css';
+import { rgbToHex } from '@lib/utils/color/color';
 
 const DEG = Math.PI / 180;
-
-const SCRIPT_LOADERS = import.meta.glob<{ newExecute: (...args: unknown[]) => unknown }>('../../game/scripts/*.ts');
-
-const SCRIPT_NAMES = Object.keys(SCRIPT_LOADERS)
-  .map(path => path.split('/').pop()!.replace(/\.ts$/, ''))
-  .filter(name => name !== 'ScriptContract');
-
-async function _loadScriptParams(scriptName: string): Promise<{ params: string[]; defaults: ScriptArgValues }> {
-  const entry = Object.entries(SCRIPT_LOADERS).find(
-    ([path]) => !path.includes('ScriptContract') && path.endsWith(`/${scriptName}.ts`),
-  );
-  if (!entry) return { params: [], defaults: {} };
-  const module = await entry[1]();
-  if (typeof module.newExecute !== 'function') return { params: [], defaults: {} };
-  const params   = getParamNames(module.newExecute).filter(p => p !== 'engine');
-  const defaults = getParamDefaults(module.newExecute) as ScriptArgValues;
-  return { params, defaults };
-}
 
 interface PanelViewState {
   isOpen:           boolean;
   title:            string;
-  colorHex:         string;
+  selectionKey:     number;
+  objectIndex:      number;
   visibleSections:  Set<PropertyGroup>;
-  physics:          PhysicsState;
   assetOptions:     AssetOption[];
-  selectedAssetUrl: string;
-  light:            LightState;
-  ground:           InfiniteGroundState;
-  selectedScript:    string;
-  scriptParams:      string[];
-  scriptArgValues:   ScriptArgValues;
+  initialColorHex:  string;
+  initialPhysics:   PhysicsState;
+  initialAssetUrl:  string;
+  initialLight:     LightState;
+  initialGround:    InfiniteGroundState;
+  initialScript:    string;
+  initialScriptArgs: ScriptArgValues;
 }
 
-// ── Exported interface — named PropertyPanel so SceneManager import type works ──
 export interface PropertyPanel {
-  show(
-    gameObject:          ISceneObject,
-    objectIndex:         number,
-    label:               string,
-    properties:          PropertyGroup[],
-    physicsConfig?:      PhysicsConfig,
-    selectedAssetUrl?:   string,
-    selectedScript?:     string,
-    selectedScriptArgs?: ScriptArgValues,
-  ): void;
   hide(): void;
-  setPosition(x: number, y: number, z: number): void;
-  setTitle(label: string): void;
-  setFbxCatalog(catalog: { label: string; url: string }[]): void;
-  readonly currentObject: ISceneObject | null;
-  setPubSub(pubSub: PubSubManager): void;
+}
+
+interface PropertyPanelProps {
+  pubSub: PubSubManager;
 }
 
 const INITIAL_STATE: PanelViewState = {
   isOpen:           false,
   title:            '',
-  colorHex:         '',
+  selectionKey:     0,
+  objectIndex:      -1,
   visibleSections:  new Set(),
-  physics:          { hasRigidbody: false, isStatic: false, hasHitbox: false, layer: 'default' },
   assetOptions:     [],
-  selectedAssetUrl: '',
-  light:            { lightType: 0, radius: '1.0' },
-  ground:           { yLevel: '0', alternateColorHex: '737373', colorHex: 'FFFFFF', tileSize: 16 },
-  selectedScript:   '',
-  scriptParams:     [],
-  scriptArgValues:  {},
+  initialColorHex:  '',
+  initialPhysics:   { hasRigidbody: false, isStatic: false, hasHitbox: false, layer: 'default' },
+  initialAssetUrl:  '',
+  initialLight:     { lightType: 0, radius: '1.0' },
+  initialGround:    { yLevel: '0', alternateColorHex: '737373', colorHex: 'FFFFFF', tileSize: 16 },
+  initialScript:    '',
+  initialScriptArgs: {},
 };
 
-export const PropertyPanelComponent = forwardRef<PropertyPanel>(
-  function PropertyPanelComponent(_, ref) {
+export const PropertyPanelComponent = forwardRef<PropertyPanel, PropertyPanelProps>(
+  function PropertyPanelComponent({ pubSub }, ref) {
     const [state, setState] = useState<PanelViewState>(INITIAL_STATE);
 
     const positionFormRef = useRef<Vector3FormHandle>(null);
@@ -96,122 +75,142 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
     const currentObjectRef      = useRef<ISceneObject | null>(null);
     const currentObjectIndexRef = useRef<number>(-1);
     const assetOptionsRef       = useRef<AssetOption[]>([]);
-    const pubSubRef             = useRef<PubSubManager | null>(null);
 
-    function _applyColor(hex: string): void {
-      if (!currentObjectRef.current) return;
-      const upper = hex.trim().toUpperCase();
-      if (!/^[0-9A-F]{6}$/.test(upper)) return;
-      const red   = parseInt(upper.slice(0, 2), 16) / 255;
-      const green = parseInt(upper.slice(2, 4), 16) / 255;
-      const blue  = parseInt(upper.slice(4, 6), 16) / 255;
-      currentObjectRef.current.setColor(red, green, blue, 1.0);
+    function _show(payload: PropertyPanelShowPayload): void {
+      const { gameObject, objectIndex, label, properties, physicsConfig, selectedAssetUrl, selectedScript, selectedScriptArgs } = payload;
+
+      currentObjectRef.current      = gameObject;
+      currentObjectIndexRef.current = objectIndex;
+
+      const [posX, posY, posZ] = gameObject.position;
+      const [quaternionX, quaternionY, quaternionZ, quaternionW] = gameObject.quaternion;
+      const yawDeg   = Math.atan2(2*(quaternionW*quaternionY + quaternionZ*quaternionX), 1 - 2*(quaternionY*quaternionY + quaternionZ*quaternionZ)) / DEG;
+      const pitchDeg = Math.asin(Math.max(-1, Math.min(1, 2*(quaternionW*quaternionX - quaternionY*quaternionZ)))) / DEG;
+      const rollDeg  = Math.atan2(2*(quaternionW*quaternionZ + quaternionX*quaternionY), 1 - 2*(quaternionZ*quaternionZ + quaternionX*quaternionX)) / DEG;
+      const [scaleX, scaleY, scaleZ] = gameObject.scale;
+
+      positionFormRef.current?.setValues(posX, posY, posZ);
+      rotationFormRef.current?.setValues(yawDeg, pitchDeg, rollDeg);
+      scaleFormRef.current?.setValues(scaleX, scaleY, scaleZ);
+
+      const initialColorHex = properties.includes('color')
+        ? rgbToHex({ r: gameObject.color[0], g: gameObject.color[1], b: gameObject.color[2] })
+        : '';
+
+      let initialLight: LightState = { lightType: 0, radius: '1.0' };
+      if (gameObject instanceof LightGameObject) {
+        initialLight = {
+          lightType: gameObject.lightType,
+          radius:    gameObject.radius.toFixed(1),
+        };
+      }
+
+      let initialGround: InfiniteGroundState = { yLevel: '0', colorHex: 'FFFFFF', alternateColorHex: '737373', tileSize: 2 };
+      if (gameObject instanceof InfiniteGroundGameObject) {
+        const [r1, g1, b1] = gameObject.color;
+        const [r2, g2, b2] = gameObject.alternateColor;
+        initialGround = {
+          yLevel:            gameObject.yLevel.toFixed(3),
+          colorHex:          rgbToHex({ r: r1, g: g1, b: b1 }),
+          alternateColorHex: rgbToHex({ r: r2, g: g2, b: b2 }),
+          tileSize:          gameObject.tileSize,
+        };
+      }
+
+      setState(previous => ({
+        isOpen:           true,
+        title:            label,
+        selectionKey:     previous.selectionKey + 1,
+        objectIndex:      objectIndex,
+        visibleSections:  new Set(properties),
+        assetOptions:     assetOptionsRef.current,
+        initialColorHex,
+        initialPhysics: physicsConfig
+          ? { hasRigidbody: physicsConfig.hasRigidbody, isStatic: physicsConfig.isStatic, hasHitbox: physicsConfig.hasHitbox, layer: physicsConfig.layer }
+          : { hasRigidbody: false, isStatic: false, hasHitbox: false, layer: 'default' },
+        initialAssetUrl:  selectedAssetUrl ?? '',
+        initialLight,
+        initialGround,
+        initialScript:    selectedScript ?? '',
+        initialScriptArgs: selectedScriptArgs ?? {},
+      }));
     }
 
-    useImperativeHandle(ref, () => {
-      const handle: PropertyPanel = {
-        show(gameObject, objectIndex, label, properties, physicsConfig, selectedAssetUrl, selectedScript, selectedScriptArgs) {
-          currentObjectRef.current      = gameObject;
-          currentObjectIndexRef.current = objectIndex;
+    useImperativeHandle(ref, () => ({
+      hide() {
+        currentObjectRef.current = null;
+        setState((previous) => ({ ...previous, isOpen: false }));
+      },
+    }), []);
 
-          const [posX, posY, posZ] = gameObject.position;
-          const [quaternionX, quaternionY, quaternionZ, quaternionW] = gameObject.quaternion;
-          const yawDeg   = Math.atan2(2*(quaternionW*quaternionY + quaternionZ*quaternionX), 1 - 2*(quaternionY*quaternionY + quaternionZ*quaternionZ)) / DEG;
-          const pitchDeg = Math.asin(Math.max(-1, Math.min(1, 2*(quaternionW*quaternionX - quaternionY*quaternionZ)))) / DEG;
-          const rollDeg  = Math.atan2(2*(quaternionW*quaternionZ + quaternionX*quaternionY), 1 - 2*(quaternionZ*quaternionZ + quaternionX*quaternionX)) / DEG;
-          const [scaleX, scaleY, scaleZ] = gameObject.scale;
+    useEffect(() => {
+      const onShow = (raw: unknown) => _show(raw as PropertyPanelShowPayload);
 
-          positionFormRef.current?.setValues(posX, posY, posZ);
-          rotationFormRef.current?.setValues(yawDeg, pitchDeg, rollDeg);
-          scaleFormRef.current?.setValues(scaleX, scaleY, scaleZ);
+      const onHide = () => {
+        currentObjectRef.current = null;
+        setState((previous) => ({ ...previous, isOpen: false }));
+      };
 
-          let colorHex = '';
-          if (properties.includes('color')) {
-            const [red, green, blue] = gameObject.color;
-            const toHex = (value: number) => Math.round(value * 255).toString(16).padStart(2, '0').toUpperCase();
-            colorHex = `${toHex(red)}${toHex(green)}${toHex(blue)}`;
-          }
+      const onSetPosition = (raw: unknown) => {
+        const { x, y, z } = raw as PropertyPanelSetPositionPayload;
+        positionFormRef.current?.setValues(x, y, z);
+        currentObjectRef.current?.setPosition([x, y, z]);
+      };
 
-          let lightState: LightState = { lightType: 0, radius: '1.0'};
-          if (gameObject instanceof LightGameObject) {
-            lightState = {
-              lightType: gameObject.lightType,
-              radius:    gameObject.radius.toFixed(1),
-            };
-          }
+      const onSetTitle = (raw: unknown) => {
+        const { label } = raw as PropertyPanelSetTitlePayload;
+        setState((previous) => ({ ...previous, title: label }));
+      };
 
-          // REVIEW [NITPICK]: fallback tileSize is 2 here but 16 in INITIAL_STATE — pick one default.
-          let groundState: InfiniteGroundState = { yLevel: '0', colorHex: 'FFFFFF', alternateColorHex: '737373', tileSize: 2 };
-          if (gameObject instanceof InfiniteGroundGameObject) {
-            const toHex = (value: number) => Math.round(value * 255).toString(16).padStart(2, '0').toUpperCase();
-            const [r1, g1, b1] = gameObject.color;
-            const [r2, g2, b2] = gameObject.alternateColor;
-            groundState = {
-              yLevel:            gameObject.yLevel.toFixed(3),
-              colorHex:          `${toHex(r1)}${toHex(g1)}${toHex(b1)}`,
-              alternateColorHex: `${toHex(r2)}${toHex(g2)}${toHex(b2)}`,
-              tileSize:          gameObject.tileSize,
-            };
-          }
+      const onFbxCatalog = (raw: unknown) => {
+        const { catalog } = raw as PropertyPanelFbxCatalogPayload;
+        assetOptionsRef.current = catalog;
+        setState((previous) => ({ ...previous, assetOptions: catalog }));
+      };
 
-          const resolvedScript = selectedScript ?? '';
-          setState({
-            isOpen: true,
-            title:  label,
-            colorHex,
-            visibleSections: new Set(properties),
-            physics: physicsConfig
-              ? { hasRigidbody: physicsConfig.hasRigidbody, isStatic: physicsConfig.isStatic, hasHitbox: physicsConfig.hasHitbox, layer: physicsConfig.layer }
-              : { hasRigidbody: false, isStatic: false, hasHitbox: false, layer: 'default' },
-            assetOptions:     assetOptionsRef.current,
-            selectedAssetUrl: selectedAssetUrl ?? '',
-            light:            lightState,
-            ground:           groundState,
-            selectedScript:   resolvedScript,
-            scriptParams:     [],
-            scriptArgValues:  selectedScriptArgs ?? {},
-          });
-
-          if (resolvedScript) {
-            _loadScriptParams(resolvedScript).then(({ params, defaults }) => {
-              setState(previous => ({
-                ...previous,
-                scriptParams: params,
-                scriptArgValues: { ...defaults, ...previous.scriptArgValues },
-              }));
-            });
-          }
-        },
-
-        hide() {
+      const onObjectRemoved = (raw: unknown) => {
+        const { removedIndex } = raw as ObjectRemovedPayload;
+        if (currentObjectIndexRef.current === removedIndex) {
           currentObjectRef.current = null;
           setState((previous) => ({ ...previous, isOpen: false }));
-        },
-
-        setPosition(x, y, z) {
-          positionFormRef.current?.setValues(x, y, z);
-          currentObjectRef.current?.setPosition([x, y, z]);
-        },
-
-        setTitle(label) {
-          setState((previous) => ({ ...previous, title: label }));
-        },
-
-        setFbxCatalog(catalog) {
-          assetOptionsRef.current = catalog;
-          setState((previous) => ({ ...previous, assetOptions: catalog }));
-        },
-
-        get currentObject() { return currentObjectRef.current; },
-
-        setPubSub(pubSub: PubSubManager): void {
-          pubSubRef.current = pubSub;
-        },
+        } else if (currentObjectIndexRef.current > removedIndex) {
+          currentObjectIndexRef.current--;
+          setState((previous) => ({ ...previous, objectIndex: previous.objectIndex - 1 }));
+        }
       };
-      return handle;
-    }, []);
 
-    const { isOpen, title, colorHex, visibleSections, physics, assetOptions, selectedAssetUrl, light, ground, selectedScript, scriptParams, scriptArgValues } = state;
+      const onRowRenamed = (raw: unknown) => {
+        const { index, name } = raw as HierarchyRowRenamedPayload;
+        if (currentObjectIndexRef.current === index) {
+          setState((previous) => ({ ...previous, title: name }));
+        }
+      };
+
+      pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_PANEL_SHOW,         onShow);
+      pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_PANEL_HIDE,         onHide);
+      pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_PANEL_SET_POSITION, onSetPosition);
+      pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_PANEL_SET_TITLE,    onSetTitle);
+      pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_PANEL_FBX_CATALOG,  onFbxCatalog);
+      pubSub.subscribe(SANDBOX_EVENTS.OBJECT_REMOVED,              onObjectRemoved);
+      pubSub.subscribe(SANDBOX_EVENTS.HIERARCHY_ROW_RENAMED,       onRowRenamed);
+
+      return () => {
+        pubSub.unsubscribe(SANDBOX_EVENTS.PROPERTY_PANEL_SHOW,         onShow);
+        pubSub.unsubscribe(SANDBOX_EVENTS.PROPERTY_PANEL_HIDE,         onHide);
+        pubSub.unsubscribe(SANDBOX_EVENTS.PROPERTY_PANEL_SET_POSITION, onSetPosition);
+        pubSub.unsubscribe(SANDBOX_EVENTS.PROPERTY_PANEL_SET_TITLE,    onSetTitle);
+        pubSub.unsubscribe(SANDBOX_EVENTS.PROPERTY_PANEL_FBX_CATALOG,  onFbxCatalog);
+        pubSub.unsubscribe(SANDBOX_EVENTS.OBJECT_REMOVED,              onObjectRemoved);
+        pubSub.unsubscribe(SANDBOX_EVENTS.HIERARCHY_ROW_RENAMED,       onRowRenamed);
+      };
+    }, [pubSub]);
+
+    const {
+      isOpen, title, selectionKey, objectIndex, visibleSections, assetOptions,
+      initialColorHex, initialPhysics, initialAssetUrl, initialLight, initialGround,
+      initialScript, initialScriptArgs,
+    } = state;
+
     const showPhysics = visibleSections.has('rigidbody') || visibleSections.has('hitbox');
     const showLight   = visibleSections.has('lightType') || visibleSections.has('lightRadius') || visibleSections.has('lightPower') || visibleSections.has('lightStrength');
     const showGround  = visibleSections.has('groundSettings');
@@ -225,9 +224,9 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
             <Typography variant="subtitle2" id="prop-title" className="prop-panel-title">
               {title}
             </Typography>
-            <IconButton 
+            <IconButton
               sx={{width: "32px", height: "32px"}}
-              size="small" 
+              size="small"
               onClick={() => { currentObjectRef.current = null; setState((previous) => ({ ...previous, isOpen: false })); }}
             >
               ×
@@ -255,9 +254,9 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
             {visibleSections.has('color') && (
               <ColorForm
-                colorHex={colorHex}
-                onChange={(hex) => setState((previous) => ({ ...previous, colorHex: hex }))}
-                onApply={_applyColor}
+                key={selectionKey}
+                initialColorHex={initialColorHex}
+                gameObject={currentObjectRef.current!}
               />
             )}
 
@@ -268,7 +267,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
                 ref={scaleFormRef}
                 onApply={(x, y, z) => {
                   currentObjectRef.current?.setScale(x, y, z);
-                  pubSubRef.current?.publish(SANDBOX_EVENTS.PROPERTY_SCALE_CHANGED, {
+                  pubSub.publish(SANDBOX_EVENTS.PROPERTY_SCALE_CHANGED, {
                     objectIndex: currentObjectIndexRef.current, data: { x, y, z }
                   });
                 }}
@@ -277,100 +276,49 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel>(
 
             {showPhysics && (
               <PhysicsForm
-                physics={physics}
+                key={selectionKey}
+                initialPhysics={initialPhysics}
                 visibleSections={visibleSections}
-                onChange={(updated) => setState((previous) => ({ ...previous, physics: updated }))}
-                onApply={(updated) => pubSubRef.current?.publish(
-                  SANDBOX_EVENTS.PROPERTY_PHYSICS_CHANGED,
-                  { objectIndex: currentObjectIndexRef.current, data: { config: updated } },
-                )}
+                pubSub={pubSub}
+                objectIndex={objectIndex}
               />
             )}
 
             {visibleSections.has('asset') && (
               <AssetForm
-                selectedAssetUrl={selectedAssetUrl}
+                key={selectionKey}
+                initialSelectedAssetUrl={initialAssetUrl}
                 assetOptions={assetOptions}
-                onChange={(url) => {
-                  setState((previous) => ({ ...previous, selectedAssetUrl: url }));
-                  pubSubRef.current?.publish(SANDBOX_EVENTS.PROPERTY_ASSET_CHANGED, {
-                    objectIndex: currentObjectIndexRef.current, data: { url }
-                  });
-                }}
+                pubSub={pubSub}
+                objectIndex={objectIndex}
               />
             )}
 
             {visibleSections.has('script') && (
               <ScriptForm
-                scriptNames={SCRIPT_NAMES}
-                selectedScript={selectedScript}
-                onChange={(name) => {
-                  setState((previous) => ({ ...previous, selectedScript: name, scriptParams: [], scriptArgValues: {} }));
-                  pubSubRef.current?.publish(SANDBOX_EVENTS.PROPERTY_SCRIPT_CHANGED, {
-                    objectIndex: currentObjectIndexRef.current, data: { scriptName: name }
-                  });
-                  if (name) {
-                    _loadScriptParams(name).then(({ params, defaults }) => {
-                      setState(previous => ({ ...previous, scriptParams: params, scriptArgValues: defaults }));
-                    });
-                  }
-                }}
-              />
-            )}
-
-            {visibleSections.has('script') && scriptParams.length > 0 && (
-              <ScriptArgsForm
-                params={scriptParams}
-                values={scriptArgValues}
-                onApply={(args) => {
-                  setState((previous) => ({ ...previous, scriptArgValues: args }));
-                  pubSubRef.current?.publish(SANDBOX_EVENTS.PROPERTY_SCRIPT_ARGS_CHANGED, {
-                    objectIndex: currentObjectIndexRef.current, data: { args },
-                  });
-                }}
+                key={selectionKey}
+                initialSelectedScript={initialScript}
+                initialScriptArgs={initialScriptArgs}
+                pubSub={pubSub}
+                objectIndex={objectIndex}
               />
             )}
 
             {showLight && (
               <LightForm
-                light={light}
+                key={selectionKey}
+                initialLight={initialLight}
                 visibleSections={visibleSections}
-                onLightChange={(updated) => setState((previous) => ({ ...previous, light: updated }))}
-                onTypeApply={(type) => pubSubRef.current?.publish(
-                  SANDBOX_EVENTS.PROPERTY_LIGHT_TYPE_CHANGED,
-                  { objectIndex: currentObjectIndexRef.current, data: { lightType: type } },
-                )}
-                onRadiusApply={(radius) => pubSubRef.current?.publish(
-                  SANDBOX_EVENTS.PROPERTY_RADIUS_CHANGED,
-                  { objectIndex: currentObjectIndexRef.current, data: { radius } },
-                )}
+                pubSub={pubSub}
+                objectIndex={objectIndex}
               />
             )}
 
             {showGround && currentObjectRef.current instanceof InfiniteGroundGameObject && (
               <InfiniteGroundForm
-                ground={ground}
-                onGroundChange={(updated) => setState((previous) => ({ ...previous, ground: updated }))}
-                // REVIEW [BLOCKING]: currentObjectRef.current can be null between render and callback invocation.
-                // Add a null guard inside each callback: const ground = currentObjectRef.current; if (!(ground instanceof InfiniteGroundGameObject)) return;
-                onYLevelApply={(y) => (currentObjectRef.current as InfiniteGroundGameObject).setYLevel(y)}
-                onColorApply={(hex) => {
-                  const upper = hex.trim().toUpperCase();
-                  if (!/^[0-9A-F]{6}$/.test(upper)) return;
-                  const red   = parseInt(upper.slice(0, 2), 16) / 255;
-                  const green = parseInt(upper.slice(2, 4), 16) / 255;
-                  const blue  = parseInt(upper.slice(4, 6), 16) / 255;
-                  (currentObjectRef.current as InfiniteGroundGameObject).setColor(red, green, blue, 1);
-                }}
-                onAltColorApply={(hex) => {
-                  const upper = hex.trim().toUpperCase();
-                  if (!/^[0-9A-F]{6}$/.test(upper)) return;
-                  const red   = parseInt(upper.slice(0, 2), 16) / 255;
-                  const green = parseInt(upper.slice(2, 4), 16) / 255;
-                  const blue  = parseInt(upper.slice(4, 6), 16) / 255;
-                  (currentObjectRef.current as InfiniteGroundGameObject).setAlternateColor(red, green, blue, 1);
-                }}
-                onTileSizeApply={(size) => (currentObjectRef.current as InfiniteGroundGameObject).setTileSize(size)}
+                key={selectionKey}
+                initialGround={initialGround}
+                gameObject={currentObjectRef.current}
               />
             )}
 

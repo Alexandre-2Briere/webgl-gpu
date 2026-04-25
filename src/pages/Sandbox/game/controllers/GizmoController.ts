@@ -2,7 +2,6 @@ import type { Engine, ArrowGizmo } from '@engine';
 import type { InputManager } from '../managers/InputManager';
 import type { SelectionManager } from '../managers/SelectionManager';
 import type { SpawnManager } from '../managers/SpawnManager';
-import type { PropertyPanel } from '../../ui/components/PropertyPanel/PropertyPanel';
 import { SANDBOX_EVENTS, type PubSubManager } from '../events';
 
 const DRAG_SPEED = 0.01;  // world units per pixel
@@ -12,7 +11,6 @@ export class GizmoController {
   private readonly _inputManager:      InputManager;
   private readonly _selectionManager:  SelectionManager;
   private readonly _spawnManager:      SpawnManager;
-  private readonly _propertyPanel:     PropertyPanel;
   private readonly _isPlaying:         () => boolean;
   private readonly _pubSub:            PubSubManager;
 
@@ -24,7 +22,6 @@ export class GizmoController {
     inputManager:     InputManager,
     selectionManager: SelectionManager,
     spawnManager:     SpawnManager,
-    propertyPanel:    PropertyPanel,
     isPlaying:        () => boolean,
     pubSub:           PubSubManager,
   ) {
@@ -32,7 +29,6 @@ export class GizmoController {
     this._inputManager     = inputManager;
     this._selectionManager = selectionManager;
     this._spawnManager     = spawnManager;
-    this._propertyPanel    = propertyPanel;
     this._isPlaying        = isPlaying;
     this._pubSub           = pubSub;
   }
@@ -81,7 +77,7 @@ export class GizmoController {
     const delta = axis === 1 ? -deltaY * DRAG_SPEED : deltaX * DRAG_SPEED;
     const pos   = obj.gameObject.position as [number, number, number];
     pos[axis] += delta;
-    this._propertyPanel.setPosition(pos[0], pos[1], pos[2]);
+    this._pubSub.publish(SANDBOX_EVENTS.PROPERTY_PANEL_SET_POSITION, { x: pos[0], y: pos[1], z: pos[2] });
   }
 
   // ── Mouse listeners ───────────────────────────────────────────────────────────

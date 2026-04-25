@@ -5,6 +5,12 @@ export type RGBA = {
     a: number;
 }
 
+export type RGB = {
+    r: number;
+    g: number;
+    b: number;
+}
+
 export type HexadecimalColor = `#${string}`;
 
 export function hexToRGBA(hex: HexadecimalColor): RGBA {
@@ -23,10 +29,10 @@ export function rgbaToHex({ r, g, b, a }: RGBA): HexadecimalColor {
         const hex = value.toString(16).toUpperCase();
         return hex.length === 1 ? '0' + hex : hex;
     };
-    return `${rgbToHex({ r, g, b , a})}${toHex(a)}`;
+    return `${rgbToHex({ r, g, b})}${toHex(a)}`;
 }
 
-export function rgbToHex({ r, g, b }: RGBA): HexadecimalColor {
+export function rgbToHex({ r, g, b }: RGB): HexadecimalColor {
     const toHex = (value: number) => {
         const hex = value.toString(16).toUpperCase();
         return hex.length === 1 ? '0' + hex : hex;

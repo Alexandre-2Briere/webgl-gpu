@@ -1,29 +1,29 @@
 import type { SpawnManager } from './SpawnManager';
-import type { PropertyPanel } from '../../ui/components/PropertyPanel/PropertyPanel';
-import type { SceneHierarchy } from '../../ui/components/SceneHierarchy/SceneHierarchy';
 import type { ArrowGizmo } from '@engine';
-import { SANDBOX_EVENTS, type PubSubManager, type ObjectSpawnedPayload, type ObjectRemovedPayload, type ObjectRebuiltPayload } from '../events';
+import {
+  SANDBOX_EVENTS,
+  type PubSubManager,
+  type ObjectSpawnedPayload,
+  type ObjectRemovedPayload,
+  type ObjectRebuiltPayload,
+} from '../events';
 
 export class SelectionManager {
-  private readonly _spawnManager:   SpawnManager;
-  private readonly _propertyPanel:  PropertyPanel;
-  private readonly _sceneHierarchy: SceneHierarchy;
-  private readonly _canvas:         HTMLCanvasElement;
+  private readonly _spawnManager: SpawnManager;
+  private readonly _canvas:       HTMLCanvasElement;
+  private readonly _pubSub:       PubSubManager;
 
   private _selectedIndex = -1;
   private _gizmo: ArrowGizmo | null = null;
 
   constructor(
-    spawnManager:   SpawnManager,
-    propertyPanel:  PropertyPanel,
-    sceneHierarchy: SceneHierarchy,
-    canvas:         HTMLCanvasElement,
-    pubSub:         PubSubManager,
+    spawnManager: SpawnManager,
+    canvas:       HTMLCanvasElement,
+    pubSub:       PubSubManager,
   ) {
-    this._spawnManager   = spawnManager;
-    this._propertyPanel  = propertyPanel;
-    this._sceneHierarchy = sceneHierarchy;
-    this._canvas         = canvas;
+    this._spawnManager = spawnManager;
+    this._canvas       = canvas;
+    this._pubSub       = pubSub;
 
     pubSub.subscribe(SANDBOX_EVENTS.OBJECT_SPAWNED, (data: unknown) => {
       const { index } = data as ObjectSpawnedPayload;
@@ -66,17 +66,17 @@ export class SelectionManager {
     const obj = this._spawnManager.getObject(index);
     if (!obj) return;
     this._selectedIndex = index;
-    this._sceneHierarchy.setSelected(index);
-    this._propertyPanel.show(
-      obj.gameObject,
-      index,
-      obj.label,
-      obj.properties,
-      obj.physicsConfig,
-      obj.selectedFbxUrl ?? undefined,
-      obj.selectedScript ?? undefined,
-      obj.selectedScriptArgs,
-    );
+    this._pubSub.publish(SANDBOX_EVENTS.HIERARCHY_ROW_SELECTED, { index });
+    this._pubSub.publish(SANDBOX_EVENTS.PROPERTY_PANEL_SHOW, {
+      gameObject:        obj.gameObject,
+      objectIndex:       index,
+      label:             obj.label,
+      properties:        obj.properties,
+      physicsConfig:     obj.physicsConfig,
+      selectedAssetUrl:  obj.selectedFbxUrl ?? undefined,
+      selectedScript:    obj.selectedScript ?? undefined,
+      selectedScriptArgs: obj.selectedScriptArgs,
+    });
 
     if (this._gizmo && !isPlaying) {
       const position   = obj.gameObject.position;
@@ -92,8 +92,8 @@ export class SelectionManager {
 
   deselect(): void {
     this._selectedIndex = -1;
-    this._sceneHierarchy.setSelected(-1);
-    this._propertyPanel.hide();
+    this._pubSub.publish(SANDBOX_EVENTS.HIERARCHY_ROW_SELECTED, { index: -1 });
+    this._pubSub.publish(SANDBOX_EVENTS.PROPERTY_PANEL_HIDE);
     if (this._gizmo) this._gizmo.visible = false;
   }
 

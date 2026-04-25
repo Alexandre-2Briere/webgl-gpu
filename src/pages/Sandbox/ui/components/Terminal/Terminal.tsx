@@ -1,8 +1,10 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useReducer, useRef } from 'react';
+import { SANDBOX_EVENTS, type PubSubManager, type TerminalPrintPayload } from '../../../game/events';
 import { Tab, Tabs } from '@mui/material';
 import './Terminal.css';
 import { AccordionPrimitive } from '@components/Primitive/Accordion/AccordionPrimitive';
 
+export type { LogLevel } from '../../../game/events';
 type LogLevel = 'log' | 'warn' | 'error';
 
 interface LogEntry {
@@ -124,7 +126,6 @@ function LogValue({ value }: { value: unknown }): React.ReactElement {
   );
 }
 
-// ── Exported handle type (named Terminal so SceneManager import type works) ──
 export interface Terminal {
   print(value: unknown, level?: LogLevel, tabId?: string): void;
   clear(tabId?: string): void;
@@ -133,7 +134,11 @@ export interface Terminal {
   restoreConsole(): void;
 }
 
-export const TerminalComponent = forwardRef<Terminal>(function TerminalComponent(_, ref) {
+interface TerminalProps {
+  pubSub: PubSubManager;
+}
+
+export const TerminalComponent = forwardRef<Terminal, TerminalProps>(function TerminalComponent({ pubSub }, ref) {
   const [state, dispatch] = useReducer(terminalReducer, INITIAL_STATE);
 
   const stateRef = useRef(state);
@@ -199,6 +204,15 @@ export const TerminalComponent = forwardRef<Terminal>(function TerminalComponent
     interceptConsole();
     return restoreConsole;
   }, [interceptConsole, restoreConsole]);
+
+  useEffect(() => {
+    const onPrint = (raw: unknown) => {
+      const { message, level, tabId } = raw as TerminalPrintPayload;
+      print(message, level, tabId);
+    };
+    pubSub.subscribe(SANDBOX_EVENTS.TERMINAL_PRINT, onPrint);
+    return () => pubSub.unsubscribe(SANDBOX_EVENTS.TERMINAL_PRINT, onPrint);
+  }, [pubSub, print]);
 
   const activeEntries = useMemo(
     () => state.entries.get(state.activeTabId) ?? [],

@@ -1,8 +1,4 @@
-import { Engine, type FbxAssetHandle } from '@engine';
-import type { Terminal } from '../ui/components/Terminal/Terminal';
-import type { PropertyPanel } from '../ui/components/PropertyPanel/PropertyPanel';
-import type { SceneHierarchy } from '../ui/components/SceneHierarchy/SceneHierarchy';
-import type { ItemEntry } from '../items/types';
+import { Engine, type FbxAssetHandle, type PubSubManager } from '@engine';
 import { FBX_CATALOG } from '../items/fbx';
 import { InputManager } from './managers/InputManager';
 import { SpawnManager } from './managers/SpawnManager';
@@ -12,15 +8,20 @@ import { PlayStateManager } from './managers/PlayStateManager';
 import { CameraController } from './controllers/CameraController';
 import { GizmoController } from './controllers/GizmoController';
 import { SaveLoadManager } from './managers/SaveLoadManager';
-import { SANDBOX_EVENTS } from './events';
+import {
+  SANDBOX_EVENTS,
+  type ItemSpawnPayload,
+  type HierarchyObjectSelectedPayload,
+  type HierarchyObjectRemovedPayload,
+  type HierarchyObjectRenamedPayload,
+  type SceneLoadRequestedPayload,
+} from './events';
 
 export class SceneManager {
-  private readonly _canvas:          HTMLCanvasElement;
-  private readonly _terminal:        Terminal;
-  private readonly _propertyPanel:   PropertyPanel;
-  private readonly _sceneHierarchy:  SceneHierarchy;
+  private readonly _canvas: HTMLCanvasElement;
 
   private _engine!:            Engine;
+  private _pubSub!:            PubSubManager;
   private _inputManager!:      InputManager;
   private _spawnManager!:      SpawnManager;
   private _selectionManager!:  SelectionManager;
@@ -30,26 +31,16 @@ export class SceneManager {
   private _gizmoController!:   GizmoController;
   private _saveLoadManager!:   SaveLoadManager;
 
-  constructor(
-    canvas:         HTMLCanvasElement,
-    terminal:       Terminal,
-    propertyPanel:  PropertyPanel,
-    sceneHierarchy: SceneHierarchy,
-  ) {
-    this._canvas         = canvas;
-    this._terminal       = terminal;
-    this._propertyPanel  = propertyPanel;
-    this._sceneHierarchy = sceneHierarchy;
+  constructor(canvas: HTMLCanvasElement) {
+    this._canvas = canvas;
   }
 
-  // ── Init ──────────────────────────────────────────────────────────────────────
+  // ── Phase 1: create engine, return pubSub ─────────────────────────────────────
 
-  async init(): Promise<void> {
+  async createEngine(): Promise<PubSubManager> {
     this._engine = await Engine.create(this._canvas);
-    const engine = this._engine;
-    const pubSub = engine.PubSubManager;
 
-    const camera = engine.createCamera({
+    const camera = this._engine.createCamera({
       fovY:     Math.PI / 3,
       near:     0.1,
       far:      500,
@@ -57,7 +48,16 @@ export class SceneManager {
       yaw:      0,
       pitch:    Math.atan2(3, 8),
     });
-    engine.setCamera(camera);
+    this._engine.setCamera(camera);
+    this._pubSub = this._engine.PubSubManager;
+    return this._pubSub;
+  }
+
+  // ── Phase 2: setup sub-managers (called after sections have subscribed) ───────
+
+  async setup(): Promise<void> {
+    const engine = this._engine;
+    const pubSub = this._pubSub;
 
     const rawTextureUrls = import.meta.glob(
       '../../../assets/LowpolyForestPack/TreesTexture/*.png',
@@ -67,53 +67,88 @@ export class SceneManager {
       Object.entries(rawTextureUrls).map(([path, url]) => [path.split('/').pop()!, url]),
     );
 
-    this._terminal.print('Loading FBX assets...', 'log');
+    pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: 'Loading FBX assets...', level: 'log' });
     const fbxCache: Map<string, FbxAssetHandle> = new Map();
     await Promise.all(FBX_CATALOG.map(({ url }) =>
       engine.loadFbx(url, undefined, textureOverrides).then(handle => fbxCache.set(url, handle))
     ));
-    this._propertyPanel.setFbxCatalog(FBX_CATALOG);
+    pubSub.publish(SANDBOX_EVENTS.PROPERTY_PANEL_FBX_CATALOG, { catalog: FBX_CATALOG });
 
     engine.start();
 
-    // Construct managers and controllers
     this._inputManager     = new InputManager(this._canvas, pubSub);
-    this._spawnManager     = new SpawnManager(engine, this._terminal, this._propertyPanel, this._sceneHierarchy, fbxCache, pubSub);
-    this._selectionManager = new SelectionManager(this._spawnManager, this._propertyPanel, this._sceneHierarchy, this._canvas, pubSub);
+    this._spawnManager     = new SpawnManager(engine, fbxCache, pubSub);
+    this._selectionManager = new SelectionManager(this._spawnManager, this._canvas, pubSub);
     this._physicsManager   = new PhysicsManager(engine, this._spawnManager, pubSub);
-    this._playStateManager = new PlayStateManager(this._canvas, engine, this._spawnManager, this._physicsManager, this._terminal, pubSub);
+    this._playStateManager = new PlayStateManager(this._canvas, engine, this._spawnManager, this._physicsManager, pubSub);
     this._cameraController = new CameraController(engine, this._inputManager, () => this._playStateManager.isPlaying(), pubSub);
     this._gizmoController  = new GizmoController(
       engine,
       this._inputManager,
       this._selectionManager,
       this._spawnManager,
-      this._propertyPanel,
       () => this._playStateManager.isPlaying(),
       pubSub,
     );
     this._gizmoController.create();
-    this._saveLoadManager = new SaveLoadManager(engine, this._spawnManager, this._physicsManager, this._terminal);
+    this._saveLoadManager = new SaveLoadManager(engine, this._spawnManager, this._physicsManager, pubSub);
 
-    // Wire SelectionManager with play-state context for picking
     this._selectionManager.setPickingDisabled(() => this._playStateManager.isPlaying());
     this._selectionManager.setCameraDataGetter(() => engine.camera.getData());
 
-    this._propertyPanel.setPubSub(pubSub);
-
-    // Bridge internal events to the DOM for UI consumers outside the game folder
-    pubSub.subscribe(SANDBOX_EVENTS.INPUT_POINTER_LOCK_RELEASED, () => {
-      document.dispatchEvent(new CustomEvent('sandbox:stopped'));
-    });
-    pubSub.subscribe(SANDBOX_EVENTS.CAMERA_DRAG_STARTED, () => {
-      document.dispatchEvent(new CustomEvent('camera:dragStarted'));
-    });
-    pubSub.subscribe(SANDBOX_EVENTS.CAMERA_DRAG_ENDED, () => {
-      document.dispatchEvent(new CustomEvent('camera:dragEnded'));
+    // Subscribe to UI events
+    pubSub.subscribe(SANDBOX_EVENTS.TOOLBAR_PLAY, () => {
+      this._playStateManager.play();
     });
 
-    this._terminal.print('Engine initialised.', 'log');
-    this._terminal.print('Press Play to start | Click an object to inspect it.', 'log');
+    pubSub.subscribe(SANDBOX_EVENTS.TOOLBAR_STOP, () => {
+      this._playStateManager.stop();
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.TOOLBAR_SAVE, () => {
+      this._saveLoadManager.saveScene().then(encodedString => {
+        pubSub.publish(SANDBOX_EVENTS.SCENE_SAVED, { encodedString });
+      });
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.ITEM_SPAWN, (raw) => {
+      const { key, entry } = raw as unknown as ItemSpawnPayload;
+      this._spawnManager.spawn(key, entry);
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.HIERARCHY_OBJECT_SELECTED, (raw) => {
+      const { index } = raw as unknown as HierarchyObjectSelectedPayload;
+      this._selectionManager.select(index, this._playStateManager.isPlaying());
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.HIERARCHY_OBJECT_DESELECTED, () => {
+      this._selectionManager.deselect();
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.HIERARCHY_OBJECT_REMOVED, (raw) => {
+      const { index } = raw as unknown as HierarchyObjectRemovedPayload;
+      this._spawnManager.removeObject(index);
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.HIERARCHY_OBJECT_RENAMED, (raw) => {
+      const { index, name } = raw as unknown as HierarchyObjectRenamedPayload;
+      this._spawnManager.renameObject(index, name);
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.SCENE_LOAD_REQUESTED, async (raw) => {
+      const { encodedString } = raw as unknown as SceneLoadRequestedPayload;
+      if (this._playStateManager.isPlaying()) this._playStateManager.stop();
+      this._selectionManager.deselect();
+      const success = await this._saveLoadManager.loadScene(encodedString);
+      pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, success
+        ? { message: 'Scene loaded successfully.', level: 'log' }
+        : { message: 'Failed to load scene — invalid or corrupted data.', level: 'error' }
+      );
+    });
+
+    pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: 'Engine initialised.', level: 'log' });
+    pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: 'Press Play to start | Click an object to inspect it.', level: 'log' });
+    pubSub.publish(SANDBOX_EVENTS.ENGINE_INITIALIZED);
   }
 
   // ── Frame loop ────────────────────────────────────────────────────────────────
@@ -123,10 +158,8 @@ export class SceneManager {
       const isPlaying = this._playStateManager.isPlaying();
       const isDraggingAxis = this._gizmoController.isDragging();
 
-      // Camera keyboard movement (WASD / Q / E / Space / Shift — only when playing)
       this._cameraController.tick(deltaTime);
 
-      // Mouse delta: axis drag takes priority over camera rotation
       const [deltaX, deltaY] = this._inputManager.readMouseDelta();
       if (isDraggingAxis && !isPlaying) {
         this._gizmoController.applyDrag();
@@ -137,68 +170,11 @@ export class SceneManager {
       }
       this._inputManager.clearMouseDelta();
 
-      // Gizmo position sync with selected object
       this._gizmoController.sync();
 
-      // Physics (only when playing)
       if (isPlaying) {
         this._physicsManager.tick(deltaTime);
       }
     });
   }
-
-  // ── Public API (delegated to managers) ───────────────────────────────────────
-
-  play(): void {
-    this._playStateManager.play();
-  }
-
-  stop(): void {
-    this._playStateManager.stop();
-  }
-
-  isPlaying(): boolean {
-    return this._playStateManager.isPlaying();
-  }
-
-  spawn(key: string, entry: ItemEntry): void {
-    this._spawnManager.spawn(key, entry);
-  }
-
-  selectObject(index: number): void {
-    this._selectionManager.select(index, this._playStateManager.isPlaying());
-  }
-
-  deselectObject(): void {
-    this._selectionManager.deselect();
-  }
-
-  renameObject(index: number, newName: string): boolean {
-    return this._spawnManager.renameObject(index, newName);
-  }
-
-  removeObject(index: number): void {
-    this._spawnManager.removeObject(index);
-  }
-
-  notifyResizeDragStart(): void {
-    this._engine.PubSubManager.publish(SANDBOX_EVENTS.UI_RESIZE_STARTED);
-  }
-
-  notifyResizeDragEnd(): void {
-    this._engine.PubSubManager.publish(SANDBOX_EVENTS.UI_RESIZE_ENDED);
-  }
-
-  async saveScene(): Promise<string> {
-    return this._saveLoadManager.saveScene();
-  }
-
-  async loadScene(encodedString: string): Promise<boolean> {
-    if (this._playStateManager.isPlaying()) {
-      this._playStateManager.stop();
-    }
-    this._selectionManager.deselect();
-    return this._saveLoadManager.loadScene(encodedString);
-  }
-
 }

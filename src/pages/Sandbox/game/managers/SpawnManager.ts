@@ -1,7 +1,4 @@
 import { type Engine, type FbxAssetHandle, type ISceneObject, Rigidbody3D } from '@engine';
-import type { Terminal } from '../../ui/components/Terminal/Terminal';
-import type { PropertyPanel } from '../../ui/components/PropertyPanel/PropertyPanel';
-import type { SceneHierarchy } from '../../ui/components/SceneHierarchy/SceneHierarchy';
 import type { ItemEntry, PhysicsConfig, SpawnContext, PrimitiveSpawnContext, FbxSpawnContext, LightSpawnContext, SingletonSpawnContext } from '../../items/types';
 import { spawn as spawnQuad } from '../../items/quad';
 import { spawn as spawnCube } from '../../items/cube';
@@ -11,7 +8,12 @@ import { spawn as spawnDirectionalLight } from '../../items/directionalLight';
 import { spawn as spawnSkybox } from '../../items/skybox';
 import { spawn as spawnInfiniteGround } from '../../items/infiniteGround';
 import { spawn as spawnScriptObject } from '../../items/scriptObject';
-import { SANDBOX_EVENTS, type PubSubManager, type PropertyScriptChangedPayload, type PropertyScriptArgsChangedPayload } from '../events';
+import {
+  SANDBOX_EVENTS,
+  type PubSubManager,
+  type PropertyScriptChangedPayload,
+  type PropertyScriptArgsChangedPayload,
+} from '../events';
 import type { SpawnedObject } from './SpawnedObject';
 
 export type { SpawnedObject };
@@ -39,28 +41,19 @@ const SPAWN_MAP: Record<string, (engine: Engine, context: SpawnContext) => IScen
 
 export class SpawnManager {
   private readonly _engine:          Engine;
-  private readonly _terminal:        Terminal;
-  private readonly _propertyPanel:   PropertyPanel;
-  private readonly _sceneHierarchy:  SceneHierarchy;
   private readonly _fbxCache:        Map<string, FbxAssetHandle>;
   private readonly _pubSub:          PubSubManager;
   private readonly _rigidbodyLayerMap: Map<string, Rigidbody3D[]> = new Map();
   private readonly _spawnedObjects:  SpawnedObject[] = [];
 
   constructor(
-    engine:         Engine,
-    terminal:       Terminal,
-    propertyPanel:  PropertyPanel,
-    sceneHierarchy: SceneHierarchy,
-    fbxCache:       Map<string, FbxAssetHandle>,
-    pubSub:         PubSubManager,
+    engine:   Engine,
+    fbxCache: Map<string, FbxAssetHandle>,
+    pubSub:   PubSubManager,
   ) {
-    this._engine         = engine;
-    this._terminal       = terminal;
-    this._propertyPanel  = propertyPanel;
-    this._sceneHierarchy = sceneHierarchy;
-    this._fbxCache       = fbxCache;
-    this._pubSub         = pubSub;
+    this._engine   = engine;
+    this._fbxCache = fbxCache;
+    this._pubSub   = pubSub;
 
     pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_SCRIPT_CHANGED, (raw) => {
       const payload = raw as unknown as PropertyScriptChangedPayload;
@@ -97,13 +90,13 @@ export class SpawnManager {
 
   spawn(key: string, entry: ItemEntry): void {
     if (!entry.isReady) {
-      this._terminal.print(`${entry.label} is not yet available.`, 'warn');
+      this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: `${entry.label} is not yet available.`, level: 'warn' });
       return;
     }
 
     const spawnFn = SPAWN_MAP[key];
     if (!spawnFn) {
-      this._terminal.print(`No spawn handler registered for: ${key}`, 'warn');
+      this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: `No spawn handler registered for: ${key}`, level: 'warn' });
       return;
     }
 
@@ -120,7 +113,7 @@ export class SpawnManager {
     try {
       gameObject = spawnFn(this._engine, context);
     } catch {
-      this._terminal.print(`${entry.label} already exists in the scene.`, 'warn');
+      this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: `${entry.label} already exists in the scene.`, level: 'warn' });
       return;
     }
 
@@ -148,8 +141,8 @@ export class SpawnManager {
     });
 
     const index = this._spawnedObjects.length - 1;
-    this._sceneHierarchy.addObject(label);
-    this._terminal.print(`Spawned ${label} at (0, 0, 0).`, 'log');
+    this._pubSub.publish(SANDBOX_EVENTS.HIERARCHY_ROW_ADDED, { name: label });
+    this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: `Spawned ${label} at (0, 0, 0).`, level: 'log' });
     this._pubSub.publish(SANDBOX_EVENTS.OBJECT_SPAWNED, { index });
   }
 
@@ -168,15 +161,10 @@ export class SpawnManager {
       }
     }
 
-    if (this._propertyPanel.currentObject === obj.gameObject) {
-      this._propertyPanel.hide();
-    }
-
     obj.gameObject.destroy();
     this._spawnedObjects.splice(index, 1);
-    this._sceneHierarchy.removeRow(index);
-
-    this._terminal.print(`Removed ${obj.label}.`, 'log');
+    this._pubSub.publish(SANDBOX_EVENTS.HIERARCHY_ROW_REMOVED, { index });
+    this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: `Removed ${obj.label}.`, level: 'log' });
     this._pubSub.publish(SANDBOX_EVENTS.OBJECT_REMOVED, { removedIndex: index });
   }
 
@@ -186,10 +174,7 @@ export class SpawnManager {
     const obj = this._spawnedObjects[index];
     if (!obj) return false;
     obj.label = newName;
-    this._sceneHierarchy.renameRow(index, newName);
-    if (this._propertyPanel.currentObject === obj.gameObject) {
-      this._propertyPanel.setTitle(newName);
-    }
+    this._pubSub.publish(SANDBOX_EVENTS.HIERARCHY_ROW_RENAMED, { index, name: newName });
     return true;
   }
 

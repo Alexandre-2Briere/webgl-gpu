@@ -20,8 +20,8 @@ diagrams present where relevant, diff blocks for all code changes.
 7. The plan must be valid Markdown that renders in VS Code and GitHub without plugins.
 8. Plan quality must equal or exceed the default plan agent — never reduce detail
    or actionability to achieve formatting goals.
-9. Write the plan to `~/.claude/plans/<slug>.md` where `<slug>` is a short kebab-case
-   label derived from the task description. Tell the user the full path when done.
+9. Write the plan to the path provided by the harness in the system-reminder
+   (look for "You should create your plan at <path>"). Use that exact path.
 
 ## Step 1 — Research
 
@@ -43,8 +43,7 @@ Launch 1 Plan agent with:
 
 ## Step 3 — Write the plan file
 
-Derive a short kebab-case `<slug>` from the task (e.g. `add-skybox-renderer`).
-Write the plan to `~/.claude/plans/<slug>.md` using the structure below.
+Write the plan to the path the harness provided in the system-reminder.
 Use the Write tool — do not print the plan in the conversation.
 
 ---
@@ -112,12 +111,11 @@ which tests to check. Reference commands from CLAUDE.md only.
 
 ---
 
-## Step 4 — Confirm
+## Step 4 — Signal completion
 
-Tell the user:
-- The full path of the written plan file.
-- A one-sentence summary of what the plan covers.
-- "Review it and run `/rich-plan` again with corrections if anything needs adjusting."
+Call `ExitPlanMode` to hand off to the harness. The harness reads the plan file
+and presents it to the user for approval. Do not print the path or ask for
+confirmation in text — ExitPlanMode handles that.
 
 ## Step 5 — Print summary table in chat
 
@@ -127,4 +125,4 @@ After writing the plan file, always output a Markdown summary table directly in 
 |---|---|---|
 | `src/foo/bar.ts` | merge @engine type+value imports | -2 |
 
-End with a one-sentence total (e.g. "**9 files, ~23 lines removed.**") and invite the user to confirm before implementation begins.
+End with a one-sentence total (e.g. "**9 files, ~23 lines removed.**").

@@ -1,7 +1,6 @@
 import { Engine, LightGameObject, type IGameObject } from '@engine';
 import type { SpawnManager } from './SpawnManager';
 import type { PhysicsManager } from './PhysicsManager';
-import type { Terminal } from '../../ui/components/Terminal/Terminal';
 import { SANDBOX_EVENTS, type PubSubManager } from '../events';
 import type { ExecuteFn } from '../scripts/ScriptContract';
 import { getParamNames } from '../utils/functionParser';
@@ -20,7 +19,6 @@ export class PlayStateManager {
   private readonly _engine:          Engine;
   private readonly _spawnManager:    SpawnManager;
   private readonly _physicsManager:  PhysicsManager;
-  private readonly _terminal:        Terminal;
   private readonly _pubSub:          PubSubManager;
 
   private _playing = false;
@@ -30,14 +28,12 @@ export class PlayStateManager {
     engine:         Engine,
     spawnManager:   SpawnManager,
     physicsManager: PhysicsManager,
-    terminal:       Terminal,
     pubSub:         PubSubManager,
   ) {
     this._canvas         = canvas;
     this._engine         = engine;
     this._spawnManager   = spawnManager;
     this._physicsManager = physicsManager;
-    this._terminal       = terminal;
     this._pubSub         = pubSub;
 
     pubSub.subscribe(SANDBOX_EVENTS.INPUT_POINTER_LOCK_RELEASED, () => {
@@ -79,14 +75,17 @@ export class PlayStateManager {
               })
               .then(handle => { spawnedObject.scriptHandle = handle; })
               .catch((error: unknown) => {
-                this._terminal.print(`Script error (${spawnedObject.selectedScript}): ${String(error)}`, 'error');
+                this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, {
+                  message: `Script error (${spawnedObject.selectedScript}): ${String(error)}`,
+                  level: 'error',
+                });
               });
           }
         }
       }
     }
 
-    this._terminal.print('Play started.', 'log');
+    this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: 'Play started.', level: 'log' });
     this._pubSub.publish(SANDBOX_EVENTS.PLAY_STARTED);
   }
 
@@ -115,7 +114,7 @@ export class PlayStateManager {
       }
     }
 
-    this._terminal.print('Play stopped.', 'log');
+    this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: 'Play stopped.', level: 'log' });
     this._pubSub.publish(SANDBOX_EVENTS.PLAY_STOPPED);
   }
 

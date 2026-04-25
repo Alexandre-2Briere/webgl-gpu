@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Checkbox, FormControlLabel } from '@mui/material';
+import { type PubSubManager } from '@engine';
 import type { PropertyGroup } from '../../../../items/types';
 import { AccordionPrimitive } from '@components/Primitive/Accordion/AccordionPrimitive';
 import { InputPrimitive } from '@components/Primitive/Input/InputPrimitive';
+import { SANDBOX_EVENTS } from '../../../../game/events';
 
 export interface PhysicsState {
   hasRigidbody: boolean;
@@ -11,21 +14,28 @@ export interface PhysicsState {
 }
 
 interface PhysicsFormProps {
-  physics: PhysicsState;
+  initialPhysics:  PhysicsState;
   visibleSections: Set<PropertyGroup>;
-  /** Called on every change — parent updates state. */
-  onChange: (physics: PhysicsState) => void;
-  /** Called when a change should be propagated to the engine — parent fires onPhysicsChange. */
-  onApply: (physics: PhysicsState) => void;
+  pubSub:          PubSubManager;
+  objectIndex:     number;
 }
 
-export function PhysicsForm({ physics, visibleSections, onChange, onApply }: PhysicsFormProps) {
+export function PhysicsForm({ initialPhysics, visibleSections, pubSub, objectIndex }: PhysicsFormProps) {
+  const [physics, setPhysics] = useState(initialPhysics);
+
   const showRigidbody = visibleSections.has('rigidbody');
-  const showHitbox = visibleSections.has('hitbox');
+  const showHitbox    = visibleSections.has('hitbox');
+
+  function publishChange(updated: PhysicsState): void {
+    pubSub.publish(SANDBOX_EVENTS.PROPERTY_PHYSICS_CHANGED, {
+      objectIndex,
+      data: { config: updated },
+    });
+  }
 
   function handleCheckbox(updated: PhysicsState): void {
-    onChange(updated);
-    onApply(updated);
+    setPhysics(updated);
+    publishChange(updated);
   }
 
   return (
@@ -91,8 +101,8 @@ export function PhysicsForm({ physics, visibleSections, onChange, onApply }: Phy
             type="text"
             label="Layer"
             value={physics.layer}
-            onChange={(value) => onChange({ ...physics, layer: value })}
-            onApply={() => onApply(physics)}
+            onChange={(value) => setPhysics({ ...physics, layer: value })}
+            onApply={() => publishChange(physics)}
           />
         </div>
       )}

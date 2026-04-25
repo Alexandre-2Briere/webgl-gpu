@@ -1,28 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
-import { type ToolbarHandle, Toolbar } from './ui/components/Toolbar/Toolbar';
-import { type ItemMenuHandle, ItemMenu } from './ui/components/ItemMenu/ItemMenu';
-import { type LoadModalHandle, LoadModal } from './ui/LoadModal/LoadModal';
-import { type Terminal, TerminalComponent } from './ui/components/Terminal/Terminal';
-import { type SceneHierarchy, SceneHierarchyComponent } from './ui/components/SceneHierarchy/SceneHierarchy';
-import {type PropertyPanel, PropertyPanelComponent }   from './ui/components/PropertyPanel/PropertyPanel';
-import { ResizeDivider }            from './ui/ResizeDivider/ResizeDivider';
-import { SceneManager }             from './game/SceneManager';
+import { Toolbar } from './ui/components/Toolbar/Toolbar';
+import { ItemMenu } from './ui/components/ItemMenu/ItemMenu';
+import { LoadModal } from './ui/LoadModal/LoadModal';
+import { TerminalComponent } from './ui/components/Terminal/Terminal';
+import { SceneHierarchyComponent } from './ui/components/SceneHierarchy/SceneHierarchy';
+import { PropertyPanelComponent } from './ui/components/PropertyPanel/PropertyPanel';
+import { ResizeDivider } from './ui/ResizeDivider/ResizeDivider';
+import { SceneManager } from './game/SceneManager';
 import { getStoredNumber, setStoredNumber } from '@lib/storage';
-import registryJson                 from './items/registry.json';
-import type { ItemRegistry, ItemEntry } from './items/types';
+import registryJson from './items/registry.json';
+import type { ItemRegistry } from './items/types';
+import type { PubSubManager } from './game/events';
 import './Sandbox.css';
 
 const registry = registryJson as ItemRegistry;
 
 export default function Sandbox() {
-  const canvasRef        = useRef<HTMLCanvasElement>(null);
-  const toolbarRef       = useRef<ToolbarHandle>(null);
-  const terminalRef      = useRef<Terminal>(null);
-  const propertyPanelRef = useRef<PropertyPanel>(null);
-  const hierarchyRef     = useRef<SceneHierarchy>(null);
-  const itemMenuRef      = useRef<ItemMenuHandle>(null);
-  const loadModalRef     = useRef<LoadModalHandle>(null);
-  const controllerRef    = useRef<SceneManager | null>(null);
+  const canvasRef     = useRef<HTMLCanvasElement>(null);
+  const controllerRef = useRef<SceneManager | null>(null);
+  const [pubSub, setPubSub] = useState<PubSubManager | null>(null);
 
   const [terminalHeight, setTerminalHeight] = useState(() =>
     getStoredNumber('sandbox.panel.terminalHeight', 12.5)
@@ -33,7 +29,6 @@ export default function Sandbox() {
   const [itemMenuHeight, setItemMenuHeight] = useState(() =>
     getStoredNumber('sandbox.panel.itemMenuHeight', 10)
   );
-  const [isCameraDragging, setIsCameraDragging] = useState(false);
 
   function pixelsToRem(pixels: number): number {
     return pixels / parseFloat(getComputedStyle(document.documentElement).fontSize);
@@ -63,60 +58,22 @@ export default function Sandbox() {
     });
   }
 
+  // Phase 1 — create engine and expose its pubSub to sections
   useEffect(() => {
-    const terminal      = terminalRef.current!;
-    const propertyPanel = propertyPanelRef.current!;
-    const hierarchy     = hierarchyRef.current!;
-    const toolbar       = toolbarRef.current!;
-
-    const controller = new SceneManager(canvasRef.current!, terminal, propertyPanel, hierarchy);
+    const controller = new SceneManager(canvasRef.current!);
     controllerRef.current = controller;
-
-    toolbar.setOnPlay(() => controller.play());
-    toolbar.setOnStop(() => controller.stop());
-    toolbar.setOnSave(async () => {
-      const encodedString = await controller.saveScene();
-      if (navigator.clipboard) {
-        await navigator.clipboard.writeText(encodedString);
-        terminal.print('Scene saved — string copied to clipboard.', 'log');
-      } else {
-        terminal.print('Scene saved (see console for string).', 'log');
-        console.log(encodedString);
-      }
-    });
-    toolbar.setOnLoad(() => {
-      loadModalRef.current!.open(async (encodedString) => {
-        const success = await controller.loadScene(encodedString);
-        if (!success) {
-          terminal.print('Failed to load scene — invalid or corrupted data.', 'error');
-        }
-      });
-    });
-
-    const stopHandler          = () => toolbar.setPlaying(false);
-    const cameraDragStartHandler = () => setIsCameraDragging(true);
-    const cameraDragEndHandler   = () => setIsCameraDragging(false);
-    document.addEventListener('sandbox:stopped',   stopHandler);
-    document.addEventListener('camera:dragStarted', cameraDragStartHandler);
-    document.addEventListener('camera:dragEnded',   cameraDragEndHandler);
-
-    controller.init()
-      .then(() => {
-        controller.startLoop();
-        itemMenuRef.current!.setEnabled(true);
-        toolbar.setEnabled(true);
-      })
-      .catch((error: unknown) => {
-        terminal.print(`Engine initialisation failed: ${error}`, 'error');
-      });
-
-    return () => {
-      document.removeEventListener('sandbox:stopped',   stopHandler);
-      document.removeEventListener('camera:dragStarted', cameraDragStartHandler);
-      document.removeEventListener('camera:dragEnded',   cameraDragEndHandler);
-      terminal.restoreConsole();
-    };
+    controller.createEngine().then(enginePubSub => setPubSub(enginePubSub));
   }, []);
+
+  // Phase 2 — sections have mounted and subscribed; run setup
+  useEffect(() => {
+    if (!pubSub) return;
+    controllerRef.current!.setup()
+      .then(() => controllerRef.current!.startLoop())
+      .catch((error: unknown) =>
+        pubSub.publish('terminal:print', { message: `Engine setup failed: ${error}`, level: 'error' })
+      );
+  }, [pubSub]);
 
   return (
     <div
@@ -127,52 +84,46 @@ export default function Sandbox() {
         '--item-menu-height': `${itemMenuHeight}rem`,
       } as React.CSSProperties}
     >
-      <Toolbar ref={toolbarRef} />
+      {pubSub && <Toolbar pubSub={pubSub} />}
       <div id="main-area">
         <div id="left-sidebar">
-          <ItemMenu
-            ref={itemMenuRef}
-            registry={registry}
-            onSpawn={(key: string, entry: ItemEntry) => controllerRef.current?.spawn(key, entry)}
-          />
-          <ResizeDivider
-            direction="horizontal"
-            onResize={handleItemMenuResize}
-            disabled={isCameraDragging}
-            onDragStart={() => controllerRef.current?.notifyResizeDragStart()}
-            onDragEnd={() => controllerRef.current?.notifyResizeDragEnd()}
-          />
-          <SceneHierarchyComponent
-            ref={hierarchyRef}
-            onSelect={(index) => controllerRef.current?.selectObject(index)}
-            onRename={(index, newName) => controllerRef.current?.renameObject(index, newName) ?? false}
-            onRemove={(index) => controllerRef.current?.removeObject(index)}
-            onDeselect={() => controllerRef.current?.deselectObject()}
-          />
+          {pubSub && (
+            <>
+              <ItemMenu pubSub={pubSub} registry={registry} />
+              <ResizeDivider
+                direction="horizontal"
+                onResize={handleItemMenuResize}
+                pubSub={pubSub}
+              />
+              <SceneHierarchyComponent pubSub={pubSub} />
+            </>
+          )}
         </div>
-        <ResizeDivider
-          direction="vertical"
-          onResize={handleSidebarResize}
-          disabled={isCameraDragging}
-          onDragStart={() => controllerRef.current?.notifyResizeDragStart()}
-          onDragEnd={() => controllerRef.current?.notifyResizeDragEnd()}
-        />
+        {pubSub && (
+          <ResizeDivider
+            direction="vertical"
+            onResize={handleSidebarResize}
+            pubSub={pubSub}
+          />
+        )}
         <div id="canvas-wrapper">
           <canvas ref={canvasRef} id="webgpu-canvas" />
         </div>
-        <PropertyPanelComponent ref={propertyPanelRef} />
+        {pubSub && <PropertyPanelComponent pubSub={pubSub} />}
       </div>
       <div id="terminal-area">
-        <ResizeDivider
-          direction="horizontal"
-          onResize={handleTerminalResize}
-          disabled={isCameraDragging}
-          onDragStart={() => controllerRef.current?.notifyResizeDragStart()}
-          onDragEnd={() => controllerRef.current?.notifyResizeDragEnd()}
-        />
-        <TerminalComponent ref={terminalRef} />
+        {pubSub && (
+          <>
+            <ResizeDivider
+              direction="horizontal"
+              onResize={handleTerminalResize}
+              pubSub={pubSub}
+            />
+            <TerminalComponent pubSub={pubSub} />
+          </>
+        )}
       </div>
-      <LoadModal ref={loadModalRef} />
+      {pubSub && <LoadModal pubSub={pubSub} />}
     </div>
   );
 }
