@@ -2,12 +2,12 @@ import { Engine, LightGameObject, type IGameObject } from '@engine';
 import type { SpawnManager } from './SpawnManager';
 import type { PhysicsManager } from './PhysicsManager';
 import { SANDBOX_EVENTS, type PubSubManager } from '../events';
-import type { ExecuteFn } from '../scripts/ScriptContract';
+import type { GameScript, GameScriptConstructor } from '../scripts/ScriptContract';
 import { getParamNames } from '../utils/functionParser';
 
-const SCRIPT_LOADERS = import.meta.glob<{ execute: ExecuteFn }>('../scripts/*.ts');
+const SCRIPT_LOADERS = import.meta.glob<{ default: GameScriptConstructor }>('../scripts/*.ts');
 
-function _findLoader(scriptName: string): (() => Promise<{ execute: ExecuteFn }>) | null {
+function _findLoader(scriptName: string): (() => Promise<{ default: GameScriptConstructor }>) | null {
   const entry = Object.entries(SCRIPT_LOADERS).find(
     ([path]) => !path.includes('ScriptContract') && path.endsWith(`/${scriptName}.ts`),
   );
@@ -69,11 +69,13 @@ export class PlayStateManager {
             const scriptArgs = spawnedObject.selectedScriptArgs;
             loader()
               .then(module => {
-                const params = getParamNames(module.execute).filter(p => p !== 'engine');
-                const args = params.map(p => scriptArgs[p] ?? 0);
-                return module.execute(engine, ...args);
+                const Ctor     = module.default;
+                const params   = getParamNames(Ctor.prototype.execute).filter(p => p !== 'engine');
+                const args     = params.map(p => scriptArgs[p] ?? 0);
+                const instance: GameScript = new Ctor();
+                spawnedObject.scriptHandle = instance;
+                return instance.execute(engine, ...args);
               })
-              .then(handle => { spawnedObject.scriptHandle = handle; })
               .catch((error: unknown) => {
                 this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, {
                   message: `Script error (${spawnedObject.selectedScript}): ${String(error)}`,
@@ -116,6 +118,17 @@ export class PlayStateManager {
 
     this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: 'Play stopped.', level: 'log' });
     this._pubSub.publish(SANDBOX_EVENTS.PLAY_STOPPED);
+  }
+
+  tick(deltaTime: number): void {
+    for (const spawnedObject of this._spawnManager.getObjects()) {
+      const instance = spawnedObject.scriptHandle;
+      if (!instance) continue;
+      const proto  = Object.getPrototypeOf(instance) as { update: (...args: unknown[]) => void };
+      const params = getParamNames(proto.update).filter(p => p !== 'deltaTime_number');
+      const args   = params.map(p => spawnedObject.selectedScriptArgs[p] ?? 0);
+      instance.update(deltaTime, ...args);
+    }
   }
 
   isPlaying(): boolean {

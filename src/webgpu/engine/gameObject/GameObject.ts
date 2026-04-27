@@ -74,6 +74,7 @@ export class GameObject<R extends Renderable = Renderable> implements IGameObjec
   readonly hitbox:     Hitbox3D    | null;
   readonly rigidbody:  Rigidbody3D | null;
 
+  property: Record<string, any> = {};
   position:   Vec3;
   quaternion: Vec4;
   scale:      Vec3;
@@ -100,6 +101,27 @@ export class GameObject<R extends Renderable = Renderable> implements IGameObjec
   setPosition(position: Vec3): void {
     this.position = [...position];
     this._applyTransform();
+  }
+
+  registerProperty(key: string, value: any): void {
+    if(this.property[key] !== undefined) {
+      console.warn(`Overwriting existing property '${key}' on GameObject`);
+      return;
+    }
+    this.property[key] = value;
+  }
+  setProperty(key: string, value: any): void {
+    if(this.property[key] === undefined) {
+      console.warn(`non existing property '${key}' on GameObject`);
+      return;
+    }
+    this.property[key] = value;
+  }
+  removeProperty(key: string): void {
+    delete this.property[key];
+  }
+  getProperty(key: string): any {
+    return this.property[key];
   }
 
   setQuaternion(quaternion: Vec4): void {

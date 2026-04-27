@@ -1,9 +1,13 @@
 import type { Engine } from '@engine';
 
-export interface ScriptHandle {
+export interface GameScript {
+  execute(engine: Engine, ...args: unknown[]): Promise<void>;
+  update(deltaTime_number: number, ...args: unknown[]): void;
   destroy(): void;
 }
 
-export type ExecuteFn = (engine: Engine, ...args: unknown[]) => Promise<ScriptHandle>;
-export type UpdateFn = (deltaTime: number, ...args: unknown[]) => Promise<ScriptHandle>;
+export interface GameScriptConstructor {
+  new(): GameScript;
+}
+
 export type ScriptArgValues = Record<string, string | number | boolean>;

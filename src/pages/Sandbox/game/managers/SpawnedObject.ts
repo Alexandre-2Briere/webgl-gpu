@@ -1,6 +1,6 @@
 import type { ISceneObject } from '@engine';
 import type { PropertyGroup, PhysicsConfig } from '../../items/types';
-import type { ScriptHandle, ScriptArgValues } from '../scripts/ScriptContract';
+import type { GameScript, ScriptArgValues } from '../scripts/ScriptContract';
 
 export interface SpawnedObject {
   gameObject:        ISceneObject
@@ -12,5 +12,5 @@ export interface SpawnedObject {
   playSnapshot:      [number, number, number] | null
   selectedScript:    string | null
   selectedScriptArgs: ScriptArgValues
-  scriptHandle:      ScriptHandle | null
+  scriptHandle:      GameScript | null
 }

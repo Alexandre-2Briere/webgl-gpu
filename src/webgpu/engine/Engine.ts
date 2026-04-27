@@ -3,6 +3,7 @@ import type {
   BindGroupLayouts,
   GameObjectBaseOptions,
   MeshGameObjectOptions,
+  CubeGameObjectOptions,
   Quad2DGameObjectOptions,
   Quad3DGameObjectOptions,
   Model3DGameObjectOptions,
@@ -31,6 +32,7 @@ import { FbxModel } from './gameObject/renderables/FbxModel';
 import { ArrowGizmo } from './gameObject/renderables/ArrowGizmo';
 import type { Renderable, RenderableInitArgs } from './gameObject/renderables/Renderable';
 import { loadObjAsset, loadFbxAsset } from './utils/assetLoaders';
+import { buildCubeVertices } from './utils/buildCubeVertices';
 import { createEngineLayouts } from './utils/bindGroupLayouts';
 import { logger } from './utils';
 import { GameObject } from './gameObject/GameObject';
@@ -133,6 +135,11 @@ export class Engine {
 
   createMesh(opts: MeshGameObjectOptions): GameObject<Mesh> {
     return this._spawnGameObject(new Mesh(opts.renderable), opts);
+  }
+
+  createCube(opts: CubeGameObjectOptions = {}): GameObject<Mesh> {
+    const { vertices, indices } = buildCubeVertices(opts.color ?? [1, 1, 1, 1]);
+    return this._spawnGameObject(new Mesh({ vertices, indices, label: opts.label ?? 'cube' }), opts);
   }
 
   createQuad2D(opts: Quad2DGameObjectOptions): GameObject<Quad2D> {

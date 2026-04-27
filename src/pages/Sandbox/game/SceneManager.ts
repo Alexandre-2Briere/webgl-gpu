@@ -173,6 +173,7 @@ export class SceneManager {
       this._gizmoController.sync();
 
       if (isPlaying) {
+        this._playStateManager.tick(deltaTime);
         this._physicsManager.tick(deltaTime);
       }
     });

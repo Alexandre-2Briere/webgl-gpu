@@ -14,7 +14,6 @@ export interface RenderableInitArgs {
   uniformPool: UniformPool
 }
 
-/** @internal */
 export interface Renderable {
   readonly id: symbol
   /** 'world' → depth-tested 3D pass. 'overlay' → 2D HUD pass (no depth). */

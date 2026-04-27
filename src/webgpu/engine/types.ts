@@ -114,6 +114,12 @@ export interface MeshGameObjectOptions extends GameObjectBaseOptions {
   renderable: MeshOptions
 }
 
+export interface CubeGameObjectOptions extends GameObjectBaseOptions {
+  /** RGBA vertex color baked into each face. Default [1, 1, 1, 1]. */
+  color?: [number, number, number, number]
+  label?: string
+}
+
 export interface Quad2DGameObjectOptions extends GameObjectBaseOptions {
   renderable: Quad2DOptions
 }

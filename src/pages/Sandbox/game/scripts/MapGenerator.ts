@@ -1,5 +1,5 @@
 import { type Engine, type FbxAssetHandle, type IGameObject } from '@engine';
-import type { ScriptHandle } from './ScriptContract';
+import type { GameScript } from './ScriptContract';
 import type { Theme, MapParams, MapHandle, TileType, TileVariant, Cell } from './MapGeneratorConstants';
 import { rotationQuaternion, MAX_RETRIES } from './MapGeneratorConstants';
 import {
@@ -120,25 +120,36 @@ async function _generate(params: MapParams, engine: Engine): Promise<MapHandle> 
     };
 }
 
-// ── Script contract entry point ────────────────────────────────────────────────
+// ── Script contract ────────────────────────────────────────────────────────────
 
-export async function execute(
-    engine:          Engine,
-    theme_string:    string = "forest",
-    scale_number:    number = 1,
-    width_number:    number = 30,
-    depth_number:    number = 30,
-    centerX_number:  number = 0,
-    centerZ_number:  number = 0,
-): Promise<ScriptHandle> {
-    return _generate(
-        {
-            theme:          (theme_string as Theme) || 'forest',
-            scale:          scale_number || 1,
-            width:          width_number || 30,
-            depth:          depth_number || 30,
-            centerPosition: [centerX_number, centerZ_number],
-        },
-        engine,
-    );
+export default class MapGenerator implements GameScript {
+    private _handle: MapHandle | null = null;
+
+    async execute(
+        engine:         Engine,
+        theme_string:   string = 'forest',
+        scale_number:   number = 1,
+        width_number:   number = 30,
+        depth_number:   number = 30,
+        centerX_number: number = 0,
+        centerZ_number: number = 0,
+    ): Promise<void> {
+        this._handle = await _generate(
+            {
+                theme:          (theme_string as Theme) || 'forest',
+                scale:          scale_number || 1,
+                width:          width_number || 30,
+                depth:          depth_number || 30,
+                centerPosition: [centerX_number, centerZ_number],
+            },
+            engine,
+        );
+    }
+
+    update(_deltaTime_number: number): void {}
+
+    destroy(): void {
+        this._handle?.destroy();
+        this._handle = null;
+    }
 }

@@ -12,6 +12,9 @@ export function getParamNames(func: Function): string[] {
   const singleParamMatch = str.match(/^(?:async\s*)?(\w+)\s*=>/);
   if (singleParamMatch) return [singleParamMatch[1]];
 
+  const methodMatch = str.match(/^(?:async\s+)?\w+\s*\(([^)]*)\)/);
+  if (methodMatch) return parseParamString(methodMatch[1]);
+
   return [];
 }
 
@@ -32,8 +35,10 @@ export function getParamDefaults(func: Function): Record<string, string | number
     .replace(/\/\/.*$/gm, '');
 
   const functionMatch = str.match(/^(?:async\s+)?function\s*\w*\s*\(([^)]*)\)/);
-  const paramString = functionMatch?.[1]
-    ?? str.match(/^(?:async\s*)?\(([^)]*)\)\s*=>/)?.[1];
+  const methodMatch   = str.match(/^(?:async\s+)?\w+\s*\(([^)]*)\)/);
+  const paramString   = functionMatch?.[1]
+    ?? str.match(/^(?:async\s*)?\(([^)]*)\)\s*=>/)?.[1]
+    ?? methodMatch?.[1];
   if (!paramString) return {};
 
   const result: Record<string, string | number | boolean> = {};

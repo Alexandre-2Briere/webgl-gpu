@@ -3,25 +3,42 @@ import { type PubSubManager } from '@engine';
 import { AccordionPrimitive } from "@components/Primitive/Accordion/AccordionPrimitive";
 import { SelectPrimitive } from "@components/Primitive/Select/SelectPrimitive";
 import { SANDBOX_EVENTS } from '../../../../game/events';
-import type { ScriptArgValues } from '../../../../game/scripts/ScriptContract';
+import type { GameScriptConstructor, ScriptArgValues } from '../../../../game/scripts/ScriptContract';
 import { getParamNames, getParamDefaults } from '../../../../game/utils/functionParser';
 import { ScriptArgsForm } from './ScriptArgsForm';
 
-const SCRIPT_LOADERS = import.meta.glob<{ execute: (...args: unknown[]) => unknown }>('../../../../game/scripts/*.ts');
+const SCRIPT_MODULES = import.meta.glob<{ default?: GameScriptConstructor }>(
+  '../../../../game/scripts/*.ts',
+  { eager: true },
+);
 
-const SCRIPT_NAMES = Object.keys(SCRIPT_LOADERS)
-  .map(path => path.split('/').pop()!.replace(/\.ts$/, ''))
-  .filter(name => name !== 'ScriptContract');
-
-async function loadScriptParams(scriptName: string): Promise<{ params: string[]; defaults: ScriptArgValues }> {
-  const entry = Object.entries(SCRIPT_LOADERS).find(
-    ([path]) => !path.includes('ScriptContract') && path.endsWith(`/${scriptName}.ts`),
+function isGameScriptClass(value: unknown): value is GameScriptConstructor {
+  return (
+    typeof value === 'function' &&
+    typeof (value as GameScriptConstructor).prototype?.execute === 'function' &&
+    typeof (value as GameScriptConstructor).prototype?.update === 'function'
   );
-  if (!entry) return { params: [], defaults: {} };
-  const module = await entry[1]();
-  if (typeof module.execute !== 'function') return { params: [], defaults: {} };
-  const params   = getParamNames(module.execute).filter(p => p !== 'engine');
-  const defaults = getParamDefaults(module.execute) as ScriptArgValues;
+}
+
+const SCRIPT_NAMES = Object.entries(SCRIPT_MODULES)
+  .filter(([, module]) => isGameScriptClass(module.default))
+  .map(([path]) => path.split('/').pop()!.replace(/\.ts$/, ''));
+
+function loadScriptParams(scriptName: string): { params: string[]; defaults: ScriptArgValues } {
+  const entry = Object.entries(SCRIPT_MODULES).find(([path]) =>
+    path.endsWith(`/${scriptName}.ts`),
+  );
+  const Ctor = entry?.[1].default;
+  if (!isGameScriptClass(Ctor)) return { params: [], defaults: {} };
+
+  const executeParams = getParamNames(Ctor.prototype.execute).filter(p => p !== 'engine');
+  const updateParams  = getParamNames(Ctor.prototype.update).filter(p => p !== 'deltaTime_number');
+  const params        = [...new Set([...executeParams, ...updateParams])];
+  const defaults      = {
+    ...getParamDefaults(Ctor.prototype.execute),
+    ...getParamDefaults(Ctor.prototype.update),
+  } as ScriptArgValues;
+
   return { params, defaults };
 }
 
@@ -39,10 +56,9 @@ export function ScriptForm({ initialSelectedScript, initialScriptArgs, pubSub, o
 
   useEffect(() => {
     if (!initialSelectedScript) return;
-    loadScriptParams(initialSelectedScript).then(({ params, defaults }) => {
-      setScriptParams(params);
-      setScriptArgValues(previous => ({ ...defaults, ...previous }));
-    });
+    const { params, defaults } = loadScriptParams(initialSelectedScript);
+    setScriptParams(params);
+    setScriptArgValues(previous => ({ ...defaults, ...previous }));
   }, []);
 
   const options = SCRIPT_NAMES.map((name) => ({ value: name, label: name }));
@@ -53,10 +69,9 @@ export function ScriptForm({ initialSelectedScript, initialScriptArgs, pubSub, o
     setScriptArgValues({});
     pubSub.publish(SANDBOX_EVENTS.PROPERTY_SCRIPT_CHANGED, { objectIndex, data: { scriptName: name } });
     if (name) {
-      loadScriptParams(name).then(({ params, defaults }) => {
-        setScriptParams(params);
-        setScriptArgValues(defaults);
-      });
+      const { params, defaults } = loadScriptParams(name);
+      setScriptParams(params);
+      setScriptArgValues(defaults);
     }
   }
 
