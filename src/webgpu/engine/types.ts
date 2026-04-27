@@ -183,3 +183,21 @@ export interface InfiniteGroundOptions {
   /** Checkerboard tile size in world units (powers of 2 recommended). Default: 16. */
   tileSize?: number
 }
+
+// ── Bar3D ──────────────────────────────────────────────────────────────────
+
+export interface Bar3DOptions {
+  /** World-space initial position. Default [0, 0, 0]. */
+  position?:       Vec3
+  width:           number
+  height:          number
+  /** Border thickness in world units. */
+  borderThickness: number
+  borderColor:     [number, number, number, number]
+  fillColor:       [number, number, number, number]
+  /** Empty-zone color. Default transparent [0, 0, 0, 0]. */
+  emptyColor?:     [number, number, number, number]
+  /** Fill level 0–1. Default 1. */
+  percentage?:     number
+  label?:          string
+}

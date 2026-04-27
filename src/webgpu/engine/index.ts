@@ -36,7 +36,10 @@ export type {
   ArrowGizmoOptions,
   SkyboxOptions,
   InfiniteGroundOptions,
+  Bar3DOptions,
 } from './types';
+
+export type { Bar3DHandle } from './gameObject/Bar3DHandle';
 
 // Editor renderables
 export { ArrowGizmo } from './gameObject/renderables';

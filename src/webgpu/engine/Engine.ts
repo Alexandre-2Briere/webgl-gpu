@@ -17,6 +17,7 @@ import type {
   ArrowGizmoOptions,
   SkyboxOptions,
   InfiniteGroundOptions,
+  Bar3DOptions,
 } from './types';
 import { Camera } from './core';
 import { Renderer } from './core/Renderer';
@@ -47,6 +48,8 @@ import type { Hitbox3D } from './gameObject/hitbox/Hitbox3D';
 import { SaveManager } from './saveManager/SaveManager';
 import { restoreFromSnapshot } from './saveManager/restoreScene';
 import { PubSubManager } from './core/PubSub';
+import { Bar3DManager } from './gameObject/renderables/Bar3DManager';
+import type { Bar3DHandle } from './gameObject/Bar3DHandle';
 
 /** Initial chunk size for the UniformPool. Grows automatically when exceeded. */
 const INITIAL_CHUNK_SIZE = 512 * 256;
@@ -66,6 +69,7 @@ export class Engine {
   private _previousAspect = 0;
   private _skybox: SkyboxGameObject | null = null;
   private _infiniteGround: InfiniteGroundGameObject | null = null;
+  private _bar3DManager: Bar3DManager | null = null;
   public readonly PubSubManager: PubSubManager;
 
   private constructor(
@@ -259,6 +263,17 @@ export class Engine {
 
   destroyInfiniteGround(): void {
     this._infiniteGround?.destroy();
+  }
+
+  // ── Bar3D factory ────────────────────────────────────────────────────────────
+
+  createBar3D(opts: Bar3DOptions): Bar3DHandle {
+    if (this._bar3DManager === null) {
+      this._bar3DManager = new Bar3DManager();
+      this._bar3DManager.init(this._initArgs());
+      this._scene.add(this._bar3DManager);
+    }
+    return this._bar3DManager.spawn(opts);
   }
 
   // ── Asset loaders ────────────────────────────────────────────────────────────
