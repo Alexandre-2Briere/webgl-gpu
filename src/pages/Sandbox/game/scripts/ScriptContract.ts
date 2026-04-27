@@ -5,4 +5,5 @@ export interface ScriptHandle {
 }
 
 export type ExecuteFn = (engine: Engine, ...args: unknown[]) => Promise<ScriptHandle>;
+export type UpdateFn = (deltaTime: number, ...args: unknown[]) => Promise<ScriptHandle>;
 export type ScriptArgValues = Record<string, string | number | boolean>;

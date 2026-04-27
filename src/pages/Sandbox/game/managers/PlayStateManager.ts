@@ -5,9 +5,9 @@ import { SANDBOX_EVENTS, type PubSubManager } from '../events';
 import type { ExecuteFn } from '../scripts/ScriptContract';
 import { getParamNames } from '../utils/functionParser';
 
-const SCRIPT_LOADERS = import.meta.glob<{ newExecute: ExecuteFn }>('../scripts/*.ts');
+const SCRIPT_LOADERS = import.meta.glob<{ execute: ExecuteFn }>('../scripts/*.ts');
 
-function _findLoader(scriptName: string): (() => Promise<{ newExecute: ExecuteFn }>) | null {
+function _findLoader(scriptName: string): (() => Promise<{ execute: ExecuteFn }>) | null {
   const entry = Object.entries(SCRIPT_LOADERS).find(
     ([path]) => !path.includes('ScriptContract') && path.endsWith(`/${scriptName}.ts`),
   );
@@ -69,9 +69,9 @@ export class PlayStateManager {
             const scriptArgs = spawnedObject.selectedScriptArgs;
             loader()
               .then(module => {
-                const params = getParamNames(module.newExecute).filter(p => p !== 'engine');
+                const params = getParamNames(module.execute).filter(p => p !== 'engine');
                 const args = params.map(p => scriptArgs[p] ?? 0);
-                return module.newExecute(engine, ...args);
+                return module.execute(engine, ...args);
               })
               .then(handle => { spawnedObject.scriptHandle = handle; })
               .catch((error: unknown) => {

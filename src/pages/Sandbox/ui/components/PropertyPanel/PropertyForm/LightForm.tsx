@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LightType, safeParseFloat, type PubSubManager } from '@engine';
+import { LightType, LightGameObject, safeParseFloat, type PubSubManager } from '@engine';
 import type { PropertyGroup } from '../../../../items/types';
 import { SelectPrimitive } from '@components/Primitive/Select/SelectPrimitive';
 import { AccordionPrimitive } from '@components/Primitive/Accordion/AccordionPrimitive';
@@ -17,14 +17,17 @@ export interface LightState {
 }
 
 interface LightFormProps {
-  initialLight:    LightState;
+  gameObject:      LightGameObject;
   visibleSections: Set<PropertyGroup>;
   pubSub:          PubSubManager;
   objectIndex:     number;
 }
 
-export function LightForm({ initialLight, visibleSections, pubSub, objectIndex }: LightFormProps) {
-  const [light, setLight] = useState(initialLight);
+export function LightForm({ gameObject, visibleSections, pubSub, objectIndex }: LightFormProps) {
+  const [light, setLight] = useState<LightState>({
+    lightType: gameObject.lightType,
+    radius:    gameObject.radius.toFixed(1),
+  });
 
   return (
     <AccordionPrimitive title="Light">

@@ -7,7 +7,7 @@ import type { ScriptArgValues } from '../../../../game/scripts/ScriptContract';
 import { getParamNames, getParamDefaults } from '../../../../game/utils/functionParser';
 import { ScriptArgsForm } from './ScriptArgsForm';
 
-const SCRIPT_LOADERS = import.meta.glob<{ newExecute: (...args: unknown[]) => unknown }>('../../../../game/scripts/*.ts');
+const SCRIPT_LOADERS = import.meta.glob<{ execute: (...args: unknown[]) => unknown }>('../../../../game/scripts/*.ts');
 
 const SCRIPT_NAMES = Object.keys(SCRIPT_LOADERS)
   .map(path => path.split('/').pop()!.replace(/\.ts$/, ''))
@@ -19,9 +19,9 @@ async function loadScriptParams(scriptName: string): Promise<{ params: string[];
   );
   if (!entry) return { params: [], defaults: {} };
   const module = await entry[1]();
-  if (typeof module.newExecute !== 'function') return { params: [], defaults: {} };
-  const params   = getParamNames(module.newExecute).filter(p => p !== 'engine');
-  const defaults = getParamDefaults(module.newExecute) as ScriptArgValues;
+  if (typeof module.execute !== 'function') return { params: [], defaults: {} };
+  const params   = getParamNames(module.execute).filter(p => p !== 'engine');
+  const defaults = getParamDefaults(module.execute) as ScriptArgValues;
   return { params, defaults };
 }
 

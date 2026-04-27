@@ -4,7 +4,7 @@ import { AccordionPrimitive } from '@components/Primitive/Accordion/AccordionPri
 import { InputPrimitive } from '@components/Primitive/Input/InputPrimitive';
 import { SelectPrimitive } from '@components/Primitive/Select/SelectPrimitive';
 import { safeParseInt } from '@lib/utils/math/math';
-import { hexToRGBA } from '@lib/utils/color/color';
+import { hexToRGBA, rgbToHex } from '@lib/utils/color/color';
 
 const TILE_SIZES = [2, 4, 8, 16, 32, 64];
 const TILE_SIZE_OPTIONS = TILE_SIZES.map((size) => ({ value: String(size), label: String(size) }));
@@ -17,12 +17,20 @@ export interface InfiniteGroundState {
 }
 
 interface InfiniteGroundFormProps {
-  initialGround: InfiniteGroundState;
-  gameObject:    InfiniteGroundGameObject;
+  gameObject: InfiniteGroundGameObject;
 }
 
-export function InfiniteGroundForm({ initialGround, gameObject }: InfiniteGroundFormProps) {
-  const [ground, setGround] = useState(initialGround);
+export function InfiniteGroundForm({ gameObject }: InfiniteGroundFormProps) {
+  const [ground, setGround] = useState<InfiniteGroundState>(() => {
+    const [r1, g1, b1] = gameObject.color;
+    const [r2, g2, b2] = gameObject.alternateColor;
+    return {
+      yLevel:            gameObject.yLevel.toFixed(3),
+      colorHex:          rgbToHex({ r: r1, g: g1, b: b1 }),
+      alternateColorHex: rgbToHex({ r: r2, g: g2, b: b2 }),
+      tileSize:          gameObject.tileSize,
+    };
+  });
 
   function applyColor(hex: string): void {
     const upper = hex.trim().toUpperCase();

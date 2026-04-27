@@ -8,19 +8,19 @@ export interface Vector3FormHandle {
 }
 
 interface Vector3FormProps {
-  label:        string;
-  defaultValue: number;
-  axisLabels:   [string, string, string];
-  precision:    number;
-  transform:    (value: number) => number;
-  onApply:      (a: number, b: number, c: number) => void;
+  label:         string;
+  initialValues: [number, number, number];
+  axisLabels:    [string, string, string];
+  precision:     number;
+  transform:     (value: number) => number;
+  onApply:       (a: number, b: number, c: number) => void;
 }
 
 export const Vector3Form = forwardRef<Vector3FormHandle, Vector3FormProps>(
-  function Vector3Form({ label, defaultValue, axisLabels, precision, transform, onApply }, ref) {
-    const [aValue, setAValue] = useState(String(defaultValue));
-    const [bValue, setBValue] = useState(String(defaultValue));
-    const [cValue, setCValue] = useState(String(defaultValue));
+  function Vector3Form({ label, initialValues, axisLabels, precision, transform, onApply }, ref) {
+    const [aValue, setAValue] = useState(initialValues[0].toFixed(precision));
+    const [bValue, setBValue] = useState(initialValues[1].toFixed(precision));
+    const [cValue, setCValue] = useState(initialValues[2].toFixed(precision));
 
     useImperativeHandle(ref, () => ({
       setValues(a, b, c) {
@@ -32,9 +32,9 @@ export const Vector3Form = forwardRef<Vector3FormHandle, Vector3FormProps>(
 
     function apply(): void {
       onApply(
-        transform(safeParseFloat(aValue, defaultValue)),
-        transform(safeParseFloat(bValue, defaultValue)),
-        transform(safeParseFloat(cValue, defaultValue)),
+        transform(safeParseFloat(aValue, initialValues[0])),
+        transform(safeParseFloat(bValue, initialValues[1])),
+        transform(safeParseFloat(cValue, initialValues[2])),
       );
     }
 

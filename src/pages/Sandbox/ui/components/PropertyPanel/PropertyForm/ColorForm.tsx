@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { type ISceneObject } from '@engine';
 import { AccordionPrimitive } from "@components/Primitive/Accordion/AccordionPrimitive";
 import { InputPrimitive } from "@components/Primitive/Input/InputPrimitive";
-import { hexToRGBA } from '@lib/utils/color/color';
+import { hexToRGBA, rgbToHex } from '@lib/utils/color/color';
 
 interface ColorFormProps {
-  initialColorHex: string;
-  gameObject:      ISceneObject;
+  gameObject: ISceneObject;
 }
 
-export function ColorForm({ initialColorHex, gameObject }: ColorFormProps) {
-  const [colorHex, setColorHex] = useState(initialColorHex);
+export function ColorForm({ gameObject }: ColorFormProps) {
+  const [colorHex, setColorHex] = useState<string>(() =>
+    rgbToHex({ r: gameObject.color[0], g: gameObject.color[1], b: gameObject.color[2] })
+  );
 
   function applyColor(): void {
     const upper = colorHex.trim().toUpperCase();
