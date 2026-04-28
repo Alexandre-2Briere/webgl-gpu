@@ -34,6 +34,7 @@ export const SANDBOX_EVENTS = {
   HIERARCHY_OBJECT_DESELECTED: 'hierarchy:objectDeselected',
   HIERARCHY_OBJECT_REMOVED:    'hierarchy:objectRemoved',
   HIERARCHY_OBJECT_RENAMED:    'hierarchy:objectRenamed',
+  HIERARCHY_OBJECT_DUPLICATE:  'hierarchy:objectDuplicate',
   SCENE_LOAD_REQUESTED:        'scene:loadRequested',
   // game → UI
   ENGINE_INITIALIZED:          'engine:initialized',
@@ -67,12 +68,13 @@ export type ItemSpawnPayload                = { key: string; entry: ItemEntry };
 export type HierarchyObjectSelectedPayload  = { index: number };
 export type HierarchyObjectRemovedPayload   = { index: number };
 export type HierarchyObjectRenamedPayload   = { index: number; name: string };
+export type HierarchyObjectDuplicatePayload = { index: number };
 export type SceneLoadRequestedPayload       = { encodedString: string };
 
 // game → UI payload types
 export type SceneSavedPayload              = { encodedString: string };
 export type TerminalPrintPayload           = { message: string; level: LogLevel; tabId?: string };
-export type HierarchyRowAddedPayload       = { name: string };
+export type HierarchyRowAddedPayload       = { name: string; key: string };
 export type HierarchyRowRemovedPayload     = { index: number };
 export type HierarchyRowSelectedPayload    = { index: number };
 export type HierarchyRowRenamedPayload     = { index: number; name: string };

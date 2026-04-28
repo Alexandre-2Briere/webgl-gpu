@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { applyPhysics } from '../../gameObject/rigidbody/physicsStep';
-import { Rigidbody3D } from '../../gameObject/rigidbody/Rigidbody3D';
+import { applyPhysics } from '../../gameObject/3D/rigidbody/physicsStep';
+import { Rigidbody3D } from '../../gameObject/3D/rigidbody/Rigidbody3D';
 import { makeMockGameObject } from './mockGameObject';
 
 const GRAVITY = 9.81;

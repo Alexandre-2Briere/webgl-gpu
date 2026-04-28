@@ -63,6 +63,49 @@ export class SaveLoadManager {
     return true;
   }
 
+  // ── Duplicate ─────────────────────────────────────────────────────────────────
+
+  duplicateObject(index: number): void {
+    const source = this._spawnManager.getObject(index);
+    if (!source) return;
+
+    const base = source.label.replace(/ \(\d+\)$/, '');
+    const itemEntry: ItemEntry = {
+      key:        source.key,
+      label:      base,
+      isReady:    true,
+      properties: source.properties as PropertyGroup[],
+    };
+    this._spawnManager.spawn(source.key, itemEntry);
+    const newIndex = this._spawnManager.getObjects().length - 1;
+
+    if (source.key === 'FBX') {
+      this._spawnManager.getObject(newIndex)!.selectedFbxUrl = source.selectedFbxUrl;
+    }
+    if (source.key === 'ScriptObject') {
+      const newObject = this._spawnManager.getObject(newIndex)!;
+      newObject.selectedScript     = source.selectedScript;
+      newObject.selectedScriptArgs = { ...source.selectedScriptArgs };
+    }
+
+    this._physicsManager.rebuildObject(newIndex, { ...source.physicsConfig });
+    const rebuilt = this._spawnManager.getObject(newIndex)!;
+    const sourceGameObject = source.gameObject;
+
+    rebuilt.gameObject.setPosition([...sourceGameObject.position] as [number, number, number]);
+    rebuilt.gameObject.setQuaternion([...sourceGameObject.quaternion] as [number, number, number, number]);
+    rebuilt.gameObject.setScale(sourceGameObject.scale[0], sourceGameObject.scale[1], sourceGameObject.scale[2]);
+    rebuilt.gameObject.setColor(sourceGameObject.color[0], sourceGameObject.color[1], sourceGameObject.color[2], sourceGameObject.color[3]);
+
+    if (LIGHT_KEYS.has(source.key)) {
+      const sourceLightObject = sourceGameObject as LightGameObject;
+      const newLightObject    = rebuilt.gameObject as LightGameObject;
+      newLightObject.setLightType(sourceLightObject.lightType);
+      newLightObject.setRadius(sourceLightObject.radius);
+      newLightObject.setDirection([...sourceLightObject.direction] as [number, number, number]);
+    }
+  }
+
   // ── Snapshot building ─────────────────────────────────────────────────────────
 
   private _buildSceneConstants(): SceneConstantsSnapshot {

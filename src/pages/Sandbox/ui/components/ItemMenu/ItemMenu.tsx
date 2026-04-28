@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Chip, Divider, List, ListItemButton, Typography } from '@mui/material';
+import { Chip, List, ListItemButton, Typography } from '@mui/material';
 import type { ItemEntry, ItemRegistry } from '../../../items/types';
 import { SANDBOX_EVENTS, type PubSubManager } from '../../../game/events';
 import './ItemMenu.css';
@@ -41,7 +41,6 @@ export function ItemMenu({ pubSub, registry }: ItemMenuProps) {
             ))}
           </li>
         ))}
-        <Divider className='separator' variant="middle" component="li" />
       </List>
     </aside>
   );

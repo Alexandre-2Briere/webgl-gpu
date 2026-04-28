@@ -14,6 +14,7 @@ import {
   type HierarchyObjectSelectedPayload,
   type HierarchyObjectRemovedPayload,
   type HierarchyObjectRenamedPayload,
+  type HierarchyObjectDuplicatePayload,
   type SceneLoadRequestedPayload,
 } from './events';
 
@@ -133,6 +134,11 @@ export class SceneManager {
     pubSub.subscribe(SANDBOX_EVENTS.HIERARCHY_OBJECT_RENAMED, (raw) => {
       const { index, name } = raw as unknown as HierarchyObjectRenamedPayload;
       this._spawnManager.renameObject(index, name);
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.HIERARCHY_OBJECT_DUPLICATE, (raw) => {
+      const { index } = raw as unknown as HierarchyObjectDuplicatePayload;
+      this._saveLoadManager.duplicateObject(index);
     });
 
     pubSub.subscribe(SANDBOX_EVENTS.SCENE_LOAD_REQUESTED, async (raw) => {

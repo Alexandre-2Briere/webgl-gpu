@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MeshHitbox } from '../../gameObject/hitbox/MeshHitbox';
+import { MeshHitbox } from '../../gameObject/3D/hitbox/MeshHitbox';
 
 describe('MeshHitbox — AABB computed from vertices', () => {
   it('type is "mesh"', () => {

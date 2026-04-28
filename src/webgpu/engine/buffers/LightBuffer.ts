@@ -1,7 +1,7 @@
 import { UniformBuffer } from './UniformBuffer';
-import { logger } from '../utils';
-import { FLOAT_SIZE } from '../math';
-import type { LightGameObject } from '../gameObject/LightGameObject';
+import { logger } from '../utils/logger';
+import type { LightGameObject } from '../gameObject/Light/LightGameObject';
+import { FLOAT_SIZE } from '../math/vec';
 
 /** @internal */
 export const MAX_LIGHTS = 250;

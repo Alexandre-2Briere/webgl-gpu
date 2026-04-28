@@ -1,9 +1,9 @@
-import type { Renderable } from '../gameObject/renderables/Renderable';
-import type { SkyboxRenderable } from '../gameObject/renderables/SkyboxRenderable';
+import type { Renderable } from '../gameObject/3D/renderables/Renderable';
+import type { SkyboxRenderable } from '../gameObject/3D/renderables/SkyboxRenderable';
 import { Camera } from './Camera';
 import { Renderer } from './Renderer';
 import type { LightBuffer } from '../buffers/LightBuffer';
-import { logger } from '../utils';
+import { logger } from '../utils/logger';
 
 /** @internal */
 export class Scene {

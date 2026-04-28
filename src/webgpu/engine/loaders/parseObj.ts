@@ -1,5 +1,6 @@
-import { logger } from '../utils';
-import { safeParseFloat } from '../math';
+import { safeParseFloat } from "../math/vec";
+import { logger } from "../utils/logger";
+
 
 /**
  * Parses a Wavefront OBJ string into interleaved vertex data compatible with

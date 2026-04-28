@@ -1,5 +1,6 @@
 import type { CameraOptions } from '../types';
-import { mul4x4, forward, right, up, dot, type Vec2 } from '../math';
+import { forward, right, up, dot, type Vec2 } from '../math/vec';
+import { mul4x4 } from '../math/mat';
 
 const PITCH_LIMIT = (89 * Math.PI) / 180;
 

@@ -26,6 +26,15 @@
   text-overflow: ellipsis;
 }
 
+.hier-duplicate {
+  flex-shrink: 0;
+  opacity: 0;
+}
+
+.hier-row:hover .hier-duplicate {
+  opacity: 1;
+}
+
 .hier-remove {
   flex-shrink: 0;
   opacity: 0;

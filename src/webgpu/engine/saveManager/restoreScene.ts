@@ -1,10 +1,10 @@
 import type { Engine } from '../Engine';
-import type { IGameObject } from '../gameObject/GameObject';
-import { LightGameObject } from '../gameObject/LightGameObject';
-import { Rigidbody3D } from '../gameObject/rigidbody/Rigidbody3D';
-import { CubeHitbox } from '../gameObject/hitbox/CubeHitbox';
-import { applyPhysics } from '../gameObject/rigidbody/physicsStep';
-import { applyCollisions } from '../gameObject/rigidbody/collisionStep';
+import type { IGameObject } from '../gameObject/3D/3DGameObject';
+import { LightGameObject } from '../gameObject/Light/LightGameObject';
+import { Rigidbody3D } from '../gameObject/3D/rigidbody/Rigidbody3D';
+import { CubeHitbox } from '../gameObject/3D/hitbox/CubeHitbox';
+import { applyPhysics } from '../gameObject/3D/rigidbody/physicsStep';
+import { applyCollisions } from '../gameObject/3D/rigidbody/collisionStep';
 import { buildCubeVertices } from '../utils/buildCubeVertices';
 import type { SaveSegments, GameObjectSnapshot, LightObjectSnapshot } from './types';
 

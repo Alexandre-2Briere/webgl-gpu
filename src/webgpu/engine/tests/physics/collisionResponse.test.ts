@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { applyCollisions } from '../../gameObject/rigidbody/collisionStep';
-import { Rigidbody3D } from '../../gameObject/rigidbody/Rigidbody3D';
-import { SphereHitbox } from '../../gameObject/hitbox/SphereHitbox';
+import { applyCollisions } from '../../gameObject/3D/rigidbody/collisionStep';
+import { Rigidbody3D } from '../../gameObject/3D/rigidbody/Rigidbody3D';
+import { SphereHitbox } from '../../gameObject/3D/hitbox/SphereHitbox';
 import { makeMockGameObject } from './mockGameObject';
 
 function makeSphereBody(options: {

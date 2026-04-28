@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Mesh } from '../../gameObject/renderables/Mesh';
+import { Mesh } from '../../gameObject/3D/renderables/Mesh';
 import { makeMockRenderableInitArgs, type MockRenderableInitArgs } from './mockRenderableInitArgs';
 import type { MockGPUBuffer } from '../buffers/mockDevice';
 

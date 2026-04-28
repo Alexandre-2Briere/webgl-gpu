@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { testPlaneCube } from '../../gameObject/rigidbody/narrowPhaseHelper/planeTests';
-import { PlaneHitbox } from '../../gameObject/hitbox/PlaneHitbox';
-import { CubeHitbox } from '../../gameObject/hitbox/CubeHitbox';
+import { testPlaneCube } from '../../gameObject/3D/rigidbody/narrowPhaseHelper/planeTests';
+import { PlaneHitbox } from '../../gameObject/3D/hitbox/PlaneHitbox';
+import { CubeHitbox } from '../../gameObject/3D/hitbox/CubeHitbox';
 
 const IDENTITY: [number, number, number, number] = [0, 0, 0, 1];
 

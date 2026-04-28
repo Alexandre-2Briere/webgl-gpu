@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { makeMockDevice, type MockGPUDevice, type MockGPUBuffer } from '../buffers/mockDevice';
-import type { RenderableInitArgs } from '../../gameObject/renderables/Renderable';
+import type { RenderableInitArgs } from '../../gameObject/3D/renderables/Renderable';
 import type { PipelineCache } from '../../core/PipelineCache';
 import type { BindGroupLayouts } from '../../types';
 import type { UniformPool } from '../../buffers/UniformPool';

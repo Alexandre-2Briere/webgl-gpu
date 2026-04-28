@@ -19,37 +19,38 @@ import type {
   InfiniteGroundOptions,
   Bar3DOptions,
 } from './types';
-import { Camera } from './core';
 import { Renderer } from './core/Renderer';
 import { Scene } from './core/Scene';
 import { PipelineCache } from './core/PipelineCache';
 import { UniformPool } from './buffers/UniformPool';
 import { LightBuffer } from './buffers/LightBuffer';
-import { Mesh } from './gameObject/renderables/Mesh';
-import { Quad2D } from './gameObject/renderables/Quad2D';
-import { Quad3D } from './gameObject/renderables/Quad3D';
-import { Model3D } from './gameObject/renderables/Model3D';
-import { FbxModel } from './gameObject/renderables/FbxModel';
-import { ArrowGizmo } from './gameObject/renderables/ArrowGizmo';
-import type { Renderable, RenderableInitArgs } from './gameObject/renderables/Renderable';
+import { Mesh } from './gameObject/3D/renderables/Mesh';
+import { Quad2D } from './gameObject/3D/renderables/Quad2D';
+import { Quad3D } from './gameObject/3D/renderables/Quad3D';
+import { Model3D } from './gameObject/3D/renderables/Model3D';
+import { FbxModel } from './gameObject/3D/renderables/FbxModel';
+import { ArrowGizmo } from './gameObject/3D/renderables/ArrowGizmo';
+import type { Renderable, RenderableInitArgs } from './gameObject/3D/renderables/Renderable';
 import { loadObjAsset, loadFbxAsset } from './utils/assetLoaders';
 import { buildCubeVertices } from './utils/buildCubeVertices';
 import { createEngineLayouts } from './utils/bindGroupLayouts';
-import { logger } from './utils';
-import { GameObject } from './gameObject/GameObject';
-import type { IGameObject } from './gameObject/GameObject';
-import { LightGameObject, LightType } from './gameObject/LightGameObject';
-import { SkyboxGameObject } from './gameObject/SkyboxGameObject';
-import { SkyboxRenderable } from './gameObject/renderables/SkyboxRenderable';
-import { InfiniteGroundGameObject } from './gameObject/InfiniteGroundGameObject';
-import { InfiniteGroundRenderable } from './gameObject/renderables/InfiniteGroundRenderable';
-import { Rigidbody3D } from './gameObject/rigidbody/Rigidbody3D';
-import type { Hitbox3D } from './gameObject/hitbox/Hitbox3D';
+import { GameObject } from './gameObject/3D/3DGameObject';
+import type { IGameObject } from './gameObject/3D/3DGameObject';
+import { LightGameObject, LightType } from './gameObject/Light/LightGameObject';
+import { SkyboxGameObject } from './gameObject/Unique/SkyboxGameObject';
+import { SkyboxRenderable } from './gameObject/3D/renderables/SkyboxRenderable';
+import { InfiniteGroundGameObject } from './gameObject/Unique/InfiniteGroundGameObject';
+import { InfiniteGroundRenderable } from './gameObject/3D/renderables/InfiniteGroundRenderable';
+import { Rigidbody3D } from './gameObject/3D/rigidbody/Rigidbody3D';
+import type { Hitbox3D } from './gameObject/3D/hitbox/Hitbox3D';
 import { SaveManager } from './saveManager/SaveManager';
 import { restoreFromSnapshot } from './saveManager/restoreScene';
 import { PubSubManager } from './core/PubSub';
-import { Bar3DManager } from './gameObject/renderables/Bar3DManager';
-import type { Bar3DHandle } from './gameObject/Bar3DHandle';
+import { Bar3DManager } from './gameObject/3D/renderables/Bar3DManager';
+import type { Bar3DHandle } from './gameObject/UI/Bar3DHandle';
+import { Camera } from './core/Camera';
+import { logger } from './utils/logger';
+import { UIGameObject } from './gameObject/UI/UIGameObject';
 
 /** Initial chunk size for the UniformPool. Grows automatically when exceeded. */
 const INITIAL_CHUNK_SIZE = 512 * 256;
@@ -267,13 +268,14 @@ export class Engine {
 
   // ── Bar3D factory ────────────────────────────────────────────────────────────
 
-  createBar3D(opts: Bar3DOptions): Bar3DHandle {
+  createBar3D(opts: Bar3DOptions): UIGameObject<Bar3DHandle> {
     if (this._bar3DManager === null) {
       this._bar3DManager = new Bar3DManager();
       this._bar3DManager.init(this._initArgs());
       this._scene.add(this._bar3DManager);
     }
-    return this._bar3DManager.spawn(opts);
+    const handle = this._bar3DManager.spawn(opts);
+    return new UIGameObject<Bar3DHandle>(handle);;
   }
 
   // ── Asset loaders ────────────────────────────────────────────────────────────

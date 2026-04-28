@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { testMeshMesh } from '../../gameObject/rigidbody/narrowPhaseHelper/meshTests';
-import { MeshHitbox } from '../../gameObject/hitbox/MeshHitbox';
+import { testMeshMesh } from '../../gameObject/3D/rigidbody/narrowPhaseHelper/meshTests';
+import { MeshHitbox } from '../../gameObject/3D/hitbox/MeshHitbox';
 
 const IDENTITY: [number, number, number, number] = [0, 0, 0, 1];
 

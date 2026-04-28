@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SphereHitbox } from '../../gameObject/hitbox/SphereHitbox';
+import { SphereHitbox } from '../../gameObject/3D/hitbox/SphereHitbox';
 import { yawPitchRollToQuat } from '../../math/quat';
 import type { Vec3, Vec4 } from '../../math/vec';
 

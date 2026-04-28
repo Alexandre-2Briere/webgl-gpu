@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Quad2D } from '../../gameObject/renderables/Quad2D';
+import { Quad2D } from '../../gameObject/3D/renderables/Quad2D';
 import { makeMockRenderableInitArgs, type MockRenderableInitArgs } from './mockRenderableInitArgs';
 import type { MockGPUBuffer } from '../buffers/mockDevice';
 

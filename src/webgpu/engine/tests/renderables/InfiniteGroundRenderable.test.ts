@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { InfiniteGroundRenderable } from '../../gameObject/renderables/InfiniteGroundRenderable';
+import { InfiniteGroundRenderable } from '../../gameObject/3D/renderables/InfiniteGroundRenderable';
 import { makeMockRenderableInitArgs, type MockRenderableInitArgs } from './mockRenderableInitArgs';
 
 let mock: MockRenderableInitArgs;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CubeHitbox } from '../../gameObject/hitbox/CubeHitbox';
+import { CubeHitbox } from '../../gameObject/3D/hitbox/CubeHitbox';
 
 describe('CubeHitbox — construction', () => {
   it('stores the halfExtents passed to the constructor', () => {

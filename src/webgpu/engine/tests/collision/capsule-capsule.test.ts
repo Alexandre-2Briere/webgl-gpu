@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { testCapsuleCapsule } from '../../gameObject/rigidbody/narrowPhaseHelper/capsuleTests';
-import { CapsuleHitbox } from '../../gameObject/hitbox/CapsuleHitbox';
+import { testCapsuleCapsule } from '../../gameObject/3D/rigidbody/narrowPhaseHelper/capsuleTests';
+import { CapsuleHitbox } from '../../gameObject/3D/hitbox/CapsuleHitbox';
 
 const IDENTITY: [number, number, number, number] = [0, 0, 0, 1];
 

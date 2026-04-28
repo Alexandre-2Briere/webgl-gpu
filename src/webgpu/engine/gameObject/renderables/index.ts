@@ -1,1 +1,0 @@
-export { ArrowGizmo } from './ArrowGizmo';

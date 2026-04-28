@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PlaneHitbox } from '../../gameObject/hitbox/PlaneHitbox';
+import { PlaneHitbox } from '../../gameObject/3D/hitbox/PlaneHitbox';
 
 const IDENTITY: [number, number, number, number] = [0, 0, 0, 1];
 

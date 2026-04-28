@@ -1,16 +1,21 @@
+// PUBLIC API FOR THE ENGINE PACKAGE
+// MUST NOT BE IMPORTED FROM INTERNALLY IN THE ENGINE PACKAGE
+
 export { Engine } from './Engine';
 export { Camera } from './core/Camera';
 
 // GameObject and scene-object interfaces
-export { GameObject } from './gameObject/GameObject';
-export type { IGameObject, ISceneObject } from './gameObject/GameObject';
+export { GameObject } from './gameObject/3D/3DGameObject';
+export type { IGameObject, ISceneObject } from './gameObject/3D/3DGameObject';
 
 // Light game object
-export { LightGameObject, LightType } from './gameObject/LightGameObject';
+export { LightGameObject, LightType } from './gameObject/Light/LightGameObject';
+
+export { UIGameObject } from './gameObject/UI/UIGameObject';
 
 // Singleton scene objects
-export { SkyboxGameObject } from './gameObject/SkyboxGameObject';
-export { InfiniteGroundGameObject } from './gameObject/InfiniteGroundGameObject';
+export { SkyboxGameObject } from './gameObject/Unique/SkyboxGameObject';
+export { InfiniteGroundGameObject } from './gameObject/Unique/InfiniteGroundGameObject';
 
 // Option types for Engine.create*() methods
 export type {
@@ -39,16 +44,17 @@ export type {
   Bar3DOptions,
 } from './types';
 
-export type { Bar3DHandle } from './gameObject/Bar3DHandle';
+export type { Bar3DHandle } from './gameObject/UI/Bar3DHandle';
 
 // Editor renderables
-export { ArrowGizmo } from './gameObject/renderables';
-export type { Quad3D } from './gameObject/renderables/Quad3D';
+export { ArrowGizmo } from './gameObject/3D/renderables/ArrowGizmo';
+export type { Quad3D } from './gameObject/3D/renderables/Quad3D';
 
 // Physics
-export { Rigidbody3D } from './gameObject/rigidbody/Rigidbody3D';
-export { applyPhysics, applyCollisions } from './gameObject/rigidbody/index';
-export { CubeHitbox } from './gameObject/hitbox/CubeHitbox';
+export { Rigidbody3D } from './gameObject/3D/rigidbody/Rigidbody3D';
+export { applyPhysics } from './gameObject/3D/rigidbody/physicsStep';
+export { applyCollisions } from './gameObject/3D/rigidbody/collisionStep';
+export { CubeHitbox } from './gameObject/3D/hitbox/CubeHitbox';
 
 // Math utilities
 export { safeParseFloat } from './math/vec';
@@ -58,10 +64,11 @@ export type { Vec3 } from './math/vec';
 export type { PubSubManager } from './core/PubSub';
 
 // Logger
-export { logger } from './utils';
+export { logger } from './utils/logger';
 
 // Save / load
-export { SaveManager, restoreFromSnapshot } from './saveManager';
+export { SaveManager } from './saveManager/SaveManager';
+export {restoreFromSnapshot} from './saveManager/restoreScene';
 export type {
   SaveSegments,
   SceneConstantsSnapshot,
@@ -78,4 +85,4 @@ export type {
   DirectionalLightSnapshot,
   SkyboxSnapshot,
   InfiniteGroundSnapshot,
-} from './saveManager';
+} from './saveManager/types';

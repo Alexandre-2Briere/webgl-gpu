@@ -1,5 +1,5 @@
 import type { FBXReader, FBXReaderNode } from 'fbx-parser';
-import { logger } from '../utils';
+import { logger } from '../utils/logger';
 
 const MULTIMATERIAL_DEBUG_FILE = 'OakTree1.fbx';
 let multimaterialDebugEnabled = false;

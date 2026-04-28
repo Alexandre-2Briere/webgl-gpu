@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Model3D } from '../../gameObject/renderables/Model3D';
-import { ModelAsset } from '../../gameObject/renderables/ModelAsset';
+import { Model3D } from '../../gameObject/3D/renderables/Model3D';
+import { ModelAsset } from '../../gameObject/3D/renderables/ModelAsset';
 import { makeMockDevice } from '../buffers/mockDevice';
 import { makeMockRenderableInitArgs, type MockRenderableInitArgs } from './mockRenderableInitArgs';
 

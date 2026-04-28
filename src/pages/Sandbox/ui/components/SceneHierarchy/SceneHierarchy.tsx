@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { IconButton, List, ListItem, ListItemText, TextField } from '@mui/material';
+import { Box, IconButton, List, ListItem, ListItemText, TextField } from '@mui/material';
 import {
   SANDBOX_EVENTS,
   type PubSubManager,
@@ -8,12 +8,15 @@ import {
   type HierarchyRowSelectedPayload,
   type HierarchyRowRenamedPayload,
 } from '../../../game/events';
+
+const SINGLETON_KEYS = new Set(['Skybox', 'InfiniteGround']);
 import './SceneHierarchy.css';
 
 const NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9]*$/;
 
 interface RowData {
   name: string;
+  key: string;
 }
 
 interface SceneHierarchyProps {
@@ -26,14 +29,15 @@ export function SceneHierarchyComponent({ pubSub }: SceneHierarchyProps) {
   const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
   const [renameValue, setRenameValue]     = useState('');
   const [renameInvalid, setRenameInvalid] = useState(false);
+  const [clipboardIndex, setClipboardIndex] = useState<number | null>(null);
 
   const pubSubRef = useRef(pubSub);
   useLayoutEffect(() => { pubSubRef.current = pubSub; });
 
   useEffect(() => {
     const onRowAdded = (raw: unknown) => {
-      const { name } = raw as HierarchyRowAddedPayload;
-      setRows((previous) => [...previous, { name }]);
+      const { name, key } = raw as HierarchyRowAddedPayload;
+      setRows((previous) => [...previous, { name, key }]);
     };
 
     const onRowRemoved = (raw: unknown) => {
@@ -42,6 +46,12 @@ export function SceneHierarchyComponent({ pubSub }: SceneHierarchyProps) {
       setSelectedIndex((previous) => {
         if (previous === index)  return -1;
         if (previous > index)    return previous - 1;
+        return previous;
+      });
+      setClipboardIndex((previous) => {
+        if (previous === null)    return null;
+        if (previous === index)   return null;
+        if (previous > index)     return previous - 1;
         return previous;
       });
     };
@@ -70,6 +80,33 @@ export function SceneHierarchyComponent({ pubSub }: SceneHierarchyProps) {
       pubSub.unsubscribe(SANDBOX_EVENTS.HIERARCHY_ROW_RENAMED, onRowRenamed);
     };
   }, [pubSub]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent): void {
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      const isMod = event.metaKey || event.ctrlKey;
+      if (!isMod) return;
+
+      if (event.key === 'c' || event.key === 'C') {
+        if (selectedIndex === -1) return;
+        const row = rows[selectedIndex];
+        if (!row || SINGLETON_KEYS.has(row.key)) return;
+        setClipboardIndex(selectedIndex);
+        event.preventDefault();
+        return;
+      }
+      if (event.key === 'v' || event.key === 'V') {
+        if (clipboardIndex === null) return;
+        const row = rows[clipboardIndex];
+        if (!row || SINGLETON_KEYS.has(row.key)) return;
+        pubSubRef.current.publish(SANDBOX_EVENTS.HIERARCHY_OBJECT_DUPLICATE, { index: clipboardIndex });
+        event.preventDefault();
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => { document.removeEventListener('keydown', handleKeyDown); };
+  }, [selectedIndex, clipboardIndex, rows]);
 
   function handleRowClick(index: number): void {
     setSelectedIndex(index);
@@ -116,15 +153,28 @@ export function SceneHierarchyComponent({ pubSub }: SceneHierarchyProps) {
             className={`hier-row${selectedIndex === index ? ' selected' : ''}`}
             disablePadding
             secondaryAction={
-              <IconButton
-                sx={{width: "32px", height: "32px"}}
-                size="small"
-                className="hier-remove"
-                title="Remove"
-                onClick={(event) => { event.stopPropagation(); pubSubRef.current.publish(SANDBOX_EVENTS.HIERARCHY_OBJECT_REMOVED, { index }); }}
-              >
-                ×
-              </IconButton>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {!SINGLETON_KEYS.has(row.key) && (
+                  <IconButton
+                    sx={{ width: '32px', height: '32px' }}
+                    size="small"
+                    className="hier-duplicate"
+                    title="Duplicate"
+                    onClick={(event) => { event.stopPropagation(); pubSubRef.current.publish(SANDBOX_EVENTS.HIERARCHY_OBJECT_DUPLICATE, { index }); }}
+                  >
+                    ⧉
+                  </IconButton>
+                )}
+                <IconButton
+                  sx={{ width: '32px', height: '32px' }}
+                  size="small"
+                  className="hier-remove"
+                  title="Remove"
+                  onClick={(event) => { event.stopPropagation(); pubSubRef.current.publish(SANDBOX_EVENTS.HIERARCHY_OBJECT_REMOVED, { index }); }}
+                >
+                  ×
+                </IconButton>
+              </Box>
             }
             onClick={() => handleRowClick(index)}
             onDoubleClick={handleRowDoubleClick}

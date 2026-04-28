@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { computeWorldAABB } from '../../gameObject/rigidbody/broadPhase';
-import { SphereHitbox } from '../../gameObject/hitbox/SphereHitbox';
-import { CubeHitbox } from '../../gameObject/hitbox/CubeHitbox';
-import { CapsuleHitbox } from '../../gameObject/hitbox/CapsuleHitbox';
-import { MeshHitbox } from '../../gameObject/hitbox/MeshHitbox';
-import { PlaneHitbox } from '../../gameObject/hitbox/PlaneHitbox';
+import { computeWorldAABB } from '../../gameObject/3D/rigidbody/broadPhase';
+import { SphereHitbox } from '../../gameObject/3D/hitbox/SphereHitbox';
+import { CubeHitbox } from '../../gameObject/3D/hitbox/CubeHitbox';
+import { CapsuleHitbox } from '../../gameObject/3D/hitbox/CapsuleHitbox';
+import { MeshHitbox } from '../../gameObject/3D/hitbox/MeshHitbox';
+import { PlaneHitbox } from '../../gameObject/3D/hitbox/PlaneHitbox';
 
 const IDENTITY: [number, number, number, number] = [0, 0, 0, 1];
 

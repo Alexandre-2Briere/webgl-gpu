@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CapsuleHitbox } from '../../gameObject/hitbox/CapsuleHitbox';
+import { CapsuleHitbox } from '../../gameObject/3D/hitbox/CapsuleHitbox';
 
 describe('CapsuleHitbox — construction', () => {
   it('stores the radius and height passed to the constructor', () => {

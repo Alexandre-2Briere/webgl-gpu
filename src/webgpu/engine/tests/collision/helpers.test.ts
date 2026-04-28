@@ -4,10 +4,10 @@ import {
   getCapsuleSegment,
   pointRadiusVsOBB,
   pointRadiusVsAABB,
-} from '../../gameObject/rigidbody/narrowPhaseHelper/helpers';
-import { CapsuleHitbox } from '../../gameObject/hitbox/CapsuleHitbox';
-import { CubeHitbox } from '../../gameObject/hitbox/CubeHitbox';
-import { MeshHitbox } from '../../gameObject/hitbox/MeshHitbox';
+} from '../../gameObject/3D/rigidbody/narrowPhaseHelper/helpers';
+import { CapsuleHitbox } from '../../gameObject/3D/hitbox/CapsuleHitbox';
+import { CubeHitbox } from '../../gameObject/3D/hitbox/CubeHitbox';
+import { MeshHitbox } from '../../gameObject/3D/hitbox/MeshHitbox';
 import type { Vec3 } from '../../math/vec';
 
 const IDENTITY: [number, number, number, number] = [0, 0, 0, 1];

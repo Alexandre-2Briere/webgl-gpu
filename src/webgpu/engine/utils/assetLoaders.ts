@@ -1,7 +1,7 @@
 import type { ModelAssetHandle, FbxAssetHandle } from '../types';
 import type { ParsedFbxData } from '../loaders/parseFbx';
-import { ModelAsset } from '../gameObject/renderables/ModelAsset';
-import { FbxAsset } from '../gameObject/renderables/FbxAsset';
+import { ModelAsset } from '../gameObject/3D/renderables/ModelAsset';
+import { FbxAsset } from '../gameObject/3D/renderables/FbxAsset';
 import { parseObj } from '../loaders/parseObj';
 import { parseFbx } from '../loaders/parseFbx';
 import { logger } from './logger';

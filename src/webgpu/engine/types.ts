@@ -1,6 +1,6 @@
-import type { Vec3, Vec4 } from './math';
-import type { Hitbox3D } from './gameObject/hitbox';
-import type { Rigidbody3D } from './gameObject/rigidbody';
+import type { Vec3, Vec4 } from './math/vec';
+import type { Hitbox3D } from './gameObject/3D/hitbox/Hitbox3D';
+import type { Rigidbody3D } from './gameObject/3D/rigidbody/Rigidbody3D';
 
 // ── Engine ─────────────────────────────────────────────────────────────────
 

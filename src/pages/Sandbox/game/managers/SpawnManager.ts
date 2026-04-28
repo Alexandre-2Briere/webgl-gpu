@@ -141,7 +141,7 @@ export class SpawnManager {
     });
 
     const index = this._spawnedObjects.length - 1;
-    this._pubSub.publish(SANDBOX_EVENTS.HIERARCHY_ROW_ADDED, { name: label });
+    this._pubSub.publish(SANDBOX_EVENTS.HIERARCHY_ROW_ADDED, { name: label, key });
     this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: `Spawned ${label} at (0, 0, 0).`, level: 'log' });
     this._pubSub.publish(SANDBOX_EVENTS.OBJECT_SPAWNED, { index });
   }

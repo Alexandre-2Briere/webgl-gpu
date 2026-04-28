@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { aabbOverlap, type AABB } from '../../gameObject/rigidbody/broadPhase';
+import { aabbOverlap, type AABB } from '../../gameObject/3D/rigidbody/broadPhase';
 
 function aabb(min: [number, number, number], max: [number, number, number]): AABB {
   return { min, max };

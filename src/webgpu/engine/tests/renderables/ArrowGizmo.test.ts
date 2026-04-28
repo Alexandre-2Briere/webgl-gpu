@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ArrowGizmo } from '../../gameObject/renderables/ArrowGizmo';
+import { ArrowGizmo } from '../../gameObject/3D/renderables/ArrowGizmo';
 import { ARROW_GIZMO_VISIBLE_KEY, ARROW_GIZMO_OCCLUDED_KEY } from '../../shaders/arrowGizmo';
 import { makeMockRenderableInitArgs, type MockRenderableInitArgs } from './mockRenderableInitArgs';
 import type { MockGPUBuffer } from '../buffers/mockDevice';

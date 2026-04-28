@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { testSphereMesh } from '../../gameObject/rigidbody/narrowPhaseHelper/sphereTests';
-import { SphereHitbox } from '../../gameObject/hitbox/SphereHitbox';
-import { MeshHitbox } from '../../gameObject/hitbox/MeshHitbox';
+import { testSphereMesh } from '../../gameObject/3D/rigidbody/narrowPhaseHelper/sphereTests';
+import { SphereHitbox } from '../../gameObject/3D/hitbox/SphereHitbox';
+import { MeshHitbox } from '../../gameObject/3D/hitbox/MeshHitbox';
 
 const IDENTITY: [number, number, number, number] = [0, 0, 0, 1];
 

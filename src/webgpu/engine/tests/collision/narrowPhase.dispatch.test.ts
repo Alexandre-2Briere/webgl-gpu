@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { narrowPhase } from '../../gameObject/rigidbody/narrowPhase';
-import { SphereHitbox } from '../../gameObject/hitbox/SphereHitbox';
-import { CubeHitbox } from '../../gameObject/hitbox/CubeHitbox';
-import { CapsuleHitbox } from '../../gameObject/hitbox/CapsuleHitbox';
-import { MeshHitbox } from '../../gameObject/hitbox/MeshHitbox';
-import { PlaneHitbox } from '../../gameObject/hitbox/PlaneHitbox';
+import { narrowPhase } from '../../gameObject/3D/rigidbody/narrowPhase';
+import { SphereHitbox } from '../../gameObject/3D/hitbox/SphereHitbox';
+import { CubeHitbox } from '../../gameObject/3D/hitbox/CubeHitbox';
+import { CapsuleHitbox } from '../../gameObject/3D/hitbox/CapsuleHitbox';
+import { MeshHitbox } from '../../gameObject/3D/hitbox/MeshHitbox';
+import { PlaneHitbox } from '../../gameObject/3D/hitbox/PlaneHitbox';
 
 const IDENTITY: [number, number, number, number] = [0, 0, 0, 1];
 
@@ -147,7 +147,7 @@ describe('narrowPhase — plane collision correctness', () => {
 
 describe('narrowPhase — unknown type returns NO_HIT', () => {
   it('unknown hitbox type returns a non-hit result without throwing', () => {
-    const fakeHitbox = { type: 'unknown', worldCenter: [0, 0, 0], orientation: new Float32Array(16), offsetTranslation: [0, 0, 0], offsetRotation: [0, 0], updateOrientation: () => {}, clone: () => fakeHitbox } as unknown as import('../../gameObject/hitbox/Hitbox3D').Hitbox3D;
+    const fakeHitbox = { type: 'unknown', worldCenter: [0, 0, 0], orientation: new Float32Array(16), offsetTranslation: [0, 0, 0], offsetRotation: [0, 0], updateOrientation: () => {}, clone: () => fakeHitbox } as unknown as import('../../gameObject/3D/hitbox/Hitbox3D').Hitbox3D;
     const result = narrowPhase(fakeHitbox, makeSphere());
     expect(result.hit).toBe(false);
   });

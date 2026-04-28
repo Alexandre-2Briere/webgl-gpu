@@ -1,6 +1,6 @@
-import { Rigidbody3D } from '../../gameObject/rigidbody/Rigidbody3D';
-import type { IGameObject } from '../../gameObject/GameObject';
-import type { Renderable } from '../../gameObject/renderables/Renderable';
+import { Rigidbody3D } from '../../gameObject/3D/rigidbody/Rigidbody3D';
+import type { IGameObject } from '../../gameObject/3D/3DGameObject';
+import type { Renderable } from '../../gameObject/3D/renderables/Renderable';
 import type { Vec3, Vec4 } from '../../math/vec';
 
 /**
