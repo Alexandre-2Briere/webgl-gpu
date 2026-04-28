@@ -10,6 +10,7 @@ export type Vec2 = [number, number]
 export type Vec3 = [number, number, number]
 export type Vec4 = [number, number, number, number]
 
+/** Returns a × b (cross product). Order matters: reversing inputs negates the result. */
 export function cross3(a: number[], b: number[]): number[] {
   return [
     a[1] * b[2] - a[2] * b[1],
@@ -18,18 +19,26 @@ export function cross3(a: number[], b: number[]): number[] {
   ];
 }
 
+/** Normalise a 3D vector. Returns [0, 1, 0] for degenerate (zero-length) input. */
 export function norm3(v: number[]): Vec3 {
   const len = Math.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2);
   return len > 0 ? [v[0] / len, v[1] / len, v[2] / len] : [0, 1, 0];
 }
 
-// yaw: [cosYaw, sinYaw], pitch: [cosPitch, sinPitch]
+/**
+ * Camera forward vector in a right-handed system where +Y is up, -Z is forward.
+ * @param yaw   - [cosYaw, sinYaw]   (precomputed from the Y-axis rotation angle)
+ * @param pitch - [cosPitch, sinPitch] (precomputed from the X-axis rotation angle)
+ */
 export function forward(yaw: Vec2, pitch: Vec2): Vec3 {
   const [cosYaw, sinYaw] = yaw;
   const [cosPitch, sinPitch] = pitch;
   return [sinYaw * cosPitch, -sinPitch, -cosYaw * cosPitch];
 }
 
+/** Camera right vector from yaw angle.
+ * @param yaw - [cosYaw, sinYaw] (precomputed from the Y-axis rotation angle)
+ */
 export function right(yaw: Vec2): Vec3 {
   const [cosYaw, sinYaw] = yaw;
   return [cosYaw, 0, sinYaw];

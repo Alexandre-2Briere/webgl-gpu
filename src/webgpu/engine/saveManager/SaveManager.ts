@@ -21,8 +21,21 @@ const SEGMENT_TYPES = {
 
 type SegmentType = typeof SEGMENT_TYPES[keyof typeof SEGMENT_TYPES]
 
+/**
+ * Serializes and deserializes a scene to/from a single compressed base64 string.
+ *
+ * Pipeline per segment: JSON → UTF-8 bytes → deflate → base64.
+ * All segments are joined with `|||`. Multiple segments of the same type are allowed.
+ */
 export class SaveManager {
 
+  /**
+   * Encodes all scene segments into a single `|||`-separated compressed base64 string.
+   * Logs a warning (but still returns the string) if the result exceeds `MAX_ENCODED_BYTES`.
+   *
+   * @param segments - Scene data to serialize.
+   * @returns Combined encoded string suitable for storage or clipboard.
+   */
   async save(segments: SaveSegments): Promise<string> {
     const pieces: string[] = [];
 
@@ -51,6 +64,15 @@ export class SaveManager {
     return combinedString;
   }
 
+  /**
+   * Decodes and validates a string previously produced by {@link SaveManager.save}.
+   * Returns `null` on any malformed segment, base64 decode failure, decompression error,
+   * JSON parse error, or schema violation. Unknown segment tags are silently skipped
+   * for forward compatibility.
+   *
+   * @param combinedString - A `|||`-separated compressed base64 string.
+   * @returns Parsed and validated scene segments, or `null` on any error.
+   */
   async load(combinedString: string): Promise<SaveSegments | null> {
     const result: SaveSegments = {
       sceneConstants:   [],
@@ -116,6 +138,7 @@ export class SaveManager {
 
   // ── Private helpers ────────────────────────────────────────────────────────────
 
+  /** JSON → UTF-8 → deflate (CompressionStream) → base64 (btoa). */
   private async _encode(data: unknown): Promise<string> {
     const jsonString   = JSON.stringify(data);
     const encodedBytes = new TextEncoder().encode(jsonString);
@@ -128,6 +151,10 @@ export class SaveManager {
     return btoa(String.fromCharCode(...compressedBytes));
   }
 
+  /**
+   * base64 → raw bytes → inflate (DecompressionStream) → JSON parse.
+   * Returns `{ ok: false }` on any step failure; errors are logged but not re-thrown.
+   */
   private async _decode(encoded: string): Promise<{ ok: true; value: unknown } | { ok: false }> {
     let binaryString: string;
     try {
@@ -174,6 +201,7 @@ function _validateSceneConstantsSnapshot(data: unknown): string | null {
 
 const GAME_OBJECT_KEYS = new Set(['Cube', 'Quad', 'FBX']);
 
+/** Returns null on success, or a string describing the first schema violation. */
 function _validateGameObjectsSnapshot(data: unknown): string | null {
   if (typeof data !== 'object' || data === null) return 'root is not an object';
   const snapshot = data as Record<string, unknown>;
@@ -194,6 +222,7 @@ function _validateGameObjectsSnapshot(data: unknown): string | null {
 
 const LIGHT_OBJECT_KEYS = new Set(['Light', 'DirectionalLight']);
 
+/** Returns null on success, or a string describing the first schema violation. */
 function _validateLightObjectsSnapshot(data: unknown): string | null {
   if (typeof data !== 'object' || data === null) return 'root is not an object';
   const snapshot = data as Record<string, unknown>;

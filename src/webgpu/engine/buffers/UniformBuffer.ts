@@ -8,6 +8,12 @@ export class UniformBuffer {
   protected readonly _gpuBuffer: GPUBuffer;
   readonly bindGroup: GPUBindGroup;
 
+  /**
+   * @param device  - active GPUDevice
+   * @param size    - byte size of the uniform buffer
+   * @param layout  - bind group layout; must have a buffer entry at binding 0
+   * @param label   - debug label (also used as the bind group label with `-bg` suffix)
+   */
   constructor(device: GPUDevice, size: number, layout: GPUBindGroupLayout, label: string) {
     this._device = device;
     this._gpuBuffer = device.createBuffer({

@@ -11,7 +11,13 @@ import {
 import { testCapsuleCube } from './capsuleTests';
 import { testMeshCube } from './meshTests';
 
-/** @internal */
+/**
+ * OBB–OBB collision via the Separating Axis Theorem.
+ * Tests 15 candidate axes: 3 face normals of A + 3 face normals of B +
+ * 9 edge-cross-product axes (A_i × B_j). Returns the axis of minimum
+ * penetration depth; normal points from B toward A.
+ * @internal
+ */
 export function testCubeCube(a: CubeHitbox, b: CubeHitbox): CollisionResult {
   const centerA = a.worldCenter;
   const centerB = b.worldCenter;

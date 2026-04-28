@@ -28,7 +28,11 @@ export function extractOBBAxes(orientation: Float32Array): [Vec3, Vec3, Vec3] {
   ];
 }
 
-/** @internal */
+/**
+ * Projects an OBB onto a separating axis and returns [min, max] on that axis.
+ * The support radius uses the SAT formula: sum of |dot(obbAxis_i, axis)| × halfExtent_i.
+ * @internal
+ */
 export function projectOBBOntoAxis(
   center: Vec3,
   axes: [Vec3, Vec3, Vec3],
@@ -56,7 +60,12 @@ export function closestPointOnSegment(segStart: Vec3, segEnd: Vec3, point: Vec3)
   return [segStart[0] + direction[0] * param, segStart[1] + direction[1] * param, segStart[2] + direction[2] * param];
 }
 
-/** @internal */
+/**
+ * Returns the two hemisphere-center endpoints of the capsule's inner cylinder segment.
+ * The half-segment length is `height/2 - radius` — subtracting the hemisphere radius
+ * from each end so the segment spans only the cylindrical body, not the full height.
+ * @internal
+ */
 export function getCapsuleSegment(capsule: CapsuleHitbox): [Vec3, Vec3] {
   const center = capsule.worldCenter;
   const halfSegmentLength = Math.max(0, capsule.height * 0.5 - capsule.radius);

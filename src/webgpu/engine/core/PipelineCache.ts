@@ -8,6 +8,10 @@ export class PipelineCache {
     this._device = device;
   }
 
+  /**
+   * Returns the cached pipeline for `key`, or creates and caches it from `descriptor`.
+   * Use `PipelineCache.hashSource()` to derive a stable key from WGSL source.
+   */
   getOrCreateRender(key: string, descriptor: GPURenderPipelineDescriptor): GPURenderPipeline {
     let pipeline = this._renderPipelines.get(key);
     if (!pipeline) {
@@ -17,6 +21,7 @@ export class PipelineCache {
     return pipeline;
   }
 
+  /** Returns the cached compute pipeline for `key`, or creates and caches it from `descriptor`. */
   getOrCreateCompute(key: string, descriptor: GPUComputePipelineDescriptor): GPUComputePipeline {
     let pipeline = this._computePipelines.get(key);
     if (!pipeline) {

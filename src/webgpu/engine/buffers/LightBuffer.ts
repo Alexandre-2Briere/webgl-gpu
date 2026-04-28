@@ -10,9 +10,9 @@ export const MAX_LIGHTS = 250;
 //   offset  0: count (u32) + 12 bytes padding  → 16 bytes header
 //   offset 16: array of Light[250], each 32 bytes
 //     Light: position(vec3f=12) + radius(f32=4) + color(vec3f=12) + lightType(u32=4)
-const HEADER_SIZE = 4 * FLOAT_SIZE;              // 16 bytes
-const LIGHT_SIZE  = 8 * FLOAT_SIZE;              // 32 bytes (3+1+3+1 floats)
-const BUFFER_SIZE = HEADER_SIZE + MAX_LIGHTS * LIGHT_SIZE;  // 8016 bytes
+const HEADER_SIZE = 4 * FLOAT_SIZE;              
+const LIGHT_SIZE  = 8 * FLOAT_SIZE;              
+const BUFFER_SIZE = HEADER_SIZE + MAX_LIGHTS * LIGHT_SIZE;  
 
 /** @internal */
 export class LightBuffer extends UniformBuffer {
@@ -44,6 +44,21 @@ export class LightBuffer extends UniformBuffer {
 
   markDirty(): void { this._dirty = true; }
 
+  /**
+   * Serialises all registered lights into the GPU uniform buffer.
+   * No-ops when no light or transform has changed since the last upload.
+   *
+   * Mirrors the WGSL `LightBuffer` struct layout:
+   *   [0]  count (u32) + 12 bytes padding        → 16-byte header
+   *   [16] Light[n], each 32 bytes:
+   *          +0  position.x/y/z  (3 × f32)
+   *          +12 radius          (f32)
+   *          +16 color.r/g/b     (3 × f32)
+   *          +28 lightType       (u32)
+   *
+   * DataView is used instead of a typed array because the struct mixes f32 and u32
+   * fields at arbitrary byte offsets within each 32-byte light entry.
+   */
   upload(queue: GPUQueue): void {
     if (!this._dirty) return;
     const buffer = new ArrayBuffer(BUFFER_SIZE);

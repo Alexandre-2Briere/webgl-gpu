@@ -12,6 +12,12 @@ const MAX_ASSET_BYTES = 256 * 1024 * 1024;
 /** Default fetch timeout in milliseconds. Override per-call via the timeoutMs option. */
 export const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
 
+/**
+ * Fetches a URL and returns its body as a Uint8Array, enforcing two size limits:
+ * - Rejects immediately if `Content-Length` exceeds MAX_ASSET_BYTES.
+ * - Aborts streaming and throws if total bytes received exceed MAX_ASSET_BYTES.
+ * Aborts the request via AbortController if it does not complete within `timeoutMs`.
+ */
 async function fetchWithLimit(url: string, label: string, timeoutMs: number): Promise<Uint8Array> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -72,6 +78,10 @@ export async function loadObjAsset(
 
 // ── External texture helpers ──────────────────────────────────────────────────
 
+/**
+ * Resolves and fetches a single texture as an ImageBitmap, or returns null on any failure.
+ * Resolution priority: `overrides[filename]` first, then `texturePath` resolved relative to `baseUrl`.
+ */
 async function fetchExternalTexture(
   texturePath: string,
   baseUrl: string,
@@ -93,6 +103,10 @@ async function fetchExternalTexture(
   } catch { return null; }
 }
 
+/**
+ * Mutates `parsed.meshes[*].material` in place, filling `diffuseImageData` and
+ * `normalMapImageData` by fetching external textures in parallel.
+ */
 async function resolveExternalTextures(
   parsed: ParsedFbxData,
   baseUrl: string,

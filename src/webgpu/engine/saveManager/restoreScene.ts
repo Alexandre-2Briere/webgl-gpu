@@ -8,6 +8,18 @@ import { applyCollisions } from '../gameObject/3D/rigidbody/collisionStep';
 import { buildCubeVertices } from '../utils/buildCubeVertices';
 import type { SaveSegments, GameObjectSnapshot, LightObjectSnapshot } from './types';
 
+/**
+ * Rebuilds a scene from a previously saved {@link SaveSegments} snapshot.
+ *
+ * Side effects:
+ * - Calls `engine.setCamera()` when `sceneConstants` is non-empty (only the first entry is used).
+ * - Registers an `engine.onFrame` callback that drives physics and collision for all restored objects.
+ *
+ * FBX assets sharing the same `assetUrl` are loaded once and reused across records.
+ *
+ * @param engine - Engine instance to spawn objects into.
+ * @param segments - Decoded scene data as returned by {@link SaveManager.load}.
+ */
 export async function restoreFromSnapshot(engine: Engine, segments: SaveSegments): Promise<void> {
   if (segments.sceneConstants.length > 0) {
     const { camera: cameraData } = segments.sceneConstants[0];
@@ -49,6 +61,18 @@ export async function restoreFromSnapshot(engine: Engine, segments: SaveSegments
   });
 }
 
+/**
+ * Factory that creates a single engine object from a snapshot record.
+ *
+ * Physics notes:
+ * - `Rigidbody3D` is created only when `physicsConfig.hasRigidbody` is true.
+ * - `CubeHitbox` half-extents are `scale[i] / 2`.
+ *
+ * @param engine - Engine instance used for create* / loadFbx calls.
+ * @param record - Snapshot record to spawn.
+ * @param fbxCache - Mutable; populated on first load of each `assetUrl`.
+ * @returns Spawned object or light, or `null` for unrecognised keys.
+ */
 async function _spawnFromRecord(
   engine:   Engine,
   record:   GameObjectSnapshot | LightObjectSnapshot,

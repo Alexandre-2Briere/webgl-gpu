@@ -9,6 +9,11 @@ export class Renderer {
   private _depthView: GPUTextureView;
   private _resizeObserver: ResizeObserver;
 
+  /**
+   * Configures the WebGPU canvas context and creates the depth texture.
+   * A ResizeObserver watches the canvas: on every resize it destroys and recreates
+   * the depth texture at the new dimensions (GPUTexture cannot be resized in place).
+   */
   constructor(device: GPUDevice, canvas: HTMLCanvasElement) {
     this.device = device;
     this.queue = device.queue;

@@ -55,6 +55,24 @@ import { UIGameObject } from './gameObject/UI/UIGameObject';
 /** Initial chunk size for the UniformPool. Grows automatically when exceeded. */
 const INITIAL_CHUNK_SIZE = 512 * 256;
 
+/**
+ * Top-level WebGPU engine facade.
+ *
+ * Obtain an instance via the async factory `Engine.create(canvas)`.
+ * Call `setCamera()` before `start()` — the render loop needs a valid camera
+ * to compute the view-projection matrix each frame.
+ *
+ * Lifecycle:
+ * ```
+ * const engine = await Engine.create(canvas);
+ * const camera = engine.createCamera({ position: [0, 5, 10] });
+ * engine.setCamera(camera);
+ * engine.onFrame(dt => { … });
+ * engine.start();
+ * // later:
+ * engine.destroy();
+ * ```
+ */
 export class Engine {
   private readonly _canvas: HTMLCanvasElement;
   private readonly _renderer: Renderer;
@@ -95,6 +113,13 @@ export class Engine {
 
   // ── Factory ─────────────────────────────────────────────────────────────────
 
+  /**
+   * Async factory — the only way to instantiate `Engine`.
+   * Requests a GPU adapter + device, creates all shared GPU resources
+   * (renderer, pipeline cache, uniform pool, light buffer, bind group layouts),
+   * and registers a device-lost handler that stops the render loop.
+   * @throws If WebGPU is unavailable or no suitable adapter is found.
+   */
   static async create(canvas: HTMLCanvasElement, opts: EngineOptions = {}): Promise<Engine> {
     if (!navigator.gpu) {
       throw new Error('WebGPU is not supported in this browser.');
@@ -128,6 +153,11 @@ export class Engine {
 
   // ── Camera ──────────────────────────────────────────────────────────────────
 
+  /**
+   * Swaps the active camera. The previous camera is destroyed (its GPU uniform
+   * buffer is released). Call this before or after `start()` — the new camera
+   * takes effect on the next rendered frame.
+   */
   setCamera(camera: Camera): void {
     this._camera?.destroy();
     this._camera = camera;
@@ -268,6 +298,12 @@ export class Engine {
 
   // ── Bar3D factory ────────────────────────────────────────────────────────────
 
+  /**
+   * Creates a world-space Y-axis-billboard progress bar.
+   * The shared `Bar3DManager` (a GPU instanced renderable) is lazily initialised
+   * on the first call and added to the scene once; subsequent calls allocate a
+   * new slot in the existing instance buffer.
+   */
   createBar3D(opts: Bar3DOptions): UIGameObject<Bar3DHandle> {
     if (this._bar3DManager === null) {
       this._bar3DManager = new Bar3DManager();
@@ -280,10 +316,24 @@ export class Engine {
 
   // ── Asset loaders ────────────────────────────────────────────────────────────
 
+  /**
+   * Fetches and parses a Wavefront OBJ file, uploading the resulting vertex and
+   * index data to the GPU. Returns a `ModelAssetHandle` that can be reused by
+   * multiple `createModelObj()` calls. Call `handle.destroy()` when done.
+   * @param timeoutMs Fetch timeout in ms (default: 10 000).
+   */
   async loadObj(url: string, timeoutMs?: number): Promise<ModelAssetHandle> {
     return loadObjAsset(this._renderer.device, this._renderer.queue, url, timeoutMs);
   }
 
+  /**
+   * Fetches and parses an FBX file (binary or ASCII), uploads all mesh slices
+   * and their textures to the GPU. Returns an `FbxAssetHandle` reusable across
+   * multiple `createFbxModel()` calls. Call `handle.destroy()` when done.
+   * @param textureOverrides Map of embedded texture path → replacement URL,
+   *   used to swap in external textures when embedded ones are absent or wrong.
+   * @param timeoutMs Fetch timeout in ms (default: 10 000).
+   */
   async loadFbx(
     url: string,
     timeoutMs?: number,
@@ -296,6 +346,11 @@ export class Engine {
     return new Camera(this._renderer.device, this._layouts.camera, opts);
   }
 
+  /**
+   * Deserialises a save string produced by `SaveManager.save()` and restores
+   * the full scene state (game objects, lights, camera, skybox, ground).
+   * @throws If the save string is invalid, corrupt, or decompression fails.
+   */
   async loadScene(saveString: string): Promise<void> {
     const segments = await new SaveManager().load(saveString);
     if (segments === null) throw new Error('[Engine] loadScene: invalid or corrupt save string');
@@ -304,10 +359,16 @@ export class Engine {
 
   // ── RAF loop ────────────────────────────────────────────────────────────────
 
+  /**
+   * Registers a per-frame callback invoked at the start of each RAF tick,
+   * before the render pass. `deltaTime` is in seconds, capped at 0.1 s to
+   * prevent large jumps after tab-visibility changes.
+   */
   onFrame(callback: (deltaTime: number) => void): void {
     this._onFrame = callback;
   }
 
+  /** Starts the RAF render loop. No-op if already running. */
   start(): void {
     if (this._rafHandle !== 0) return;
     let lastTimestamp = performance.now();
@@ -347,6 +408,7 @@ export class Engine {
     this._previousAspect = currentAspect;
   }
 
+  /** Cancels the RAF loop. GPU resources remain alive; call `start()` to resume. */
   stop(): void {
     if (this._rafHandle !== 0) {
       cancelAnimationFrame(this._rafHandle);
@@ -354,6 +416,10 @@ export class Engine {
     }
   }
 
+  /**
+   * Stops the render loop and releases all shared GPU resources (scene,
+   * camera, uniform pool, light buffer). Do not use the engine after calling this.
+   */
   destroy(): void {
     this.stop();
     this._scene.destroy();
@@ -369,6 +435,11 @@ export class Engine {
 
   // ── Private helpers ─────────────────────────────────────────────────────────
 
+  /**
+   * Initialises a renderable, adds it to the scene, and wraps it in a
+   * `GameObject` with `_destroy` and `_copy` closures wired to the scene and
+   * this engine's pool.
+   */
   private _spawnGameObject<R extends Renderable>(
     renderable: R,
     goOpts: GameObjectBaseOptions,

@@ -4,6 +4,7 @@ export interface CameraSnapshot {
   pitch:    number
 }
 
+/** Serialized physics state; `layer` is a collision-group string matching `Rigidbody3D.layer`. */
 export interface PhysicsConfigSnapshot {
   hasRigidbody: boolean
   isStatic:     boolean
@@ -54,16 +55,19 @@ export type GameObjectSnapshot = CubeSnapshot | QuadSnapshot | FbxObjectSnapshot
 
 export type LightObjectSnapshot = LightSnapshot | DirectionalLightSnapshot
 
+/** `version` is a schema version; currently only `1` is accepted by `SaveManager.load`. */
 export interface SceneConstantsSnapshot {
   version: 1
   camera:  CameraSnapshot
 }
 
+/** `version` is a schema version; currently only `1` is accepted by `SaveManager.load`. */
 export interface GameObjectsSnapshot {
   version: 1
   objects: GameObjectSnapshot[]
 }
 
+/** `version` is a schema version; currently only `1` is accepted by `SaveManager.load`. */
 export interface LightObjectsSnapshot {
   version: 1
   objects: LightObjectSnapshot[]

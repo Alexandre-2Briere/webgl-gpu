@@ -53,7 +53,14 @@ export interface ParsedFbxData {
 
 const FBX_BINARY_MAGIC = 'Kaydara FBX Binary  ';
 
-/** @internal */
+/**
+ * Parses an FBX file (binary or ASCII) into engine-ready mesh data.
+ * Auto-detects format from the 20-byte Kaydara magic header.
+ * @param data Raw file bytes.
+ * @param fileName Optional name used only for per-file debug logging.
+ * @returns Parsed scene with one `ParsedFbxMesh` per geometry × material pair.
+ * @internal
+ */
 export async function parseFbx(data: Uint8Array, fileName = ''): Promise<ParsedFbxData> {
   multimaterialDebugEnabled = fileName.endsWith(MULTIMATERIAL_DEBUG_FILE);
   const { parseBinary, parseText, FBXReader } = await getFbxParser();
@@ -69,6 +76,12 @@ export async function parseFbx(data: Uint8Array, fileName = ''): Promise<ParsedF
 
 // ── Scene extraction ──────────────────────────────────────────────────────────
 
+/**
+ * Walks the FBX object graph and produces meshes.
+ * Builds two connection maps (OO parent/child and OP property-link) then
+ * iterates each Geometry node, resolves its material siblings via the model
+ * node, and calls `buildMeshes` once per geometry.
+ */
 async function extractScene(reader: FBXReader): Promise<ParsedFbxData> {
   const objects = reader.node('Objects');
   const connections = reader.node('Connections');
@@ -180,6 +193,22 @@ async function extractScene(reader: FBXReader): Promise<ParsedFbxData> {
 
 // ── Geometry processing ───────────────────────────────────────────────────────
 
+/**
+ * Converts a single FBX Geometry node into one `ParsedFbxMesh` per material.
+ *
+ * Pipeline:
+ * 1. Expands FBX polygon-vertex indices (fan triangulation, `~index` end marker).
+ * 2. Resolves normals and UVs for each polygon vertex respecting the
+ *    MappingInformationType / ReferenceInformationType layer fields.
+ * 3. Deduplicates vertices by `posIdx|normIdx|uvIdx` key.
+ * 4. Accumulates per-triangle tangent + bitangent vectors (Lengyel method)
+ *    across the deduplicated vertex list.
+ * 5. Gram-Schmidt orthogonalises each tangent against the vertex normal and
+ *    encodes handedness in tangent.w (+1 / −1).
+ * 6. Splits the final vertex/index data by material index into separate meshes.
+ *
+ * Vertex format output: 64 bytes — pos(16B) | normal(16B) | uv(16B) | tangent(16B).
+ */
 function buildMeshes(
   name: string,
   geoNode: FBXReaderNode,
@@ -452,6 +481,20 @@ function buildMeshes(
 
 // ── Material extraction ───────────────────────────────────────────────────────
 
+/**
+ * Resolves textures and base color for a single FBX Material node.
+ *
+ * Texture lookup order:
+ * 1. OP connections: Texture nodes linked to this material via property name
+ *    (prop contains "diffuse" → diffuse slot, "normal"/"bump" → normal slot).
+ * 2. KString fallback: if no Texture node was found via OP connections, scans
+ *    `Properties70` for inline KString path properties as written by some
+ *    exporters that omit dedicated Texture nodes.
+ *
+ * @returns Material descriptor; `diffuseImageData` / `normalMapImageData` are
+ *   null when the texture is absent or fails to decode (caller should use a
+ *   1×1 fallback texture).
+ */
 async function extractMaterial(
   matNode: FBXReaderNode,
   matId: string,
@@ -535,6 +578,13 @@ async function extractMaterial(
   return { name, diffuseImageData, normalMapImageData, diffuseTexturePath, normalMapTexturePath, baseColor };
 }
 
+/**
+ * Decodes the embedded image from an FBX Texture node's `Content` property.
+ * Handles two encoding styles:
+ * - ASCII FBX: `Content` is a base64 string → decoded via `atob`.
+ * - Binary FBX: `Content` is a `number[]` from fbx-parser → copied byte-by-byte.
+ * Returns null if no embedded content is present or if `createImageBitmap` fails.
+ */
 async function decodeTexture(texNode: FBXReaderNode): Promise<ImageBitmap | null> {
   // Try embedded Content node first
   const contentNode = texNode.node('Content');

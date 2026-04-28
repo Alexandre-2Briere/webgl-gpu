@@ -16,7 +16,14 @@ export function extractOBBAxes(orientation: Float32Array): [[number,number,numbe
   ];
 }
 
-/** @internal */
+/**
+ * Computes the world-space AABB for any hitbox type.
+ * - Sphere/mesh: center ± radius or halfExtents on each axis.
+ * - Capsule: capsule axis projected onto each world axis, plus radius.
+ * - Cube (OBB): enumerates all 8 corners in world space for a tight fit.
+ * - Plane: returns a near-infinite AABB; narrow phase handles the real geometry.
+ * @internal
+ */
 export function computeWorldAABB(hitbox: Hitbox3D): AABB {
   const center = hitbox.worldCenter;
   switch (hitbox.type) {

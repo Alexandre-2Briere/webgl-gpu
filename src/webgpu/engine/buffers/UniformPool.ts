@@ -54,6 +54,13 @@ export class UniformPool {
     this._freeSlots.push(slot);
   }
 
+  /**
+   * Writes `data` into the slot's region of its chunk buffer.
+   * @param slot      - slot returned by `allocate()`
+   * @param data      - typed array to upload
+   * @param srcOffset - element offset within `data` to start reading from (default 0);
+   *                    measured in elements (not bytes) per the WebGPU writeBuffer spec
+   */
   write(slot: UniformSlot, data: Float32Array | Uint32Array, srcOffset = 0): void {
     this._device.queue.writeBuffer(slot.buffer, slot.offset, data as Float32Array<ArrayBuffer>, srcOffset);
   }

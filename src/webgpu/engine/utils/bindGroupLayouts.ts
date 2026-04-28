@@ -24,7 +24,10 @@ export function createObjectLayout(device: GPUDevice): GPUBindGroupLayout {
   });
 }
 
-/** @internal */
+/**
+ * @internal
+ * Bindings: 0 = diffuse texture (2d float), 1 = normal map texture (2d float), 2 = filtering sampler.
+ */
 export function createFbxMaterialLayout(device: GPUDevice): GPUBindGroupLayout {
   return device.createBindGroupLayout({
     label: 'fbx-material-bgl',

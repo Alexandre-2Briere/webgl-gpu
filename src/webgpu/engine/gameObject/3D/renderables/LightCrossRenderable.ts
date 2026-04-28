@@ -7,7 +7,18 @@ import { LIGHT, LIGHT_CROSS_PIPELINE_KEY } from '../../../shaders/light';
 import { logger } from '../../../utils/logger';
 import type { LightGameObject } from '../../Light/LightGameObject';
 
-/** @internal */
+/**
+ * Overlay cross icon drawn at the screen-space projection of a LightGameObject.
+ *
+ * Non-standard lifecycle: full GPU setup happens in the constructor (not `init()`)
+ * because the RenderableInitArgs are available at construction time via LightGameObject.
+ * Calling `init()` after construction is an error.
+ *
+ * Each `encode()` recomputes the NDC position and scale from the live LightGameObject
+ * state, then encodes the NDC center and scale directly into the model matrix uniform
+ * rather than using a TRS transform.
+ * @internal
+ */
 export class LightCrossRenderable implements Renderable {
   readonly id          = Symbol();
   readonly layer       = 'overlay' as const;

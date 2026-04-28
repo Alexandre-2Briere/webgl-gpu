@@ -91,6 +91,20 @@ export class Bar3DManager implements Renderable {
     });
   }
 
+  /**
+   * Allocates a slot and writes per-instance data.
+   *
+   * Per-instance struct layout (80 bytes / 20 floats):
+   *   [0..2]   position     vec3
+   *   [3]      percentage   f32 (0–1)
+   *   [4]      width        f32
+   *   [5]      height       f32
+   *   [6]      borderThickness f32
+   *   [7]      visible      f32 (1=visible, 0=hidden)
+   *   [8..11]  borderColor  vec4
+   *   [12..15] fillColor    vec4
+   *   [16..19] emptyColor   vec4
+   */
   spawn(opts: Bar3DOptions): Bar3DHandle {
     let slot: number;
     if (this._freeSlots.length > 0) {

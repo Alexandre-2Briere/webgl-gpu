@@ -137,6 +137,11 @@ export class Camera {
 
   // ── Matrix math (column-major, matching WGSL mat4x4f convention) ───────────
 
+  /**
+   * Builds a column-major view matrix from current yaw/pitch/position.
+   * Rotation rows = [right, up, -forward]; translation column = projection of
+   * camera position onto each basis axis (expressing world origin in camera space).
+   */
   private _buildView(): void {
     const yaw:   Vec2 = [Math.cos(this.yaw),   Math.sin(this.yaw)];
     const pitch: Vec2 = [Math.cos(this.pitch),  Math.sin(this.pitch)];
@@ -161,6 +166,11 @@ export class Camera {
     this._view[15] = 1;
   }
 
+  /**
+   * Builds a column-major perspective projection matrix.
+   * Produces WebGPU NDC depth [0, 1] (not OpenGL [-1, 1]).
+   * m[11] = -1 triggers the perspective divide; m[10]/m[14] encode the depth range.
+   */
   private _buildProj(aspect: number): void {
     const f = 1.0 / Math.tan(this._fovY * 0.5);
     const rangeInv = 1.0 / (this._near - this._far);

@@ -19,6 +19,11 @@ export class Scene {
     this._lightBuffer = lightBuffer;
   }
 
+  /**
+   * Adds a renderable to the appropriate layer list, then re-sorts that list by
+   * `pipelineKey` to minimise `setPipeline()` calls per frame.
+   * Unknown layer values warn and fall back to the overlay list.
+   */
   add(r: Renderable): void {
     if (r.layer === 'world') {
       this._worldRenderables.push(r);

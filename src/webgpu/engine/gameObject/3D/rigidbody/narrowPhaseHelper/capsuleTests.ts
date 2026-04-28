@@ -29,7 +29,14 @@ export function testCapsuleCube(capsule: CapsuleHitbox, cube: CubeHitbox): Colli
   return pointRadiusVsOBB(closestPoint, capsule.radius, cube);
 }
 
-/** @internal */
+/**
+ * Capsule–capsule collision via segment-to-segment closest-point.
+ * Computes parameters (paramS, paramT ∈ [0,1]) for the closest points on each
+ * inner cylinder segment using a least-squares line approach, with degenerate
+ * (zero-length segment) fallbacks. Collision exists when the inter-center
+ * distance is less than the sum of radii.
+ * @internal
+ */
 export function testCapsuleCapsule(capsuleA: CapsuleHitbox, capsuleB: CapsuleHitbox): CollisionResult {
   const [segAStart, segAEnd] = getCapsuleSegment(capsuleA);
   const [segBStart, segBEnd] = getCapsuleSegment(capsuleB);

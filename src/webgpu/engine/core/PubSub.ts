@@ -1,3 +1,4 @@
+/** Lightweight event bus: subscribe/unsubscribe callbacks by event name, publish data to all listeners. */
 export class PubSubManager {
     private _events: EventMap = {};
     public subscribe(event: string, callback: Subscriber): void {
