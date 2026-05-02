@@ -178,6 +178,32 @@ export class SpawnManager {
     return true;
   }
 
+  // ── Register external objects ─────────────────────────────────────────────────
+
+  addObject(
+    gameObject: ISceneObject,
+    label:      string,
+    key:        string,
+    assetUrl:   string | null,
+  ): void {
+    const uniqueLabel = this._generateUniqueName(label);
+    this._spawnedObjects.push({
+      gameObject,
+      key,
+      label:              uniqueLabel,
+      properties:         [],
+      physicsConfig:      { ...DEFAULT_PHYSICS },
+      selectedFbxUrl:     assetUrl,
+      playSnapshot:       null,
+      selectedScript:     null,
+      selectedScriptArgs: {},
+      scriptHandle:       null,
+    });
+    const index = this._spawnedObjects.length - 1;
+    this._pubSub.publish(SANDBOX_EVENTS.HIERARCHY_ROW_ADDED, { name: uniqueLabel, key });
+    this._pubSub.publish(SANDBOX_EVENTS.OBJECT_SPAWNED, { index });
+  }
+
   // ── Rebuild (used by PhysicsManager) ─────────────────────────────────────────
 
   registerRigidbody(rigidbody: Rigidbody3D): void {

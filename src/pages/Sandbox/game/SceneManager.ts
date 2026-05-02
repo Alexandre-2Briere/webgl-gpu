@@ -8,6 +8,7 @@ import { PlayStateManager } from './managers/PlayStateManager';
 import { CameraController } from './controllers/CameraController';
 import { GizmoController } from './controllers/GizmoController';
 import { SaveLoadManager } from './managers/SaveLoadManager';
+import { loadPath } from './scripts/PathLoader';
 import {
   SANDBOX_EVENTS,
   type ItemSpawnPayload,
@@ -96,6 +97,15 @@ export class SceneManager {
 
     this._selectionManager.setPickingDisabled(() => this._playStateManager.isPlaying());
     this._selectionManager.setCameraDataGetter(() => engine.camera.getData());
+
+    const pathTiles = loadPath(engine, fbxCache);
+    for (const { gameObject, label, assetUrl } of pathTiles) {
+      this._spawnManager.addObject(gameObject, label, 'FBX', assetUrl);
+    }
+    pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, {
+      message: `Loaded ${pathTiles.length} path tiles from path.json.`,
+      level: 'log',
+    });
 
     // Subscribe to UI events
     pubSub.subscribe(SANDBOX_EVENTS.TOOLBAR_PLAY, () => {
