@@ -40,3 +40,41 @@ sites/simpletest
 
 # Ignore multi-site test environment.
 # simpletest
+
+# ── Environment & local overrides ──────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── PHP runtime config (may contain DB credentials) ─────────────────────
+php.ini
+php-local.ini
+
+# ── Drush site aliases (embed DB user/pass) ──────────────────────────────
+drush/sites/*.yml
+drush/sites/*.php
+
+# ── Database dumps & backups ─────────────────────────────────────────────
+*.sql
+*.sql.gz
+*.dump
+sites/*/files/backup_migrate/
+
+# ── Config-sync directory (may expose environment-specific secrets) ───────
+sites/*/config/
+sites/*/sync/
+config/sync/
+
+# ── TLS / SSH keys & certificates ────────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+
+# ── IDE & OS noise (avoids leaking project paths / tokens in metadata) ───
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json
