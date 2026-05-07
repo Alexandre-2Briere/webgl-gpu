@@ -2,6 +2,8 @@ import type { Bar3DManager } from '../3D/renderables/Bar3DManager';
 import type { Vec3 } from '../../math/vec';
 
 export class Bar3DHandle {
+  readonly uiType = 'bar3d' as const;
+
   private readonly _manager:  Bar3DManager;
   private readonly _slot:     number;
   private          _position: Vec3 = [0, 0, 0];

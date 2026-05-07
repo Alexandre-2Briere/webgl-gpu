@@ -26,6 +26,7 @@ interface SceneHierarchyProps {
 export function SceneHierarchyComponent({ pubSub }: SceneHierarchyProps) {
   const [rows, setRows]                   = useState<RowData[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [cameraSelected, setCameraSelected] = useState(false);
   const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
   const [renameValue, setRenameValue]     = useState('');
   const [renameInvalid, setRenameInvalid] = useState(false);
@@ -109,8 +110,15 @@ export function SceneHierarchyComponent({ pubSub }: SceneHierarchyProps) {
   }, [selectedIndex, clipboardIndex, rows]);
 
   function handleRowClick(index: number): void {
+    setCameraSelected(false);
     setSelectedIndex(index);
     pubSubRef.current.publish(SANDBOX_EVENTS.HIERARCHY_OBJECT_SELECTED, { index });
+  }
+
+  function handleCameraRowClick(): void {
+    setCameraSelected(true);
+    setSelectedIndex(-1);
+    pubSubRef.current.publish(SANDBOX_EVENTS.HIERARCHY_CAMERA_SELECTED);
   }
 
   function handleRowDoubleClick(): void {
@@ -146,6 +154,15 @@ export function SceneHierarchyComponent({ pubSub }: SceneHierarchyProps) {
   return (
     <aside id="scene-hierarchy">
       <List id="scene-list" dense disablePadding>
+        <ListItem
+          key="camera"
+          className={`hier-row${cameraSelected ? ' selected' : ''}`}
+          disablePadding
+          onClick={handleCameraRowClick}
+          onDoubleClick={handleRowDoubleClick}
+        >
+          <ListItemText primary="Camera" className="hier-name" />
+        </ListItem>
         {rows.map((row, index) => (
           <ListItem
             key={index}

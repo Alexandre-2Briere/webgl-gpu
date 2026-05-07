@@ -18,6 +18,7 @@ import type {
   SkyboxOptions,
   InfiniteGroundOptions,
   Bar3DOptions,
+  TextOptions,
 } from './types';
 import { Renderer } from './core/Renderer';
 import { Scene } from './core/Scene';
@@ -48,6 +49,10 @@ import { restoreFromSnapshot } from './saveManager/restoreScene';
 import { PubSubManager } from './core/PubSub';
 import { Bar3DManager } from './gameObject/3D/renderables/Bar3DManager';
 import type { Bar3DHandle } from './gameObject/UI/Bar3DHandle';
+import { TextManager } from './gameObject/3D/renderables/TextManager';
+import type { TextHandle } from './gameObject/UI/TextHandle';
+import { loadVariableFont } from './utils/fontLoader';
+import { FontFamily } from './types';
 import { Camera } from './core/Camera';
 import { logger } from './utils/logger';
 import { UIGameObject } from './gameObject/UI/UIGameObject';
@@ -88,7 +93,9 @@ export class Engine {
   private _previousAspect = 0;
   private _skybox: SkyboxGameObject | null = null;
   private _infiniteGround: InfiniteGroundGameObject | null = null;
-  private _bar3DManager: Bar3DManager | null = null;
+  private _bar3DManager:       Bar3DManager | null = null;
+  private _textScreenManager: TextManager  | null = null;
+  private _textWorldManager:  TextManager  | null = null;
   public readonly PubSubManager: PubSubManager;
 
   private constructor(
@@ -311,7 +318,40 @@ export class Engine {
       this._scene.add(this._bar3DManager);
     }
     const handle = this._bar3DManager.spawn(opts);
-    return new UIGameObject<Bar3DHandle>(handle);;
+    return new UIGameObject<Bar3DHandle>(handle, false);
+  }
+
+  /**
+   * Creates a text UI object backed by a Canvas 2D texture.
+   * Async because the variable font must be loaded before the canvas can draw text.
+   *
+   * Screen mode (`isScreen: true`): position uses a virtual 0–500 grid,
+   * rendered in the overlay pass on top of all 3D content.
+   *
+   * World mode (`isScreen: false`, default): position is world-space Vec3,
+   * rendered as a camera-facing billboard in the world pass.
+   */
+  async createText(opts: TextOptions): Promise<UIGameObject<TextHandle>> {
+    const isScreen = opts.isScreen ?? false;
+    await loadVariableFont(opts.fontFamily ?? FontFamily.ChivoMono);
+
+    if (isScreen) {
+      if (this._textScreenManager === null) {
+        this._textScreenManager = new TextManager(true);
+        this._textScreenManager.init(this._initArgs());
+        this._scene.add(this._textScreenManager);
+      }
+      const handle = this._textScreenManager.spawn(opts);
+      return new UIGameObject<TextHandle>(handle, true);
+    } else {
+      if (this._textWorldManager === null) {
+        this._textWorldManager = new TextManager(false);
+        this._textWorldManager.init(this._initArgs());
+        this._scene.add(this._textWorldManager);
+      }
+      const handle = this._textWorldManager.spawn(opts);
+      return new UIGameObject<TextHandle>(handle, false);
+    }
   }
 
   // ── Asset loaders ────────────────────────────────────────────────────────────

@@ -29,8 +29,10 @@ export class Scene {
       this._worldRenderables.push(r);
     } else if (r.layer === 'world-overlay') {
       this._worldOverlay.push(r);
+    } else if (r.layer === 'overlay') {
+      this._overlayRenderables.push(r);
     } else {
-      logger.warn(`Renderable with unknown layer "${r.layer}" added to scene; defaulting to "overlay".`);
+      logger.warn(`Unknown layer "${r.layer}" — added to overlay.`);
       this._overlayRenderables.push(r);
     }
     // Sort world renderables by pipeline key to minimise setPipeline() calls

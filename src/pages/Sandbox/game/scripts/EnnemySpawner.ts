@@ -1,4 +1,4 @@
-import type { Bar3DHandle, Engine, GameObject, UIGameObject } from '@engine';
+import { FontFamily, type Bar3DHandle, type Engine, type GameObject, type TextHandle, type UIGameObject } from '@engine';
 import type { GameScript } from './ScriptContract';
 import pathJson from './path.json';
 
@@ -7,6 +7,7 @@ const SPAWN_INTERVAL = 2; // seconds between spawns
 interface CubeEntry {
   cube:    GameObject;
   lifebar: UIGameObject<Bar3DHandle>;
+  text: UIGameObject<TextHandle>;
 }
 
 export default class EnnemySpawner implements GameScript {
@@ -38,7 +39,7 @@ export default class EnnemySpawner implements GameScript {
     const toRemove: number[] = [];
 
     for (let i = 0; i < this._cubes.length; i++) {
-      const { cube, lifebar } = this._cubes[i];
+      const { cube, lifebar, text } = this._cubes[i];
 
       let index      = cube.getProperty('index')      as number;
       let percentage = cube.getProperty('percentage') as number;
@@ -71,6 +72,7 @@ export default class EnnemySpawner implements GameScript {
       cube.setPosition([posX, posY, posZ]);
       lifebar.getHandle()?.setPosition([posX, posY + this._cubeHeight + 0.5, posZ]);
       lifebar.getHandle()?.setPercentage(this.calculateScale(cube.getProperty('life') as number));
+      text.getHandle()?.setPosition([posX, posY + this._cubeHeight + 0.8, posZ]);
     }
 
     for (let i = toRemove.length - 1; i >= 0; i--) {
@@ -78,7 +80,7 @@ export default class EnnemySpawner implements GameScript {
     }
   }
 
-  private _spawnCube(): void {
+  private async _spawnCube(): Promise<void> {
     if (!this._engine) return;
     const startX = this._path[0]?.x ?? 0;
     const startZ = this._path[0]?.z ?? 0;
@@ -93,13 +95,23 @@ export default class EnnemySpawner implements GameScript {
       emptyColor:      [0, 0, 0, 1],
       percentage:      1,
     });
+    const text = await this._engine.createText({
+      position: [startX, posY + this._cubeHeight + 0.8, startZ],
+      content: 'Enemy',
+      fontFamily: FontFamily.ChivoMono,
+      fontSize: 16,
+      width: 3,
+      height: 2,
+      overflow: 'visible',
+      isScreen: false,
+    });
     const cube = this._engine.createCube({ label: 'ennemy-spawner-cube' });
     cube.registerProperty('life',       this._startingLife);
     cube.registerProperty('speed',      1);
     cube.registerProperty('percentage', 0);
     cube.registerProperty('index',      0);
     cube.setPosition([startX, posY, startZ]);
-    this._cubes.push({ cube, lifebar });
+    this._cubes.push({ cube, lifebar, text });
   }
 
   private _destroyCubeAt(index: number): void {
@@ -107,6 +119,7 @@ export default class EnnemySpawner implements GameScript {
     if (!entry) return;
     entry.cube.destroy();
     entry.lifebar.destroy();
+    entry.text.destroy();
     this._cubes.splice(index, 1);
   }
 
@@ -115,9 +128,10 @@ export default class EnnemySpawner implements GameScript {
   }
 
   destroy(): void {
-    for (const { cube, lifebar } of this._cubes) {
+    for (const { cube, lifebar, text } of this._cubes) {
       cube.destroy();
       lifebar.destroy();
+      text.destroy();
     }
     this._cubes   = [];
     this._elapsed = 0;

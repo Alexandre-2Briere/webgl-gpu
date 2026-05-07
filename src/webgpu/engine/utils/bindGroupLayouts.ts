@@ -81,14 +81,28 @@ export function createGroundExtraLayout(device: GPUDevice): GPUBindGroupLayout {
 }
 
 /** @internal */
+export function createTextMaterialLayout(device: GPUDevice): GPUBindGroupLayout {
+  return device.createBindGroupLayout({
+    label: 'text-material-bgl',
+    entries: [
+      { binding: 0, visibility: GPUShaderStage.FRAGMENT,
+        texture: { sampleType: 'float', viewDimension: '2d' } },
+      { binding: 1, visibility: GPUShaderStage.FRAGMENT,
+        sampler: { type: 'filtering' } },
+    ],
+  });
+}
+
+/** @internal */
 export function createEngineLayouts(device: GPUDevice): BindGroupLayouts {
   return {
-    camera:      createCameraLayout(device),
-    object:      createObjectLayout(device),
-    fbxMaterial: createFbxMaterialLayout(device),
-    lights:      createLightsLayout(device),
-    empty:       createEmptyLayout(device),
-    gizmo:       createGizmoLayout(device),
-    groundExtra: createGroundExtraLayout(device),
+    camera:       createCameraLayout(device),
+    object:       createObjectLayout(device),
+    fbxMaterial:  createFbxMaterialLayout(device),
+    lights:       createLightsLayout(device),
+    empty:        createEmptyLayout(device),
+    gizmo:        createGizmoLayout(device),
+    groundExtra:  createGroundExtraLayout(device),
+    textMaterial: createTextMaterialLayout(device),
   };
 }

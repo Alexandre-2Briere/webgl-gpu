@@ -1,15 +1,17 @@
 import { Engine, LightGameObject, type IGameObject } from '@engine';
 import type { SpawnManager } from './SpawnManager';
 import type { PhysicsManager } from './PhysicsManager';
+import type { InputManager } from './InputManager';
 import { SANDBOX_EVENTS, type PubSubManager } from '../events';
 import type { GameScript, GameScriptConstructor } from '../scripts/ScriptContract';
+import { CameraScript } from '../scripts/CameraScript';
 import { getParamNames } from '../utils/functionParser';
 
 const SCRIPT_LOADERS = import.meta.glob<{ default: GameScriptConstructor }>('../scripts/*.ts');
 
 function _findLoader(scriptName: string): (() => Promise<{ default: GameScriptConstructor }>) | null {
   const entry = Object.entries(SCRIPT_LOADERS).find(
-    ([path]) => !path.includes('ScriptContract') && path.endsWith(`/${scriptName}.ts`),
+    ([path]) => !path.includes('ScriptContract') && !path.includes('CameraScript') && path.endsWith(`/${scriptName}.ts`),
   );
   return entry ? entry[1] : null;
 }
@@ -19,21 +21,25 @@ export class PlayStateManager {
   private readonly _engine:          Engine;
   private readonly _spawnManager:    SpawnManager;
   private readonly _physicsManager:  PhysicsManager;
+  private readonly _inputManager:    InputManager;
   private readonly _pubSub:          PubSubManager;
 
-  private _playing = false;
+  private _playing       = false;
+  private _cameraScript: CameraScript | null = null;
 
   constructor(
     canvas:         HTMLCanvasElement,
     engine:         Engine,
     spawnManager:   SpawnManager,
     physicsManager: PhysicsManager,
+    inputManager:   InputManager,
     pubSub:         PubSubManager,
   ) {
     this._canvas         = canvas;
     this._engine         = engine;
     this._spawnManager   = spawnManager;
     this._physicsManager = physicsManager;
+    this._inputManager   = inputManager;
     this._pubSub         = pubSub;
 
     pubSub.subscribe(SANDBOX_EVENTS.INPUT_POINTER_LOCK_RELEASED, () => {
@@ -43,7 +49,7 @@ export class PlayStateManager {
 
   // ── Public API ────────────────────────────────────────────────────────────────
 
-  play(): void {
+  async play(): Promise<void> {
     if (this._playing) return;
 
     for (const spawnedObject of this._spawnManager.getObjects()) {
@@ -53,6 +59,9 @@ export class PlayStateManager {
 
     this._canvas.requestPointerLock();
     this._playing = true;
+
+    this._cameraScript = new CameraScript(this._inputManager);
+    await this._cameraScript.execute(this._engine);
 
     for (const spawnedObject of this._spawnManager.getObjects()) {
       if (spawnedObject.gameObject instanceof LightGameObject) {
@@ -98,6 +107,8 @@ export class PlayStateManager {
       document.exitPointerLock();
     }
 
+    this._cameraScript?.destroy();
+    this._cameraScript = null;
     this._physicsManager.resetToSnapshots();
     this._playing = false;
 
@@ -120,7 +131,10 @@ export class PlayStateManager {
     this._pubSub.publish(SANDBOX_EVENTS.PLAY_STOPPED);
   }
 
-  tick(deltaTime: number): void {
+  tick(deltaTime: number, mouseDeltaX: number, mouseDeltaY: number): void {
+    this._cameraScript?.receiveMouseDelta(mouseDeltaX, mouseDeltaY);
+    this._cameraScript?.update(deltaTime);
+
     for (const spawnedObject of this._spawnManager.getObjects()) {
       const instance = spawnedObject.scriptHandle;
       if (!instance) continue;

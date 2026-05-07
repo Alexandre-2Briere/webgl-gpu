@@ -42,9 +42,13 @@ export type {
   SkyboxOptions,
   InfiniteGroundOptions,
   Bar3DOptions,
+  TextOptions,
 } from './types';
 
+export { FontFamily } from './types';
+
 export type { Bar3DHandle } from './gameObject/UI/Bar3DHandle';
+export type { TextHandle } from './gameObject/UI/TextHandle';
 
 // Editor renderables
 export { ArrowGizmo } from './gameObject/3D/renderables/ArrowGizmo';

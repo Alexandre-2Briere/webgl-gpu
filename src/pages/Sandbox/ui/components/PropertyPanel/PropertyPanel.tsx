@@ -8,6 +8,7 @@ import { ScriptForm } from './PropertyForm/ScriptForm';
 import { LightForm } from './PropertyForm/LightForm';
 import { InfiniteGroundForm } from './PropertyForm/InfiniteGroundForm';
 import { TransformForms } from './PropertyForm/TransformForms';
+import { CameraTransformForm } from './PropertyForm/CameraTransformForm';
 import { usePropertyPanel } from './usePropertyPanel';
 import './PropertyPanel.css';
 
@@ -28,6 +29,7 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel, PropertyPanelPro
     const {
       isOpen, title, selectionKey, objectIndex, visibleSections, assetOptions,
       physicsConfig, selectedAssetUrl, selectedScript, selectedScriptArgs, gameObject,
+      isCameraMode, cameraPosition, cameraYaw, cameraPitch,
     } = state;
 
     const showPhysics = visibleSections.has('rigidbody') || visibleSections.has('hitbox');
@@ -35,6 +37,36 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel, PropertyPanelPro
     const showGround  = visibleSections.has('groundSettings');
 
     if (!isOpen) return null;
+
+    if (isCameraMode) {
+      return (
+        <div id="property-panel" className="prop-panel open">
+          <div className="prop-panel-inner">
+            <div className="prop-panel-header">
+              <Typography variant="subtitle2" id="prop-title" className="prop-panel-title">
+                Camera
+              </Typography>
+              <IconButton
+                sx={{ width: '32px', height: '32px' }}
+                size="small"
+                onClick={hide}
+              >
+                ×
+              </IconButton>
+            </div>
+            <div className="prop-panel-body">
+              <CameraTransformForm
+                key={`camera-${selectionKey}`}
+                initialPosition={cameraPosition}
+                initialYaw={cameraYaw}
+                initialPitch={cameraPitch}
+                pubSub={pubSub}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div id="property-panel" className="prop-panel open">

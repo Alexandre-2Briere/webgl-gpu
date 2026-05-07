@@ -2,6 +2,15 @@ import type { Vec3, Vec4 } from './math/vec';
 import type { Hitbox3D } from './gameObject/3D/hitbox/Hitbox3D';
 import type { Rigidbody3D } from './gameObject/3D/rigidbody/Rigidbody3D';
 
+// ── FontFamily ─────────────────────────────────────────────────────────────
+
+export const FontFamily = {
+  ChivoMono:  'chivo-mono',
+  RedHatMono: 'red-hat-mono',
+} as const;
+
+export type FontFamily = typeof FontFamily[keyof typeof FontFamily];
+
 // ── Engine ─────────────────────────────────────────────────────────────────
 
 export interface EngineOptions {
@@ -23,13 +32,14 @@ export interface CameraOptions {
 
 /** @internal */
 export interface BindGroupLayouts {
-  camera:      GPUBindGroupLayout  // group 0 — camera uniform
-  object:      GPUBindGroupLayout  // group 1 — per-object uniform (model + tint)
-  fbxMaterial: GPUBindGroupLayout  // group 2 — FBX diffuse + normal map textures
-  lights:      GPUBindGroupLayout  // group 3 — light buffer (world-pass shaders)
-  empty:       GPUBindGroupLayout  // placeholder for unused group slots
-  gizmo:       GPUBindGroupLayout  // group 2 — ArrowGizmo axis colors + visibility
-  groundExtra: GPUBindGroupLayout  // group 2 — InfiniteGround secondary color + tile size
+  camera:       GPUBindGroupLayout  // group 0 — camera uniform
+  object:       GPUBindGroupLayout  // group 1 — per-object uniform (model + tint)
+  fbxMaterial:  GPUBindGroupLayout  // group 2 — FBX diffuse + normal map textures
+  lights:       GPUBindGroupLayout  // group 3 — light buffer (world-pass shaders)
+  empty:        GPUBindGroupLayout  // placeholder for unused group slots
+  gizmo:        GPUBindGroupLayout  // group 2 — ArrowGizmo axis colors + visibility
+  groundExtra:  GPUBindGroupLayout  // group 2 — InfiniteGround secondary color + tile size
+  textMaterial: GPUBindGroupLayout  // group 2 — Text canvas texture + sampler
 }
 
 // ── Renderable options (used inside renderable: { ... } when creating GameObjects) ──
@@ -200,4 +210,26 @@ export interface Bar3DOptions {
   /** Fill level 0–1. Default 1. */
   percentage?:     number
   label?:          string
+}
+
+// ── Text ───────────────────────────────────────────────────────────────────
+
+export interface TextOptions {
+  /** Initial position. Screen mode: virtual [0,500] coords [x,y,0]. World mode: world-space Vec3. */
+  position:    Vec3
+  /** Bounding box width. Virtual units in screen mode, world units in world mode. */
+  width:       number
+  /** Bounding box height. Virtual units in screen mode, world units in world mode. */
+  height:      number
+  /** Font size in canvas pixels. */
+  fontSize:    number
+  /** Render in the overlay pass using a virtual 0–500 coordinate grid. Default false. */
+  isScreen?:   boolean
+  bold?:       boolean
+  italic?:     boolean
+  content?:    string
+  /** Whether text is clipped to the bounding box. Default 'hidden'. */
+  overflow?:   'hidden' | 'visible'
+  fontFamily?: FontFamily
+  label?:      string
 }

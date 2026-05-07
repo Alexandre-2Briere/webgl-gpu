@@ -44,11 +44,15 @@ export const SANDBOX_EVENTS = {
   HIERARCHY_ROW_REMOVED:       'hierarchy:rowRemoved',
   HIERARCHY_ROW_SELECTED:      'hierarchy:rowSelected',
   HIERARCHY_ROW_RENAMED:       'hierarchy:rowRenamed',
-  PROPERTY_PANEL_SHOW:         'propertyPanel:show',
-  PROPERTY_PANEL_HIDE:         'propertyPanel:hide',
-  PROPERTY_PANEL_SET_POSITION: 'propertyPanel:setPosition',
-  PROPERTY_PANEL_SET_TITLE:    'propertyPanel:setTitle',
-  PROPERTY_PANEL_FBX_CATALOG:  'propertyPanel:fbxCatalog',
+  PROPERTY_PANEL_SHOW:              'propertyPanel:show',
+  PROPERTY_PANEL_HIDE:              'propertyPanel:hide',
+  PROPERTY_PANEL_SET_POSITION:      'propertyPanel:setPosition',
+  PROPERTY_PANEL_SET_TITLE:         'propertyPanel:setTitle',
+  PROPERTY_PANEL_FBX_CATALOG:       'propertyPanel:fbxCatalog',
+  HIERARCHY_CAMERA_SELECTED:        'hierarchy:cameraSelected',
+  PROPERTY_PANEL_SHOW_CAMERA:       'propertyPanel:showCamera',
+  PROPERTY_CAMERA_POSITION_CHANGED: 'property:cameraPositionChanged',
+  PROPERTY_CAMERA_ROTATION_CHANGED: 'property:cameraRotationChanged',
 } as const;
 
 // Existing payload types
@@ -88,8 +92,11 @@ export type PropertyPanelShowPayload       = {
   selectedScript?:     string;
   selectedScriptArgs?: ScriptArgValues;
 };
-export type PropertyPanelSetPositionPayload = { x: number; y: number; z: number };
-export type PropertyPanelSetTitlePayload    = { label: string };
-export type PropertyPanelFbxCatalogPayload  = { catalog: { label: string; url: string }[] };
+export type PropertyPanelSetPositionPayload      = { x: number; y: number; z: number };
+export type PropertyPanelSetTitlePayload         = { label: string };
+export type PropertyPanelFbxCatalogPayload       = { catalog: { label: string; url: string }[] };
+export type PropertyPanelShowCameraPayload       = { position: [number, number, number]; yaw: number; pitch: number };
+export type PropertyCameraPositionChangedPayload = { x: number; y: number; z: number };
+export type PropertyCameraRotationChangedPayload = { yaw: number; pitch: number };
 
 export type { PubSubManager };

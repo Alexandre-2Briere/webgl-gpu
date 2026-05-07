@@ -5,7 +5,6 @@ import { SpawnManager } from './managers/SpawnManager';
 import { SelectionManager } from './managers/SelectionManager';
 import { PhysicsManager } from './managers/PhysicsManager';
 import { PlayStateManager } from './managers/PlayStateManager';
-import { CameraController } from './controllers/CameraController';
 import { GizmoController } from './controllers/GizmoController';
 import { SaveLoadManager } from './managers/SaveLoadManager';
 import { loadPath } from './scripts/PathLoader';
@@ -17,6 +16,8 @@ import {
   type HierarchyObjectRenamedPayload,
   type HierarchyObjectDuplicatePayload,
   type SceneLoadRequestedPayload,
+  type PropertyCameraPositionChangedPayload,
+  type PropertyCameraRotationChangedPayload,
 } from './events';
 
 export class SceneManager {
@@ -29,7 +30,6 @@ export class SceneManager {
   private _selectionManager!:  SelectionManager;
   private _physicsManager!:    PhysicsManager;
   private _playStateManager!:  PlayStateManager;
-  private _cameraController!:  CameraController;
   private _gizmoController!:   GizmoController;
   private _saveLoadManager!:   SaveLoadManager;
 
@@ -82,8 +82,7 @@ export class SceneManager {
     this._spawnManager     = new SpawnManager(engine, fbxCache, pubSub);
     this._selectionManager = new SelectionManager(this._spawnManager, this._canvas, pubSub);
     this._physicsManager   = new PhysicsManager(engine, this._spawnManager, pubSub);
-    this._playStateManager = new PlayStateManager(this._canvas, engine, this._spawnManager, this._physicsManager, pubSub);
-    this._cameraController = new CameraController(engine, this._inputManager, () => this._playStateManager.isPlaying(), pubSub);
+    this._playStateManager = new PlayStateManager(this._canvas, engine, this._spawnManager, this._physicsManager, this._inputManager, pubSub);
     this._gizmoController  = new GizmoController(
       engine,
       this._inputManager,
@@ -109,7 +108,7 @@ export class SceneManager {
 
     // Subscribe to UI events
     pubSub.subscribe(SANDBOX_EVENTS.TOOLBAR_PLAY, () => {
-      this._playStateManager.play();
+      void this._playStateManager.play();
     });
 
     pubSub.subscribe(SANDBOX_EVENTS.TOOLBAR_STOP, () => {
@@ -162,6 +161,28 @@ export class SceneManager {
       );
     });
 
+    pubSub.subscribe(SANDBOX_EVENTS.HIERARCHY_CAMERA_SELECTED, () => {
+      const camera = engine.camera;
+      pubSub.publish(SANDBOX_EVENTS.PROPERTY_PANEL_SHOW_CAMERA, {
+        position: [camera.position[0], camera.position[1], camera.position[2]] as [number, number, number],
+        yaw:      camera.yaw,
+        pitch:    camera.pitch,
+      });
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_CAMERA_POSITION_CHANGED, (raw) => {
+      const { x, y, z } = raw as unknown as PropertyCameraPositionChangedPayload;
+      engine.camera.position[0] = x;
+      engine.camera.position[1] = y;
+      engine.camera.position[2] = z;
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_CAMERA_ROTATION_CHANGED, (raw) => {
+      const { yaw, pitch } = raw as unknown as PropertyCameraRotationChangedPayload;
+      engine.camera.yaw   = yaw;
+      engine.camera.pitch = pitch;
+    });
+
     pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: 'Engine initialised.', level: 'log' });
     pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: 'Press Play to start | Click an object to inspect it.', level: 'log' });
     pubSub.publish(SANDBOX_EVENTS.ENGINE_INITIALIZED);
@@ -171,25 +192,19 @@ export class SceneManager {
 
   startLoop(): void {
     this._engine.onFrame((deltaTime: number) => {
-      const isPlaying = this._playStateManager.isPlaying();
+      const isPlaying      = this._playStateManager.isPlaying();
       const isDraggingAxis = this._gizmoController.isDragging();
-
-      this._cameraController.tick(deltaTime);
 
       const [deltaX, deltaY] = this._inputManager.readMouseDelta();
       if (isDraggingAxis && !isPlaying) {
         this._gizmoController.applyDrag();
-      } else if (this._inputManager.isMouseButtonDown() && !isPlaying) {
-        this._cameraController.applyMouseRotation(deltaX, deltaY);
-      } else if (document.pointerLockElement === this._canvas) {
-        this._cameraController.applyPointerLockRotation(deltaX, deltaY);
       }
       this._inputManager.clearMouseDelta();
 
       this._gizmoController.sync();
 
       if (isPlaying) {
-        this._playStateManager.tick(deltaTime);
+        this._playStateManager.tick(deltaTime, deltaX, deltaY);
         this._physicsManager.tick(deltaTime);
       }
     });

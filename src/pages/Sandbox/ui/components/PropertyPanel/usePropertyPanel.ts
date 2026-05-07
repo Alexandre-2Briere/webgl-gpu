@@ -7,6 +7,7 @@ import {
   type PropertyPanelShowPayload,
   type PropertyPanelSetTitlePayload,
   type PropertyPanelFbxCatalogPayload,
+  type PropertyPanelShowCameraPayload,
   type ObjectRemovedPayload,
   type HierarchyRowRenamedPayload,
 } from '../../../game/events';
@@ -26,6 +27,10 @@ interface PanelViewState {
   selectedScript:     string;
   selectedScriptArgs: ScriptArgValues;
   gameObject:         ISceneObject | null;
+  isCameraMode:       boolean;
+  cameraPosition:     [number, number, number];
+  cameraYaw:          number;
+  cameraPitch:        number;
 }
 
 const INITIAL_STATE: PanelViewState = {
@@ -40,6 +45,10 @@ const INITIAL_STATE: PanelViewState = {
   selectedScript:     '',
   selectedScriptArgs: {},
   gameObject:         null,
+  isCameraMode:       false,
+  cameraPosition:     [0, 0, 0],
+  cameraYaw:          0,
+  cameraPitch:        0,
 };
 
 export function usePropertyPanel(pubSub: PubSubManager) {
@@ -63,20 +72,41 @@ export function usePropertyPanel(pubSub: PubSubManager) {
       selectedScript:     payload.selectedScript    ?? '',
       selectedScriptArgs: payload.selectedScriptArgs ?? {},
       gameObject:         payload.gameObject,
+      isCameraMode:       false,
+      cameraPosition:     previous.cameraPosition,
+      cameraYaw:          previous.cameraYaw,
+      cameraPitch:        previous.cameraPitch,
+    }));
+  }
+
+  function _showCamera(payload: PropertyPanelShowCameraPayload): void {
+    currentObjectRef.current      = null;
+    currentObjectIndexRef.current = -1;
+    setState(previous => ({
+      ...previous,
+      isOpen:         true,
+      selectionKey:   previous.selectionKey + 1,
+      isCameraMode:   true,
+      cameraPosition: payload.position,
+      cameraYaw:      payload.yaw,
+      cameraPitch:    payload.pitch,
+      gameObject:     null,
     }));
   }
 
   function hide(): void {
     currentObjectRef.current = null;
-    setState(previous => ({ ...previous, isOpen: false, gameObject: null }));
+    setState(previous => ({ ...previous, isOpen: false, gameObject: null, isCameraMode: false }));
   }
 
   useEffect(() => {
     const onShow = (raw: unknown) => _show(raw as PropertyPanelShowPayload);
 
+    const onShowCamera = (raw: unknown) => _showCamera(raw as PropertyPanelShowCameraPayload);
+
     const onHide = () => {
       currentObjectRef.current = null;
-      setState(previous => ({ ...previous, isOpen: false, gameObject: null }));
+      setState(previous => ({ ...previous, isOpen: false, gameObject: null, isCameraMode: false }));
     };
 
     const onSetTitle = (raw: unknown) => {
@@ -109,6 +139,7 @@ export function usePropertyPanel(pubSub: PubSubManager) {
     };
 
     pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_PANEL_SHOW,        onShow);
+    pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_PANEL_SHOW_CAMERA, onShowCamera);
     pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_PANEL_HIDE,        onHide);
     pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_PANEL_SET_TITLE,   onSetTitle);
     pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_PANEL_FBX_CATALOG, onFbxCatalog);
@@ -117,6 +148,7 @@ export function usePropertyPanel(pubSub: PubSubManager) {
 
     return () => {
       pubSub.unsubscribe(SANDBOX_EVENTS.PROPERTY_PANEL_SHOW,        onShow);
+      pubSub.unsubscribe(SANDBOX_EVENTS.PROPERTY_PANEL_SHOW_CAMERA, onShowCamera);
       pubSub.unsubscribe(SANDBOX_EVENTS.PROPERTY_PANEL_HIDE,        onHide);
       pubSub.unsubscribe(SANDBOX_EVENTS.PROPERTY_PANEL_SET_TITLE,   onSetTitle);
       pubSub.unsubscribe(SANDBOX_EVENTS.PROPERTY_PANEL_FBX_CATALOG, onFbxCatalog);
