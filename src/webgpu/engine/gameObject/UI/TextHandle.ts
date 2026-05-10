@@ -17,6 +17,12 @@ export class TextHandle {
   get visible(): boolean { return this._manager._getVisible(this._slotIndex); }
   set visible(value: boolean) { this._manager._setVisible(this._slotIndex, value); }
 
+  get showDebugBounds(): boolean { return this._manager._getDebugBounds(this._slotIndex); }
+  set showDebugBounds(value: boolean) {
+    if (this._destroyed) return;
+    this._manager._setDebugBounds(this._slotIndex, value);
+  }
+
   setContent(content: string): void {
     if (this._destroyed) return;
     this._manager._setContent(this._slotIndex, content);

@@ -217,10 +217,10 @@ export interface Bar3DOptions {
 export interface TextOptions {
   /** Initial position. Screen mode: virtual [0,500] coords [x,y,0]. World mode: world-space Vec3. */
   position:    Vec3
-  /** Bounding box width. Virtual units in screen mode, world units in world mode. */
-  width:       number
-  /** Bounding box height. Virtual units in screen mode, world units in world mode. */
-  height:      number
+  /** Bounding box width. Virtual units in screen mode, world units in world mode. Default 'auto'. */
+  width?:       number | 'auto'
+  /** Bounding box height. Virtual units in screen mode, world units in world mode. Default 'auto'. */
+  height?:      number | 'auto'
   /** Font size in canvas pixels. */
   fontSize:    number
   /** Render in the overlay pass using a virtual 0–500 coordinate grid. Default false. */
@@ -232,4 +232,6 @@ export interface TextOptions {
   overflow?:   'hidden' | 'visible'
   fontFamily?: FontFamily
   label?:      string
+  /** Show a thin red debug border around the bounding rect. Default false. */
+  debugBounds?: boolean
 }

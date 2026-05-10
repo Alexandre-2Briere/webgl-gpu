@@ -12,8 +12,12 @@ const OBJECT_UNIFORM_SIZE = 80; // mat4x4f (64) + vec4f tint (16)
 
 // Canvas pixels per virtual unit for screen-space text.
 const SCREEN_PIXELS_PER_UNIT = 4;
-// Fixed canvas height in pixels for world-space text.
+// Fixed canvas height in pixels for world-space text when height is a number.
 const WORLD_CANVAS_HEIGHT_PX = 256;
+// Pixels per world unit when at least one dimension is 'auto' in world-space text.
+const WORLD_PIXELS_PER_UNIT  = 32;
+// Multiplier applied to fontSize to derive line height in canvas pixels.
+const LINE_HEIGHT_MULTIPLIER = 1.2;
 
 // CCW quad: top-left, top-right, bottom-right, bottom-left
 const SHARED_VERTICES = new Float32Array([
@@ -43,8 +47,11 @@ interface TextSlot {
   fontFamily:       FontFamily;
   visible:          boolean;
   position:         Vec3;
-  width:            number;
-  height:           number;
+  width:            number | 'auto';
+  height:           number | 'auto';
+  resolvedWidth:    number;
+  resolvedHeight:   number;
+  debugBounds:      boolean;
 }
 
 /** @internal — manages all text objects for one render layer (screen or world). */
@@ -63,6 +70,8 @@ export class TextManager implements Renderable {
   private _sampler!:               GPUSampler;
   private _textMaterialLayout!:    GPUBindGroupLayout;
   private _objectLayout!:          GPUBindGroupLayout;
+  private _measureCanvas!:         OffscreenCanvas;
+  private _measureCtx!:            OffscreenCanvasRenderingContext2D;
   private _slots:                  TextSlot[] = [];
   private _freeSlots:              number[]   = [];
 
@@ -85,6 +94,9 @@ export class TextManager implements Renderable {
       minFilter:    'linear',
       mipmapFilter: 'linear',
     });
+
+    this._measureCanvas = new OffscreenCanvas(1, 1);
+    this._measureCtx    = this._measureCanvas.getContext('2d')!;
 
     this._vertexBuffer = device.createBuffer({
       label: 'text-shared-verts',
@@ -208,6 +220,16 @@ export class TextManager implements Renderable {
     this._slots[slotIndex].visible = visible;
   }
 
+  _getDebugBounds(slotIndex: number): boolean {
+    return this._slots[slotIndex].debugBounds;
+  }
+
+  _setDebugBounds(slotIndex: number, value: boolean): void {
+    const slot = this._slots[slotIndex];
+    slot.debugBounds = value;
+    this._redrawCanvas(slot);
+  }
+
   _destroySlot(slotIndex: number): void {
     const slot = this._slots[slotIndex];
     if (!slot.active) return;
@@ -240,9 +262,134 @@ export class TextManager implements Renderable {
 
   // ── Private helpers ────────────────────────────────────────────────────────
 
+  private _buildFont(slot: TextSlot): string {
+    const name   = slot.fontFamily === 'chivo-mono' ? 'ChivoMono Variable' : 'RedHatMono Variable';
+    const weight = slot.bold   ? 700 : 400;
+    const style  = slot.italic ? 'italic' : 'normal';
+    return `${style} ${weight} ${slot.fontSize}px '${name}'`;
+  }
+
+  private _wrapWords(content: string, maxWidthPx: number): string[] {
+    const words = content.split(' ');
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      const candidate = current.length === 0 ? word : `${current} ${word}`;
+      if (this._measureCtx.measureText(candidate).width <= maxWidthPx) {
+        current = candidate;
+      } else {
+        if (current.length > 0) lines.push(current);
+        current = word;
+      }
+    }
+    if (current.length > 0) lines.push(current);
+    return lines.length > 0 ? lines : [''];
+  }
+
+  private _findMinWidthPx(content: string, maxLines: number): number {
+    const charWidthPx = this._measureCtx.measureText('M').width;
+    const words       = content.split(' ');
+    const maxWordLen  = words.reduce((maximum, word) => word.length > maximum ? word.length : maximum, 0);
+    let low  = Math.ceil(maxWordLen * charWidthPx);
+    let high = Math.ceil(this._measureCtx.measureText(content).width);
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      this._wrapWords(content, mid).length <= maxLines ? (high = mid) : (low = mid + 1);
+    }
+    return low < 1 ? 1 : low;
+  }
+
+  private _resolveLayout(slot: TextSlot): {
+    canvasWidthPx:  number;
+    canvasHeightPx: number;
+    resolvedWidth:  number;
+    resolvedHeight: number;
+    lines:          string[];
+  } {
+    this._measureCtx.font = this._buildFont(slot);
+
+    const lineHeightPx = slot.fontSize * LINE_HEIGHT_MULTIPLIER;
+    const { width, height } = slot;
+
+    // Bind pixel-density constants once — no isScreen ternary repeated below.
+    let pixelsPerUnit: number;
+    let fixedCanvasH:  number | null; // null when height is derived from layout
+    if (this._isScreen) {
+      pixelsPerUnit = SCREEN_PIXELS_PER_UNIT;
+      fixedCanvasH  = null;
+    } else {
+      pixelsPerUnit = WORLD_PIXELS_PER_UNIT;
+      fixedCanvasH  = WORLD_CANVAS_HEIGHT_PX;
+    }
+
+    // ── both auto: single line, exact fit ───────────────────────────────────
+    if (width === 'auto' && height === 'auto') {
+      const measured       = this._measureCtx.measureText(slot.content).width;
+      const canvasWidthPx  = measured < 1 ? 1 : Math.ceil(measured);
+      const canvasHeightPx = lineHeightPx < 1 ? 1 : Math.ceil(lineHeightPx);
+      return {
+        canvasWidthPx,
+        canvasHeightPx,
+        resolvedWidth:  canvasWidthPx  / pixelsPerUnit,
+        resolvedHeight: canvasHeightPx / pixelsPerUnit,
+        lines: [slot.content],
+      };
+    }
+
+    // ── fixed width, auto height: wrap and grow down ─────────────────────────
+    if (width !== 'auto' && height === 'auto') {
+      const rawW       = Math.floor(width * pixelsPerUnit);
+      const clampedW   = rawW < 1 ? 1 : rawW;
+      const lines      = this._wrapWords(slot.content, clampedW);
+      const rawH       = lines.length * lineHeightPx;
+      const canvasHeightPx = rawH < 1 ? 1 : Math.ceil(rawH);
+      return {
+        canvasWidthPx:  clampedW,
+        canvasHeightPx,
+        resolvedWidth:  width,
+        resolvedHeight: canvasHeightPx / pixelsPerUnit,
+        lines,
+      };
+    }
+
+    // ── auto width, fixed height: binary-search narrowest fit ────────────────
+    if (width === 'auto' && height !== 'auto') {
+      const canvasHeightPx = fixedCanvasH !== null
+        ? fixedCanvasH
+        : (height * pixelsPerUnit < 1 ? 1 : Math.floor(height * pixelsPerUnit));
+      const effectivePpu   = fixedCanvasH !== null ? fixedCanvasH / height : pixelsPerUnit;
+      const rawMaxLines    = Math.floor(canvasHeightPx / lineHeightPx);
+      const maxLines       = rawMaxLines < 1 ? 1 : rawMaxLines;
+      const canvasWidthPx  = this._findMinWidthPx(slot.content, maxLines);
+      const lines          = this._wrapWords(slot.content, canvasWidthPx);
+      return {
+        canvasWidthPx,
+        canvasHeightPx,
+        resolvedWidth:  canvasWidthPx / effectivePpu,
+        resolvedHeight: height,
+        lines,
+      };
+    }
+
+    // ── both fixed: existing behaviour, no wrapping ──────────────────────────
+    const rawW = fixedCanvasH !== null
+      ? Math.round(fixedCanvasH * (width as number) / (height as number))
+      : Math.floor((width as number) * pixelsPerUnit);
+    const rawH = fixedCanvasH !== null
+      ? fixedCanvasH
+      : Math.floor((height as number) * pixelsPerUnit);
+    return {
+      canvasWidthPx:  rawW < 1 ? 1 : rawW,
+      canvasHeightPx: rawH < 1 ? 1 : rawH,
+      resolvedWidth:  width  as number,
+      resolvedHeight: height as number,
+      lines: [slot.content],
+    };
+  }
+
   private _allocateSlotIndex(opts: TextOptions): number {
-    const width      = opts.width;
-    const height     = opts.height;
+    const width      = opts.width      ?? 'auto';
+    const height     = opts.height     ?? 'auto';
     const position   = (opts.position ?? [0, 0, 0]) as Vec3;
     const content    = opts.content    ?? '';
     const fontSize   = opts.fontSize;
@@ -250,13 +397,15 @@ export class TextManager implements Renderable {
     const italic     = opts.italic     ?? false;
     const overflow   = opts.overflow   ?? 'hidden';
     const fontFamily = opts.fontFamily ?? 'chivo-mono';
+    const debugBounds = opts.debugBounds ?? false;
 
-    const canvasWidth  = this._isScreen
-      ? Math.max(1, Math.floor(width  * SCREEN_PIXELS_PER_UNIT))
-      : Math.max(1, Math.round(WORLD_CANVAS_HEIGHT_PX * width / height));
-    const canvasHeight = this._isScreen
-      ? Math.max(1, Math.floor(height * SCREEN_PIXELS_PER_UNIT))
-      : WORLD_CANVAS_HEIGHT_PX;
+    // Shell slot used only for _resolveLayout measurement — GPU fields unused here.
+    const layout = this._resolveLayout({
+      content, fontSize, bold, italic, fontFamily, width, height,
+    } as TextSlot);
+
+    const canvasWidth  = layout.canvasWidthPx;
+    const canvasHeight = layout.canvasHeightPx;
 
     const canvas  = new OffscreenCanvas(canvasWidth, canvasHeight);
     const context = canvas.getContext('2d')!;
@@ -295,6 +444,9 @@ export class TextManager implements Renderable {
       active: true, canvas, context, texture, textureView, uniformSlot, objectData,
       objectBindGroup, textureBindGroup, content, fontSize, bold, italic, overflow,
       fontFamily, visible: true, position: [...position] as Vec3, width, height,
+      resolvedWidth:  layout.resolvedWidth,
+      resolvedHeight: layout.resolvedHeight,
+      debugBounds,
     };
 
     let slotIndex: number;
@@ -311,31 +463,63 @@ export class TextManager implements Renderable {
   }
 
   private _redrawCanvas(slot: TextSlot): void {
-    const { context, canvas, content, fontSize, bold, italic, overflow, fontFamily } = slot;
-    const canvasWidth  = canvas.width;
-    const canvasHeight = canvas.height;
+    const layout       = this._resolveLayout(slot);
+    const canvasWidth  = layout.canvasWidthPx;
+    const canvasHeight = layout.canvasHeightPx;
+
+    // ── resize if pixel dimensions changed ────────────────────────────────────
+    if (slot.canvas.width !== canvasWidth || slot.canvas.height !== canvasHeight) {
+      slot.texture.destroy();
+      slot.canvas  = new OffscreenCanvas(canvasWidth, canvasHeight);
+      slot.context = slot.canvas.getContext('2d')!;
+      slot.texture = this._device.createTexture({
+        size:   [canvasWidth, canvasHeight],
+        format: 'rgba8unorm',
+        usage:  GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+      slot.textureView      = slot.texture.createView();
+      slot.textureBindGroup = this._device.createBindGroup({
+        layout:  this._textMaterialLayout,
+        entries: [
+          { binding: 0, resource: slot.textureView },
+          { binding: 1, resource: this._sampler    },
+        ],
+      });
+      slot.resolvedWidth  = layout.resolvedWidth;
+      slot.resolvedHeight = layout.resolvedHeight;
+      this._uploadObjectMatrix(slot);
+    }
+
+    const { context } = slot;
+    const lineHeightPx = slot.fontSize * LINE_HEIGHT_MULTIPLIER;
 
     context.clearRect(0, 0, canvasWidth, canvasHeight);
 
-    if (overflow === 'hidden') {
+    if (slot.overflow === 'hidden') {
       context.save();
       context.beginPath();
       context.rect(0, 0, canvasWidth, canvasHeight);
       context.clip();
     }
 
-    const fontName   = fontFamily === 'chivo-mono' ? 'ChivoMono Variable' : 'RedHatMono Variable';
-    const fontWeight = bold ? 700 : 400;
-    const fontStyle  = italic ? 'italic' : 'normal';
-    context.font         = `${fontStyle} ${fontWeight} ${fontSize}px '${fontName}'`;
+    context.font         = this._buildFont(slot);
     context.fillStyle    = 'white';
     context.textBaseline = 'top';
-    context.fillText(content, 0, 0);
+    for (let lineIndex = 0; lineIndex < layout.lines.length; lineIndex++) {
+      context.fillText(layout.lines[lineIndex], 0, lineIndex * lineHeightPx);
+    }
 
-    if (overflow === 'hidden') context.restore();
+    if (slot.overflow === 'hidden') context.restore();
+
+    // Debug border — drawn after restore so the clip path never hides any edge.
+    if (slot.debugBounds) {
+      context.strokeStyle = 'red';
+      context.lineWidth   = 2;
+      context.strokeRect(1, 1, canvasWidth - 2, canvasHeight - 2);
+    }
 
     this._device.queue.copyExternalImageToTexture(
-      { source: canvas },
+      { source: slot.canvas },
       { texture: slot.texture },
       [canvasWidth, canvasHeight],
     );
@@ -344,8 +528,8 @@ export class TextManager implements Renderable {
   private _uploadObjectMatrix(slot: TextSlot): void {
     const out      = slot.objectData;
     const position = slot.position;
-    const width    = slot.width;
-    const height   = slot.height;
+    const width    = slot.resolvedWidth;
+    const height   = slot.resolvedHeight;
 
     if (this._isScreen) {
       const widthNdc  = width  / 250;

@@ -15,12 +15,12 @@ export default class EnnemySpawner implements GameScript {
   private _elapsed:      number      = 0;
   private _engine:       Engine | null = null;
   private _startingLife: number      = 100;
-  private _cubeHeight:   number      = 1;
+  private _cubeHeight:   number      = 3;
   private _path: { x: number; z: number }[] = pathJson.tiles
     .flatMap(t => t.waypoints)
     .filter((point, index, array) => index === 0 || point.x !== array[index - 1].x || point.z !== array[index - 1].z);
 
-  async execute(engine: Engine, startingLife_number: number = 100, cubeHeight_number: number = 1): Promise<void> {
+  async execute(engine: Engine, startingLife_number: number = 100, cubeHeight_number: number = 3): Promise<void> {
     this._startingLife = startingLife_number > 0 ? startingLife_number : this._startingLife;
     this._cubeHeight   = cubeHeight_number   > 0 ? cubeHeight_number   : this._cubeHeight;
     this._engine       = engine;
@@ -72,6 +72,7 @@ export default class EnnemySpawner implements GameScript {
       cube.setPosition([posX, posY, posZ]);
       lifebar.getHandle()?.setPosition([posX, posY + this._cubeHeight + 0.5, posZ]);
       lifebar.getHandle()?.setPercentage(this.calculateScale(cube.getProperty('life') as number));
+      text.getHandle()?.setContent(`Life : ${cube.getProperty('life')}/${this._startingLife}`);
       text.getHandle()?.setPosition([posX, posY + this._cubeHeight + 0.8, posZ]);
     }
 
@@ -97,11 +98,10 @@ export default class EnnemySpawner implements GameScript {
     });
     const text = await this._engine.createText({
       position: [startX, posY + this._cubeHeight + 0.8, startZ],
-      content: 'Enemy',
+      content: `Life : ${this._startingLife}/${this._startingLife}`,
       fontFamily: FontFamily.ChivoMono,
-      fontSize: 16,
-      width: 3,
-      height: 2,
+      fontSize: 12,
+      width: "auto",
       overflow: 'visible',
       isScreen: false,
     });
