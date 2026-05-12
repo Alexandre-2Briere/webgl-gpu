@@ -1,7 +1,7 @@
 import { type Engine, type ISceneObject, type IGameObject, type Vec3, LightGameObject, applyPhysics, applyCollisions, Rigidbody3D, CubeHitbox } from '@engine';
 import type { SpawnManager } from './SpawnManager';
 import type { SpawnContext, PhysicsConfig, PrimitiveSpawnContext, FbxSpawnContext, LightSpawnContext } from '../../items/types';
-import { SANDBOX_EVENTS, type PubSubManager, type PropertyPhysicsChangedPayload, type PropertyScaleChangedPayload, type PropertyRadiusChangedPayload, type PropertyLightTypeChangedPayload, type PropertyAssetChangedPayload } from '../events';
+import { SANDBOX_EVENTS, type PubSubManager, type PropertyPhysicsChangedPayload, type PropertyScaleChangedPayload, type PropertyRadiusChangedPayload, type PropertyLightTypeChangedPayload, type PropertyAssetChangedPayload, type PropertyShininessChangedPayload, type PropertySpecularStrengthChangedPayload } from '../events';
 import { spawn as spawnQuad } from '../../items/quad';
 import { spawn as spawnCube } from '../../items/cube';
 import { spawn as spawnFBX } from '../../items/fbx';
@@ -75,6 +75,20 @@ export class PhysicsManager {
         obj.gameObject.setLightType(lightType);
       }
     });
+
+    pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_SHININESS_CHANGED, (data: unknown) => {
+      const { objectIndex, data: { shininess } } = data as PropertyShininessChangedPayload;
+      const obj = this._spawnManager.getObject(objectIndex);
+      if (!obj || !isGameObject(obj.gameObject)) return;
+      obj.gameObject.material?.setShininess(shininess);
+    });
+
+    pubSub.subscribe(SANDBOX_EVENTS.PROPERTY_SPECULAR_STRENGTH_CHANGED, (data: unknown) => {
+      const { objectIndex, data: { specularStrength } } = data as PropertySpecularStrengthChangedPayload;
+      const obj = this._spawnManager.getObject(objectIndex);
+      if (!obj || !isGameObject(obj.gameObject)) return;
+      obj.gameObject.material?.setSpecularStrength(specularStrength);
+    });
   }
 
   // ── Per-frame tick ────────────────────────────────────────────────────────────
@@ -93,10 +107,11 @@ export class PhysicsManager {
     if (!obj || !isGameObject(obj.gameObject)) return;
     const oldGameObject = obj.gameObject;
 
-    const position = [...oldGameObject.position] as [number, number, number];
+    const position   = [...oldGameObject.position]   as [number, number, number];
     const quaternion = [...oldGameObject.quaternion] as [number, number, number, number];
-    const scale = [...oldGameObject.scale] as Vec3;
-    const color = [...oldGameObject.color] as [number, number, number, number];
+    const scale      = [...oldGameObject.scale]      as Vec3;
+    const color      = [...oldGameObject.color]      as [number, number, number, number];
+    const oldMaterial = oldGameObject.material;
 
     const oldRigidbody = oldGameObject.getRigidbody();
     if (oldRigidbody) this._spawnManager.unregisterRigidbody(oldRigidbody);
@@ -118,6 +133,7 @@ export class PhysicsManager {
     newGameObject.setQuaternion(quaternion);
     newGameObject.setScale(scale[0], scale[1], scale[2]);
     newGameObject.setColor(color[0], color[1], color[2], color[3]);
+    if (oldMaterial) (newGameObject as IGameObject).setMaterial(oldMaterial);
 
     const newRigidbody = newGameObject.getRigidbody();
     if (newRigidbody) this._spawnManager.registerRigidbody(newRigidbody);

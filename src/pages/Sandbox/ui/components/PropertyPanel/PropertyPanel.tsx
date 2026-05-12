@@ -1,12 +1,13 @@
 import { forwardRef, useImperativeHandle } from 'react';
 import { IconButton, Typography } from '@mui/material';
-import { type PubSubManager, LightGameObject, InfiniteGroundGameObject } from '@engine';
+import { type PubSubManager, type IGameObject, LightGameObject, InfiniteGroundGameObject } from '@engine';
 import { ColorForm } from './PropertyForm/ColorForm';
 import { type PhysicsState, PhysicsForm } from './PropertyForm/PhysicsForm';
 import { AssetForm } from './PropertyForm/AssetForm';
 import { ScriptForm } from './PropertyForm/ScriptForm';
 import { LightForm } from './PropertyForm/LightForm';
 import { InfiniteGroundForm } from './PropertyForm/InfiniteGroundForm';
+import { MaterialForm } from './PropertyForm/MaterialForm';
 import { TransformForms } from './PropertyForm/TransformForms';
 import { CameraTransformForm } from './PropertyForm/CameraTransformForm';
 import { usePropertyPanel } from './usePropertyPanel';
@@ -32,9 +33,10 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel, PropertyPanelPro
       isCameraMode, cameraPosition, cameraYaw, cameraPitch,
     } = state;
 
-    const showPhysics = visibleSections.has('rigidbody') || visibleSections.has('hitbox');
-    const showLight   = visibleSections.has('lightType') || visibleSections.has('lightRadius') || visibleSections.has('lightPower') || visibleSections.has('lightStrength');
-    const showGround  = visibleSections.has('groundSettings');
+    const showPhysics  = visibleSections.has('rigidbody') || visibleSections.has('hitbox');
+    const showLight    = visibleSections.has('lightType') || visibleSections.has('lightRadius') || visibleSections.has('lightPower') || visibleSections.has('lightStrength');
+    const showGround   = visibleSections.has('groundSettings');
+    const showMaterial = visibleSections.has('material');
 
     if (!isOpen) return null;
 
@@ -144,6 +146,15 @@ export const PropertyPanelComponent = forwardRef<PropertyPanel, PropertyPanelPro
               <InfiniteGroundForm
                 key={`ground-${selectionKey}`}
                 gameObject={gameObject}
+              />
+            )}
+
+            {showMaterial && (
+              <MaterialForm
+                key={`material-${selectionKey}`}
+                gameObject={gameObject as IGameObject}
+                pubSub={pubSub}
+                objectIndex={objectIndex}
               />
             )}
 

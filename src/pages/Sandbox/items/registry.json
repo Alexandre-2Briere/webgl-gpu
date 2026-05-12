@@ -10,13 +10,13 @@
       "key": "Cube",
       "label": "Cube",
       "isReady": true,
-      "properties": ["position", "rotation","scale", "color", "rigidbody", "hitbox"]
+      "properties": ["position", "rotation","scale", "color", "rigidbody", "hitbox", "material"]
     },
     {
       "key": "FBX",
       "label": "FBX Model",
       "isReady": true,
-      "properties": ["position", "rotation", "scale", "color", "asset"]
+      "properties": ["position", "rotation", "scale", "color", "asset", "material"]
     }
   ],
   "Lights": [

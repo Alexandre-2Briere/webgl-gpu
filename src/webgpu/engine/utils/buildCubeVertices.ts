@@ -4,7 +4,7 @@
  * Vertex layout matches Engine Mesh pipeline:
  *   vec3f position (12 B) + f32 pad (4 B) +
  *   vec3f normal   (12 B) + f32 pad (4 B) +
- *   vec4f color    (16 B) = 48 B per vertex
+ *   vec4f color    (16 B) + vec2f uv (8 B) = 56 B per vertex
  *
  * 24 vertices (4 per face), 36 indices (2 triangles per face, CCW winding).
  */
@@ -59,7 +59,10 @@ export function buildCubeVertices(color: [number, number, number, number]): { ve
     ], [0, -1, 0],
   ];
 
-  const FLOATS_PER_VERTEX = 12;
+  // vertex index within face → [u, v]
+  const FACE_UVS: [number, number][] = [[0, 1], [1, 1], [1, 0], [0, 0]];
+
+  const FLOATS_PER_VERTEX = 14;
   const FACE_COUNT = 6;
   const VERTICES_PER_FACE = 4;
   const vertices = new Float32Array(FACE_COUNT * VERTICES_PER_FACE * FLOATS_PER_VERTEX);
@@ -75,6 +78,7 @@ export function buildCubeVertices(color: [number, number, number, number]): { ve
 
     for (let vertexIndex = 0; vertexIndex < VERTICES_PER_FACE; vertexIndex++) {
       const position = positions[vertexIndex];
+      const uv       = FACE_UVS[vertexIndex];
       vertices[vertexOffset + 0]  = position[0];
       vertices[vertexOffset + 1]  = position[1];
       vertices[vertexOffset + 2]  = position[2];
@@ -87,6 +91,8 @@ export function buildCubeVertices(color: [number, number, number, number]): { ve
       vertices[vertexOffset + 9]  = color[1];
       vertices[vertexOffset + 10] = color[2];
       vertices[vertexOffset + 11] = color[3];
+      vertices[vertexOffset + 12] = uv[0];
+      vertices[vertexOffset + 13] = uv[1];
       vertexOffset += FLOATS_PER_VERTEX;
     }
 

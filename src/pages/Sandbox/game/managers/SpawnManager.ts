@@ -1,4 +1,4 @@
-import { type Engine, type FbxAssetHandle, type ISceneObject, Rigidbody3D } from '@engine';
+import { type Engine, type FbxAssetHandle, type ISceneObject, type IGameObject, Rigidbody3D } from '@engine';
 import type { ItemEntry, PhysicsConfig, SpawnContext, PrimitiveSpawnContext, FbxSpawnContext, LightSpawnContext, SingletonSpawnContext } from '../../items/types';
 import { spawn as spawnQuad } from '../../items/quad';
 import { spawn as spawnCube } from '../../items/cube';
@@ -25,7 +25,8 @@ const DEFAULT_PHYSICS: PhysicsConfig = {
   layer:        'default',
 };
 
-const SINGLETON_KEYS = new Set(['Skybox', 'InfiniteGround']);
+const SINGLETON_KEYS  = new Set(['Skybox', 'InfiniteGround']);
+const MATERIAL_KEYS   = new Set(['Cube', 'FBX']);
 
 const SPAWN_MAP: Record<string, (engine: Engine, context: SpawnContext) => ISceneObject> = {
   Quad:             (engine, context) => spawnQuad(engine, context as PrimitiveSpawnContext),
@@ -115,6 +116,12 @@ export class SpawnManager {
     } catch {
       this._pubSub.publish(SANDBOX_EVENTS.TERMINAL_PRINT, { message: `${entry.label} already exists in the scene.`, level: 'warn' });
       return;
+    }
+
+    if (MATERIAL_KEYS.has(key)) {
+      this._engine.createMaterial({ shininess: 32, specularStrength: 0 }).then(material => {
+        (gameObject as IGameObject).setMaterial(material);
+      });
     }
 
     const rb = gameObject.getRigidbody();

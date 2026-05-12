@@ -15,8 +15,10 @@ export const SANDBOX_EVENTS = {
   INPUT_POINTER_LOCK_RELEASED: 'input:pointerLockReleased',
   PROPERTY_PHYSICS_CHANGED:    'property:physicsChanged',
   PROPERTY_SCALE_CHANGED:      'property:scaleChanged',
-  PROPERTY_RADIUS_CHANGED:     'property:radiusChanged',
-  PROPERTY_LIGHT_TYPE_CHANGED: 'property:lightTypeChanged',
+  PROPERTY_RADIUS_CHANGED:            'property:radiusChanged',
+  PROPERTY_SHININESS_CHANGED:         'property:shininessChanged',
+  PROPERTY_SPECULAR_STRENGTH_CHANGED: 'property:specularStrengthChanged',
+  PROPERTY_LIGHT_TYPE_CHANGED:        'property:lightTypeChanged',
   PROPERTY_ASSET_CHANGED:      'property:assetChanged',
   PROPERTY_SCRIPT_CHANGED:     'property:scriptChanged',
   PROPERTY_SCRIPT_ARGS_CHANGED: 'property:scriptArgsChanged',
@@ -61,8 +63,10 @@ export type ObjectRemovedPayload            = { removedIndex: number };
 export type ObjectRebuiltPayload            = { objectIndex: number };
 export type PropertyPhysicsChangedPayload   = { objectIndex: number; data: { config: PhysicsConfig } };
 export type PropertyScaleChangedPayload     = { objectIndex: number; data: { x: number; y: number; z: number } };
-export type PropertyRadiusChangedPayload    = { objectIndex: number; data: { radius: number } };
-export type PropertyLightTypeChangedPayload = { objectIndex: number; data: { lightType: LightType } };
+export type PropertyRadiusChangedPayload           = { objectIndex: number; data: { radius: number } };
+export type PropertyShininessChangedPayload        = { objectIndex: number; data: { shininess: number } };
+export type PropertySpecularStrengthChangedPayload = { objectIndex: number; data: { specularStrength: number } };
+export type PropertyLightTypeChangedPayload        = { objectIndex: number; data: { lightType: LightType } };
 export type PropertyAssetChangedPayload     = { objectIndex: number; data: { url: string } };
 export type PropertyScriptChangedPayload     = { objectIndex: number; data: { scriptName: string } };
 export type PropertyScriptArgsChangedPayload = { objectIndex: number; data: { args: ScriptArgValues } };

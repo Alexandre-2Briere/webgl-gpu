@@ -23,8 +23,8 @@ struct ObjectUniforms {
 
 @group(1) @binding(0) var<uniform> object : ObjectUniforms;
 
-// ── Vertex struct (used by compute output and mesh vertex buffers) ───────────
-// 48 bytes, 16-byte aligned.
+// ── Vertex struct (used by mesh vertex buffers) ──────────────────────────────
+// 56 bytes: pos·3 + pad + nrm·3 + pad + col·4 + uv·2
 
 struct Vertex {
   position : vec3f,
@@ -32,6 +32,7 @@ struct Vertex {
   normal   : vec3f,
   _pad1    : f32,
   color    : vec4f,
+  uv       : vec2f,
 }
 
 // ── Indirect draw args (written by compute shader) ───────────────────────────

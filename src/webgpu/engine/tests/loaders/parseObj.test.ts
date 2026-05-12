@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { parseObj } from '../../loaders/parseObj';
 
-// Vertex format: 12 floats per vertex: pos(3) pad(1) normal(3) pad(1) color(4)
-const FLOATS_PER_VERTEX = 12;
+// Vertex format: 14 floats per vertex: pos(3) pad(1) normal(3) pad(1) color(4) uv(2)
+const FLOATS_PER_VERTEX = 14;
 
 describe('parseObj — basic parsing', () => {
   it('returns vertices and indices as typed arrays', () => {

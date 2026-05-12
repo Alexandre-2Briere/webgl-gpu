@@ -25,6 +25,8 @@ export interface MockRenderableDevice extends MockGPUDevice {
   createBindGroup: ReturnType<typeof vi.fn>
   createShaderModule: ReturnType<typeof vi.fn>
   createPipelineLayout: ReturnType<typeof vi.fn>
+  createTexture: ReturnType<typeof vi.fn>
+  createSampler: ReturnType<typeof vi.fn>
 }
 
 export interface MockRenderableInitArgs {
@@ -43,6 +45,12 @@ export function makeMockRenderableInitArgs(): MockRenderableInitArgs {
     createBindGroup: vi.fn().mockReturnValue({}),
     createShaderModule: vi.fn().mockReturnValue({}),
     createPipelineLayout: vi.fn().mockReturnValue({}),
+    createTexture: vi.fn().mockReturnValue({ createView: vi.fn().mockReturnValue({}), destroy: vi.fn() }),
+    createSampler: vi.fn().mockReturnValue({}),
+    queue: {
+      ...base.queue,
+      writeTexture: vi.fn(),
+    },
   };
 
   const mockBuffer: MockGPUBuffer = { size: 256, usage: 0x40, destroy: vi.fn() };
@@ -63,7 +71,7 @@ export function makeMockRenderableInitArgs(): MockRenderableInitArgs {
     queue: device.queue as unknown as GPUQueue,
     format: 'bgra8unorm' as GPUTextureFormat,
     pipelineCache: pipelineCache as unknown as PipelineCache,
-    layouts: { camera: {}, object: {}, empty: {}, lights: {}, fbxMaterial: {}, gizmo: {}, groundExtra: {} } as unknown as BindGroupLayouts,
+    layouts: { camera: {}, object: {}, empty: {}, lights: {}, fbxMaterial: {}, gizmo: {}, groundExtra: {}, meshMaterial: {}, textMaterial: {} } as unknown as BindGroupLayouts,
     uniformPool: uniformPool as unknown as UniformPool,
   };
 

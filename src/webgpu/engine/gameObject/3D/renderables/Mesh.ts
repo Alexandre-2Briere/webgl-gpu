@@ -4,16 +4,18 @@ import type { Camera } from '../../../core/Camera';
 import { VertexBuffer } from '../../../buffers/VertexBuffer';
 import type { UniformPool, UniformSlot } from '../../../buffers/UniformPool';
 import { COMMON } from '../../../shaders/common';
-import { MESH } from '../../../shaders/mesh';
+import { PHONG } from '../../../shaders/phong';
+import { MESH_PHONG } from '../../../shaders/meshPhong';
 import { makeTransformMatrix, identityMat } from '../../../math/mat';
 import type { Vec3, Vec4 } from '../../../math/vec';
+import type { Material } from '../../../material/Material';
 
 
-/** Bytes per vertex: vec3f pos + f32 pad + vec3f normal + f32 pad + vec4f color = 48 */
-const BYTES_PER_VERTEX = 48;
+/** Bytes per vertex: vec3f pos + f32 pad + vec3f normal + f32 pad + vec4f color + vec2f uv = 56 */
+const BYTES_PER_VERTEX = 56;
 
 /** @internal */
-export const MESH_PIPELINE_KEY = 'mesh';
+export const MESH_PIPELINE_KEY = 'mesh-phong';
 
 /** @internal */
 export class Mesh implements Renderable {
@@ -35,6 +37,11 @@ export class Mesh implements Renderable {
   private _queue!: GPUQueue;
   private _uniformData = new Float32Array(20);  // 16 (mat4) + 4 (tint) = 80 bytes
 
+  private _material: Material | null = null;
+  private _nullMaterialBindGroup!: GPUBindGroup;
+  private _nullMaterialBuffer!: GPUBuffer;
+  private _nullTexture!: GPUTexture;
+
   private _position:   Vec3 = [0, 0, 0];
   private _quaternion: Vec4 = [0, 0, 0, 1];
   private _scale:      Vec3 = [1, 1, 1];
@@ -43,6 +50,11 @@ export class Mesh implements Renderable {
     this._opts = opts;
     this._uniformData.set(identityMat(4), 0);
     this._uniformData.set([1, 1, 1, 1], 16);
+  }
+
+  /** @internal — called by GameObject.setMaterial() only */
+  setMaterial(material: Material | null): void {
+    this._material = material;
   }
 
   init(args: RenderableInitArgs): void {
@@ -86,14 +98,56 @@ export class Mesh implements Renderable {
       }],
     });
 
+    // ── Null material (used when no Material is assigned) ────────────────────
+    this._nullMaterialBuffer = device.createBuffer({
+      label: 'mesh-null-material-uniform',
+      size:  16,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    // shininess=32, specularStrength=0, hasTexture=0, pad=0
+    const nullData = new ArrayBuffer(16);
+    const nullView = new DataView(nullData);
+    nullView.setFloat32(0, 32, true);
+    nullView.setFloat32(4, 0,  true);
+    nullView.setUint32( 8, 0,  true);
+    nullView.setFloat32(12, 0, true);
+    queue.writeBuffer(this._nullMaterialBuffer, 0, nullData);
+
+    this._nullTexture = device.createTexture({
+      label:  'mesh-null-tex',
+      size:   [1, 1, 1],
+      format: 'rgba8unorm',
+      usage:  GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    queue.writeTexture(
+      { texture: this._nullTexture },
+      new Uint8Array([255, 255, 255, 255]),
+      { bytesPerRow: 4 },
+      [1, 1, 1],
+    );
+
+    const nullSampler = device.createSampler({ label: 'mesh-null-sampler', magFilter: 'linear', minFilter: 'linear' });
+
+    this._nullMaterialBindGroup = device.createBindGroup({
+      label:   'mesh-null-material-bg',
+      layout:  layouts.meshMaterial,
+      entries: [
+        { binding: 0, resource: { buffer: this._nullMaterialBuffer } },
+        { binding: 1, resource: this._nullTexture.createView() },
+        { binding: 2, resource: nullSampler },
+      ],
+    });
+
     // ── Render pipeline ──────────────────────────────────────────────────────
-    const shaderSrc = COMMON + '\n' + MESH;
-    const shaderModule = device.createShaderModule({ label: 'mesh-shader', code: shaderSrc });
+    const shaderModule = device.createShaderModule({
+      label: 'mesh-phong-shader',
+      code:  COMMON + '\n' + PHONG + '\n' + MESH_PHONG,
+    });
 
     this._pipeline = pipelineCache.getOrCreateRender(MESH_PIPELINE_KEY, {
-      label: 'mesh-pipeline',
+      label: 'mesh-phong-pipeline',
       layout: device.createPipelineLayout({
-        bindGroupLayouts: [layouts.camera, layouts.object, layouts.empty, layouts.lights],
+        bindGroupLayouts: [layouts.camera, layouts.object, layouts.meshMaterial, layouts.lights],
       }),
       vertex: {
         module: shaderModule,
@@ -101,9 +155,10 @@ export class Mesh implements Renderable {
         buffers: [{
           arrayStride: BYTES_PER_VERTEX,
           attributes: [
-            { shaderLocation: 0, offset: 0,  format: 'float32x3' },  // position
+            { shaderLocation: 0, offset:  0, format: 'float32x3' },  // position
             { shaderLocation: 1, offset: 16, format: 'float32x3' },  // normal
             { shaderLocation: 2, offset: 32, format: 'float32x4' },  // color
+            { shaderLocation: 3, offset: 48, format: 'float32x2' },  // uv
           ],
         }],
       },
@@ -128,6 +183,7 @@ export class Mesh implements Renderable {
   encode(pass: GPURenderPassEncoder, _camera: Camera): void {
     pass.setPipeline(this._pipeline);
     pass.setBindGroup(1, this._objectBindGroup);
+    pass.setBindGroup(2, this._material?.bindGroup ?? this._nullMaterialBindGroup);
     pass.setVertexBuffer(0, this._vertexBuf.buffer);
     if (this._indexBuf) {
       pass.setIndexBuffer(this._indexBuf, 'uint32');
@@ -211,5 +267,7 @@ export class Mesh implements Renderable {
     this._uniformPool.free(this._uniformSlot);
     this._vertexBuf.destroy();
     this._indexBuf?.destroy();
+    this._nullMaterialBuffer.destroy();
+    this._nullTexture.destroy();
   }
 }

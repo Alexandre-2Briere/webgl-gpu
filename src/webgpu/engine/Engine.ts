@@ -19,7 +19,9 @@ import type {
   InfiniteGroundOptions,
   Bar3DOptions,
   TextOptions,
+  MaterialOptions,
 } from './types';
+import { Material } from './material/Material';
 import { Renderer } from './core/Renderer';
 import { Scene } from './core/Scene';
 import { PipelineCache } from './core/PipelineCache';
@@ -172,6 +174,17 @@ export class Engine {
   }
 
   get camera(): Camera { return this._camera; }
+
+  // ── Material ─────────────────────────────────────────────────────────────────
+
+  async createMaterial(options: MaterialOptions = {}): Promise<Material> {
+    const material = new Material();
+    material.init(this._renderer.device, this._renderer.device.queue, this._layouts.meshMaterial);
+    if (options.shininess         !== undefined) material.setShininess(options.shininess);
+    if (options.specularStrength  !== undefined) material.setSpecularStrength(options.specularStrength);
+    if (options.texturePath) await material.setTexture(options.texturePath);
+    return material;
+  }
 
   // ── GameObject factory methods ───────────────────────────────────────────────
 

@@ -3,7 +3,7 @@ import { Mesh } from '../../gameObject/3D/renderables/Mesh';
 import { makeMockRenderableInitArgs, type MockRenderableInitArgs } from './mockRenderableInitArgs';
 import type { MockGPUBuffer } from '../buffers/mockDevice';
 
-const VERTEX_FIXTURE = new Float32Array(12);   // 1 vertex × 48 bytes
+const VERTEX_FIXTURE = new Float32Array(14);   // 1 vertex × 56 bytes
 const INDEX_FIXTURE  = new Uint32Array([0, 1, 2]);
 
 let mock: MockRenderableInitArgs;
@@ -25,9 +25,9 @@ describe('Mesh — pre-init identity', () => {
     expect(mesh.layer).toBe('world');
   });
 
-  it('pipelineKey is "mesh"', () => {
+  it('pipelineKey is "mesh-phong"', () => {
     const mesh = new Mesh({ vertices: VERTEX_FIXTURE });
-    expect(mesh.pipelineKey).toBe('mesh');
+    expect(mesh.pipelineKey).toBe('mesh-phong');
   });
 
   it('visible is true by default', () => {
@@ -66,29 +66,29 @@ describe('Mesh — init() GPU setup', () => {
     expect(mock.uniformPool.write).toHaveBeenCalledOnce();
   });
 
-  it('calls device.createBuffer once when no indices are provided', () => {
+  it('calls device.createBuffer twice when no indices are provided', () => {
     const mesh = new Mesh({ vertices: VERTEX_FIXTURE });
-    mesh.init(mock.args);
-    expect(mock.device.createBuffer).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls device.createBuffer twice when indices are provided', () => {
-    const mesh = new Mesh({ vertices: VERTEX_FIXTURE, indices: INDEX_FIXTURE });
     mesh.init(mock.args);
     expect(mock.device.createBuffer).toHaveBeenCalledTimes(2);
   });
 
-  it('calls device.createBindGroup once', () => {
-    const mesh = new Mesh({ vertices: VERTEX_FIXTURE });
+  it('calls device.createBuffer three times when indices are provided', () => {
+    const mesh = new Mesh({ vertices: VERTEX_FIXTURE, indices: INDEX_FIXTURE });
     mesh.init(mock.args);
-    expect(mock.device.createBindGroup).toHaveBeenCalledOnce();
+    expect(mock.device.createBuffer).toHaveBeenCalledTimes(3);
   });
 
-  it('calls pipelineCache.getOrCreateRender with key "mesh"', () => {
+  it('calls device.createBindGroup twice', () => {
+    const mesh = new Mesh({ vertices: VERTEX_FIXTURE });
+    mesh.init(mock.args);
+    expect(mock.device.createBindGroup).toHaveBeenCalledTimes(2);
+  });
+
+  it('calls pipelineCache.getOrCreateRender with key "mesh-phong"', () => {
     const mesh = new Mesh({ vertices: VERTEX_FIXTURE });
     mesh.init(mock.args);
     const getOrCreate = mock.pipelineCache.getOrCreateRender;
-    expect(getOrCreate).toHaveBeenCalledWith('mesh', expect.anything());
+    expect(getOrCreate).toHaveBeenCalledWith('mesh-phong', expect.anything());
   });
 
   it('when indices provided: calls queue.writeBuffer with the index data', () => {

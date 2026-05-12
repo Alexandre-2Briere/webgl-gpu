@@ -32,20 +32,21 @@ export interface CameraOptions {
 
 /** @internal */
 export interface BindGroupLayouts {
-  camera:       GPUBindGroupLayout  // group 0 — camera uniform
-  object:       GPUBindGroupLayout  // group 1 — per-object uniform (model + tint)
-  fbxMaterial:  GPUBindGroupLayout  // group 2 — FBX diffuse + normal map textures
-  lights:       GPUBindGroupLayout  // group 3 — light buffer (world-pass shaders)
-  empty:        GPUBindGroupLayout  // placeholder for unused group slots
-  gizmo:        GPUBindGroupLayout  // group 2 — ArrowGizmo axis colors + visibility
-  groundExtra:  GPUBindGroupLayout  // group 2 — InfiniteGround secondary color + tile size
-  textMaterial: GPUBindGroupLayout  // group 2 — Text canvas texture + sampler
+  camera:       GPUBindGroupLayout
+  object:       GPUBindGroupLayout
+  fbxMaterial:  GPUBindGroupLayout
+  lights:       GPUBindGroupLayout
+  empty:        GPUBindGroupLayout
+  gizmo:        GPUBindGroupLayout
+  groundExtra:  GPUBindGroupLayout
+  textMaterial: GPUBindGroupLayout
+  meshMaterial: GPUBindGroupLayout
 }
 
 // ── Renderable options (used inside renderable: { ... } when creating GameObjects) ──
 
 export interface MeshOptions {
-  /** Interleaved: vec3f position, f32 pad, vec3f normal, f32 pad, vec4f color — 48 bytes/vertex */
+  /** Interleaved: vec3f position, f32 pad, vec3f normal, f32 pad, vec4f color, vec2f uv — 56 bytes/vertex */
   vertices: Float32Array
   /** Optional index buffer (uint32). If absent, draws as non-indexed triangle-list. */
   indices?: Uint32Array
@@ -105,6 +106,17 @@ export interface FbxModelOptions {
   /** RGBA tint multiplied in the shader. Default [1, 1, 1, 1]. */
   tint?: [number, number, number, number]
   label?: string
+}
+
+// ── Material creation options ──────────────────────────────────────────────
+
+export interface MaterialOptions {
+  /** Blinn-Phong shininess exponent — higher value = tighter, brighter highlight. Default 32. */
+  shininess?: number
+  /** Specular reflection strength 0–1. 0 = matte, 1 = mirror-like. Default 0.5. */
+  specularStrength?: number
+  /** Relative URL for a diffuse texture. Loaded async; falls back to vertex color until ready. */
+  texturePath?: string
 }
 
 // ── GameObject creation options ────────────────────────────────────────────

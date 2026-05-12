@@ -3,6 +3,7 @@ import type { Rigidbody3D } from './rigidbody/Rigidbody3D';
 import type { Vec3, Vec4 } from '../../math/vec';
 import { applyEulerDelta, yawPitchRollToQuat, rotateByQuat } from '../../math/quat';
 import type { Renderable } from './renderables/Renderable';
+import type { Material } from '../../material/Material';
 
 // ── Public interfaces ─────────────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ export interface IGameObject<R extends Renderable = Renderable> extends ISceneOb
   readonly renderable: R
   readonly hitbox:     Hitbox3D    | null
   readonly rigidbody:  Rigidbody3D | null
+  readonly material:   Material    | null
 
   /** @internal */
   syncToPhysics(): void
@@ -38,6 +40,7 @@ export interface IGameObject<R extends Renderable = Renderable> extends ISceneOb
 
   // Lifecycle
   copy(): IGameObject<R>
+  setMaterial(material: Material | null): void
 }
 
 // ── Internal options ──────────────────────────────────────────────────────────
@@ -82,6 +85,7 @@ export class GameObject<R extends Renderable = Renderable> implements IGameObjec
   private readonly _rigidbodyOffset: Vec3;
   private readonly _copyFn:    () => IGameObject<R>;
   private readonly _destroyFn: () => void;
+  private _material: Material | null = null;
 
   constructor(opts: GameObjectOptions<R>) {
     this.renderable       = opts.renderable;
@@ -142,6 +146,15 @@ export class GameObject<R extends Renderable = Renderable> implements IGameObjec
   setScale(x: number, y: number, z: number): void {
     this.scale = [x, y, z];
     this._applyTransform();
+  }
+
+  get material(): Material | null { return this._material; }
+
+  setMaterial(material: Material | null): void {
+    this._material = material;
+    if (typeof (this.renderable as any).setMaterial === 'function') {
+      (this.renderable as any).setMaterial(material);
+    }
   }
 
   get color(): [number, number, number, number] {

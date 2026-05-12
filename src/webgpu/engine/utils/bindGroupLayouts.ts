@@ -93,6 +93,24 @@ export function createTextMaterialLayout(device: GPUDevice): GPUBindGroupLayout 
   });
 }
 
+/**
+ * @internal
+ * Bindings: 0 = MaterialUniforms (16 B), 1 = diffuse texture (2d float), 2 = filtering sampler.
+ */
+export function createMeshMaterialLayout(device: GPUDevice): GPUBindGroupLayout {
+  return device.createBindGroupLayout({
+    label: 'mesh-material-bgl',
+    entries: [
+      { binding: 0, visibility: GPUShaderStage.FRAGMENT,
+        buffer: { type: 'uniform' } },
+      { binding: 1, visibility: GPUShaderStage.FRAGMENT,
+        texture: { sampleType: 'float', viewDimension: '2d' } },
+      { binding: 2, visibility: GPUShaderStage.FRAGMENT,
+        sampler: { type: 'filtering' } },
+    ],
+  });
+}
+
 /** @internal */
 export function createEngineLayouts(device: GPUDevice): BindGroupLayouts {
   return {
@@ -104,5 +122,6 @@ export function createEngineLayouts(device: GPUDevice): BindGroupLayouts {
     gizmo:        createGizmoLayout(device),
     groundExtra:  createGroundExtraLayout(device),
     textMaterial: createTextMaterialLayout(device),
+    meshMaterial: createMeshMaterialLayout(device),
   };
 }

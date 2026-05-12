@@ -35,9 +35,9 @@ describe('Model3D — pre-init identity', () => {
     expect(model.layer).toBe('world');
   });
 
-  it('pipelineKey is "mesh"', () => {
+  it('pipelineKey is "mesh-phong"', () => {
     const model = new Model3D({ asset });
-    expect(model.pipelineKey).toBe('mesh');
+    expect(model.pipelineKey).toBe('mesh-phong');
   });
 
   it('visible is true by default', () => {
@@ -74,23 +74,23 @@ describe('Model3D — init() GPU setup', () => {
     expect(mock.uniformPool.write).toHaveBeenCalledOnce();
   });
 
-  it('calls device.createBindGroup once', () => {
+  it('calls device.createBindGroup twice', () => {
     const model = new Model3D({ asset });
     model.init(mock.args);
-    expect(mock.device.createBindGroup).toHaveBeenCalledOnce();
+    expect(mock.device.createBindGroup).toHaveBeenCalledTimes(2);
   });
 
-  it('calls pipelineCache.getOrCreateRender with key "mesh"', () => {
+  it('calls pipelineCache.getOrCreateRender with key "mesh-phong"', () => {
     const model = new Model3D({ asset });
     model.init(mock.args);
     const getOrCreate = mock.pipelineCache.getOrCreateRender;
-    expect(getOrCreate).toHaveBeenCalledWith('mesh', expect.anything());
+    expect(getOrCreate).toHaveBeenCalledWith('mesh-phong', expect.anything());
   });
 
-  it('does NOT call device.createBuffer — asset owns vertex and index buffers', () => {
+  it('calls device.createBuffer once for the null-material uniform buffer', () => {
     const model = new Model3D({ asset });
     model.init(mock.args);
-    expect(mock.device.createBuffer).not.toHaveBeenCalled();
+    expect(mock.device.createBuffer).toHaveBeenCalledOnce();
   });
 });
 

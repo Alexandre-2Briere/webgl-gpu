@@ -5,11 +5,13 @@ import type { UniformPool, UniformSlot } from '../../../buffers/UniformPool';
 import { ModelAsset } from './ModelAsset';
 import { MESH_PIPELINE_KEY } from './Mesh';
 import { COMMON } from '../../../shaders/common';
-import { MESH } from '../../../shaders/mesh';
+import { PHONG } from '../../../shaders/phong';
+import { MESH_PHONG } from '../../../shaders/meshPhong';
 import { makeTransformMatrix } from '../../../math/mat';
 import type { Vec3, Vec4 } from '../../../math/vec';
+import type { Material } from '../../../material/Material';
 
-const BYTES_PER_VERTEX = 48;
+const BYTES_PER_VERTEX = 56;
 
 /**
  * World-space renderable that draws a ModelAsset at a given position/scale/rotation.
@@ -31,6 +33,11 @@ export class Model3D implements Renderable {
   private _pipeline!: GPURenderPipeline;
   private _device!: GPUDevice;
 
+  private _material: Material | null = null;
+  private _nullMaterialBindGroup!: GPUBindGroup;
+  private _nullMaterialBuffer!: GPUBuffer;
+  private _nullTexture!: GPUTexture;
+
   // TRS state
   private _position:   [number, number, number];
   private _scale:      [number, number, number];
@@ -50,8 +57,13 @@ export class Model3D implements Renderable {
     this._uniformData.set(tint, 16);
   }
 
+  /** @internal — called by GameObject.setMaterial() only */
+  setMaterial(material: Material | null): void {
+    this._material = material;
+  }
+
   init(args: RenderableInitArgs): void {
-    const { device, format, pipelineCache, layouts, uniformPool } = args;
+    const { device, queue, format, pipelineCache, layouts, uniformPool } = args;
     this._device = device;
     this._uniformPool = uniformPool;
 
@@ -72,18 +84,57 @@ export class Model3D implements Renderable {
       }],
     });
 
+    // ── Null material ────────────────────────────────────────────────────────
+    this._nullMaterialBuffer = device.createBuffer({
+      label: 'model3d-null-material-uniform',
+      size:  16,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    const nullData = new ArrayBuffer(16);
+    const nullView = new DataView(nullData);
+    nullView.setFloat32(0, 32, true);
+    nullView.setFloat32(4, 0,  true);
+    nullView.setUint32( 8, 0,  true);
+    nullView.setFloat32(12, 0, true);
+    queue.writeBuffer(this._nullMaterialBuffer, 0, nullData);
+
+    this._nullTexture = device.createTexture({
+      label:  'model3d-null-tex',
+      size:   [1, 1, 1],
+      format: 'rgba8unorm',
+      usage:  GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    queue.writeTexture(
+      { texture: this._nullTexture },
+      new Uint8Array([255, 255, 255, 255]),
+      { bytesPerRow: 4 },
+      [1, 1, 1],
+    );
+
+    const nullSampler = device.createSampler({ label: 'model3d-null-sampler', magFilter: 'linear', minFilter: 'linear' });
+
+    this._nullMaterialBindGroup = device.createBindGroup({
+      label:   'model3d-null-material-bg',
+      layout:  layouts.meshMaterial,
+      entries: [
+        { binding: 0, resource: { buffer: this._nullMaterialBuffer } },
+        { binding: 1, resource: this._nullTexture.createView() },
+        { binding: 2, resource: nullSampler },
+      ],
+    });
+
     // ── Render pipeline ──────────────────────────────────────────────────────
     // Reuses MESH_PIPELINE_KEY — same shader and vertex layout as Mesh.ts.
     // If a Mesh was created first, pipelineCache returns the already-compiled pipeline.
     const shaderModule = device.createShaderModule({
-      label: 'mesh-shader',
-      code: COMMON + '\n' + MESH,
+      label: 'mesh-phong-shader',
+      code:  COMMON + '\n' + PHONG + '\n' + MESH_PHONG,
     });
 
     this._pipeline = pipelineCache.getOrCreateRender(MESH_PIPELINE_KEY, {
-      label: 'mesh-pipeline',
+      label: 'mesh-phong-pipeline',
       layout: device.createPipelineLayout({
-        bindGroupLayouts: [layouts.camera, layouts.object, layouts.empty, layouts.lights],
+        bindGroupLayouts: [layouts.camera, layouts.object, layouts.meshMaterial, layouts.lights],
       }),
       vertex: {
         module: shaderModule,
@@ -91,9 +142,10 @@ export class Model3D implements Renderable {
         buffers: [{
           arrayStride: BYTES_PER_VERTEX,
           attributes: [
-            { shaderLocation: 0, offset: 0,  format: 'float32x3' },  // position
+            { shaderLocation: 0, offset:  0, format: 'float32x3' },  // position
             { shaderLocation: 1, offset: 16, format: 'float32x3' },  // normal
             { shaderLocation: 2, offset: 32, format: 'float32x4' },  // color
+            { shaderLocation: 3, offset: 48, format: 'float32x2' },  // uv
           ],
         }],
       },
@@ -118,6 +170,7 @@ export class Model3D implements Renderable {
   encode(pass: GPURenderPassEncoder, _camera: Camera): void {
     pass.setPipeline(this._pipeline);
     pass.setBindGroup(1, this._objectBindGroup);
+    pass.setBindGroup(2, this._material?.bindGroup ?? this._nullMaterialBindGroup);
     pass.setVertexBuffer(0, this._asset.vertexBuf);
     pass.setIndexBuffer(this._asset.indexBuf, 'uint32');
     pass.drawIndexed(this._asset.indexCount);
@@ -164,6 +217,8 @@ export class Model3D implements Renderable {
 
   destroy(): void {
     this._uniformPool.free(this._uniformSlot);
+    this._nullMaterialBuffer.destroy();
+    this._nullTexture.destroy();
   }
 
   // ── Private ──────────────────────────────────────────────────────────────────

@@ -4,33 +4,38 @@ import { logger } from "../utils/logger";
 
 /**
  * Parses a Wavefront OBJ string into interleaved vertex data compatible with
- * the engine's mesh format (48 bytes/vertex):
+ * the engine's mesh format (56 bytes/vertex):
  *   vec3f position  (12 bytes) + f32 pad (4 bytes)
  *   vec3f normal    (12 bytes) + f32 pad (4 bytes)
  *   vec4f color     (16 bytes) — always white [1, 1, 1, 1]
+ *   vec2f uv        (8 bytes)  — from vt lines, or [0, 0] when absent
  *
- * Supports:  f v//vn  f v/vt/vn  f v  (triangles and quads, auto-triangulated)
- * Ignores:   mtllib, usemtl, vt, s, o, g
+ * Supports:  f v//vn  f v/vt/vn  f v/vt  f v  (triangles and quads, auto-triangulated)
+ * Ignores:   mtllib, usemtl, s, o, g
  * Normals:   uses vn if present; computes flat face normals otherwise.
  * @internal
  */
 export function parseObj(source: string): { vertices: Float32Array; indices: Uint32Array } {
   const positions: number[] = [];   // raw [x, y, z, x, y, z, ...]
   const normals: number[] = [];     // raw [nx, ny, nz, ...]
+  const uvs: number[] = [];         // raw [u, v, u, v, ...]
 
   // Deduplicated vertex buffer
-  const vertexData: number[] = [];  // flat 12 floats per unique vertex
+  const vertexData: number[] = [];  // flat 14 floats per unique vertex
   const indexData: number[] = [];
-  const vertexMap = new Map<string, number>();  // "posIdx/normIdx" → vertex index
+  const vertexMap = new Map<string, number>();  // "posIdx/uvIdx/normIdx" → vertex index
 
   const lines = source.split('\n');
 
-  // ── Pass 1: collect positions and normals ────────────────────────────────
+  // ── Pass 1: collect positions, normals, and UVs ──────────────────────────
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (line.startsWith('vn ')) {
       const parts = line.split(/\s+/);
       normals.push(safeParseFloat(parts[1]), safeParseFloat(parts[2]), safeParseFloat(parts[3]));
+    } else if (line.startsWith('vt ')) {
+      const parts = line.split(/\s+/);
+      uvs.push(safeParseFloat(parts[1]), safeParseFloat(parts[2]));
     } else if (line.startsWith('v ')) {
       const parts = line.split(/\s+/);
       positions.push(safeParseFloat(parts[1]), safeParseFloat(parts[2]), safeParseFloat(parts[3]));
@@ -38,22 +43,23 @@ export function parseObj(source: string): { vertices: Float32Array; indices: Uin
   }
 
   const hasNormals = normals.length > 0;
+  const hasUvs     = uvs.length > 0;
 
   // ── Pass 2: process faces ────────────────────────────────────────────────
-  // We collect face-vertex tuples per face first so we can compute flat normals when needed.
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line.startsWith('f ')) continue;
 
     const tokens = line.split(/\s+/).slice(1);  // drop 'f'
 
-    // Parse each "v", "v/vt", "v//vn", or "v/vt/vn" token into [posIdx, normIdx]
+    // Parse each "v", "v/vt", "v//vn", or "v/vt/vn" token into [posIdx, uvIdx, normIdx]
     // OBJ indices are 1-based; -1 means absent.
-    const faceVertices: Array<[number, number]> = tokens.map(token => {
+    const faceVertices: Array<[number, number, number]> = tokens.map(token => {
       const parts = token.split('/');
-      const posIdx = parseInt(parts[0]) - 1;
+      const posIdx  = parseInt(parts[0]) - 1;
+      const uvIdx   = parts.length >= 2 && parts[1] !== '' ? parseInt(parts[1]) - 1 : -1;
       const normIdx = parts.length >= 3 && parts[2] !== '' ? parseInt(parts[2]) - 1 : -1;
-      return [posIdx, normIdx];
+      return [posIdx, uvIdx, normIdx];
     });
 
     // Skip degenerate faces
@@ -64,10 +70,12 @@ export function parseObj(source: string): { vertices: Float32Array; indices: Uin
 
     // Skip faces with out-of-range indices
     const positionCount = positions.length / 3;
-    const normalCount = normals.length / 3;
-    const validFace = faceVertices.every(([posIdx, normIdx]) =>
+    const normalCount   = normals.length / 3;
+    const uvCount       = uvs.length / 2;
+    const validFace = faceVertices.every(([posIdx, uvIdx, normIdx]) =>
       posIdx >= 0 && posIdx < positionCount &&
-      (normIdx < 0 || normIdx < normalCount)
+      (normIdx < 0 || normIdx < normalCount) &&
+      (uvIdx  < 0 || uvIdx  < uvCount)
     );
     if (!validFace) continue;
 
@@ -87,11 +95,11 @@ export function parseObj(source: string): { vertices: Float32Array; indices: Uin
     }
 
     // Resolve each face-vertex to a deduplicated index
-    const resolvedIndices: number[] = faceVertices.map(([posIdx, normIdx]) => {
-      const key = `${posIdx}/${normIdx}`;
+    const resolvedIndices: number[] = faceVertices.map(([posIdx, uvIdx, normIdx]) => {
+      const key = `${posIdx}/${uvIdx}/${normIdx}`;
       let index = vertexMap.get(key);
       if (index === undefined) {
-        index = vertexData.length / 12;
+        index = vertexData.length / 14;
         vertexMap.set(key, index);
 
         const [px, py, pz] = posAt(positions, posIdx);
@@ -104,8 +112,11 @@ export function parseObj(source: string): { vertices: Float32Array; indices: Uin
           nx = flatNx; ny = flatNy; nz = flatNz;
         }
 
-        // 12 floats: pos(3) pad(1) normal(3) pad(1) color(4)
-        vertexData.push(px, py, pz, 0, nx, ny, nz, 0, 1, 1, 1, 1);
+        const tu = hasUvs && uvIdx >= 0 ? uvs[uvIdx * 2]     : 0;
+        const tv = hasUvs && uvIdx >= 0 ? uvs[uvIdx * 2 + 1] : 0;
+
+        // 14 floats: pos(3) pad(1) normal(3) pad(1) color(4) uv(2)
+        vertexData.push(px, py, pz, 0, nx, ny, nz, 0, 1, 1, 1, 1, tu, tv);
       }
       return index;
     });

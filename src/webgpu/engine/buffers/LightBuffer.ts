@@ -71,9 +71,9 @@ export class LightBuffer extends UniformBuffer {
       view.setFloat32(base +  4, light.gpuPosition[1], true);
       view.setFloat32(base +  8, light.gpuPosition[2], true);
       view.setFloat32(base + 12, light.radius,      true);
-      view.setFloat32(base + 16, light.color[0],    true);
-      view.setFloat32(base + 20, light.color[1],    true);
-      view.setFloat32(base + 24, light.color[2],    true);
+      view.setFloat32(base + 16, light.color[0] * light.intensity, true);
+      view.setFloat32(base + 20, light.color[1] * light.intensity, true);
+      view.setFloat32(base + 24, light.color[2] * light.intensity, true);
       view.setUint32( base + 28, light.lightType,   true);
     }
     this._write(queue, buffer);

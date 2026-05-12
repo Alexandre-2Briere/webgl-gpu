@@ -26,6 +26,7 @@ export class LightGameObject implements ISceneObject {
   lightType: LightType;           // mutable — user can switch point ↔ ambient in the sandbox
   private _color: [number, number, number, number];
   private _radius: number;
+  private _intensity: number = 1.0;
   private _direction: Vec3 = [0, 0, -1];
   private readonly _lightBuffer: LightBuffer;
   private readonly _destroyFn: () => void;
@@ -50,6 +51,7 @@ export class LightGameObject implements ISceneObject {
 
   get color(): [number, number, number, number] { return this._color; }
   get radius(): number                          { return this._radius; }
+  get intensity(): number                       { return this._intensity; }
   get direction(): Vec3                         { return this._direction; }
 
   /** Returns the value to upload into the GPU position slot.
@@ -89,6 +91,11 @@ export class LightGameObject implements ISceneObject {
 
   setColor(r: number, g: number, b: number, a: number): void {
     this._color = [r, g, b, a];
+    this._lightBuffer.markDirty();
+  }
+
+  setIntensity(value: number): void {
+    this._intensity = Math.max(0, value);
     this._lightBuffer.markDirty();
   }
 
