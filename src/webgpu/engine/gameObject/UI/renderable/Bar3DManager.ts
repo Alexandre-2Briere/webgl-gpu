@@ -1,8 +1,8 @@
-import type { Renderable, RenderableInitArgs } from './Renderable';
+import type { Renderable, RenderableInitArgs } from '../../Renderable';
 import type { Camera } from '../../../core/Camera';
 import type { Vec3, Vec4 } from '../../../math/vec';
 import type { Bar3DOptions } from '../../../types';
-import { Bar3DHandle } from '../../UI/Bar3DHandle';
+import { Bar3DHandle } from '../Bar3DHandle';
 import { COMMON } from '../../../shaders/common';
 import { BAR3D } from '../../../shaders/bar3d';
 

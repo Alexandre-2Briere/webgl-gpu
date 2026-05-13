@@ -1,9 +1,9 @@
-import type { Renderable, RenderableInitArgs } from './Renderable';
+import type { Renderable, RenderableInitArgs } from '../../Renderable';
 import type { Camera } from '../../../core/Camera';
 import type { Vec3, Vec4 } from '../../../math/vec';
 import type { TextOptions, FontFamily } from '../../../types';
 import type { UniformPool, UniformSlot } from '../../../buffers/UniformPool';
-import { TextHandle } from '../../UI/TextHandle';
+import { TextHandle } from '../TextHandle';
 import { COMMON } from '../../../shaders/common';
 import { TEXT } from '../../../shaders/text';
 

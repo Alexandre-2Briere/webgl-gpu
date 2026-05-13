@@ -1,11 +1,11 @@
-import type { Renderable, RenderableInitArgs } from './Renderable';
+import type { Renderable, RenderableInitArgs } from '../../Renderable';
 import type { Camera } from '../../../core/Camera';
 import type { UniformPool, UniformSlot } from '../../../buffers/UniformPool';
 import type { Vec3, Vec4 } from '../../../math/vec';
 import { COMMON } from '../../../shaders/common';
 import { LIGHT, LIGHT_CROSS_PIPELINE_KEY } from '../../../shaders/light';
 import { logger } from '../../../utils/logger';
-import type { LightGameObject } from '../../Light/LightGameObject';
+import type { LightGameObject } from '../LightGameObject';
 
 /**
  * Overlay cross icon drawn at the screen-space projection of a LightGameObject.

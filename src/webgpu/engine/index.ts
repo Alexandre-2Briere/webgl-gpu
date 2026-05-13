@@ -51,7 +51,7 @@ export type { Bar3DHandle } from './gameObject/UI/Bar3DHandle';
 export type { TextHandle } from './gameObject/UI/TextHandle';
 
 // Editor renderables
-export { ArrowGizmo } from './gameObject/3D/renderables/ArrowGizmo';
+export { ArrowGizmo } from './gameObject/UI/renderable/ArrowGizmo';
 export type { Quad3D } from './gameObject/3D/renderables/Quad3D';
 
 // Physics

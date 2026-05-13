@@ -2,7 +2,7 @@ import type { Hitbox3D } from './hitbox/Hitbox3D';
 import type { Rigidbody3D } from './rigidbody/Rigidbody3D';
 import type { Vec3, Vec4 } from '../../math/vec';
 import { applyEulerDelta, yawPitchRollToQuat, rotateByQuat } from '../../math/quat';
-import type { Renderable } from './renderables/Renderable';
+import type { Renderable } from '../Renderable';
 import type { Material } from '../../material/Material';
 
 // ── Public interfaces ─────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SkyboxRenderable } from '../../gameObject/3D/renderables/SkyboxRenderable';
+import { SkyboxRenderable } from '../../gameObject/Unique/renderable/SkyboxRenderable';
 import { makeMockRenderableInitArgs, type MockRenderableInitArgs } from './mockRenderableInitArgs';
 
 let mock: MockRenderableInitArgs;

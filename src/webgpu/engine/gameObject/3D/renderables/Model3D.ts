@@ -1,4 +1,4 @@
-import type { Renderable, RenderableInitArgs } from './Renderable';
+import type { Renderable, RenderableInitArgs } from '../../Renderable';
 import type { Model3DOptions } from '../../../types';
 import type { Camera } from '../../../core/Camera';
 import type { UniformPool, UniformSlot } from '../../../buffers/UniformPool';

@@ -1,4 +1,4 @@
-import type { Bar3DManager } from '../3D/renderables/Bar3DManager';
+import type { Bar3DManager } from './renderable/Bar3DManager';
 import type { Vec3 } from '../../math/vec';
 
 export class Bar3DHandle {

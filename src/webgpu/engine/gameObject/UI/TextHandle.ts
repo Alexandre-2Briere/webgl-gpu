@@ -1,4 +1,4 @@
-import type { TextManager } from '../3D/renderables/TextManager';
+import type { TextManager } from './renderable/TextManager';
 import type { Vec3 } from '../../math/vec';
 
 export class TextHandle {

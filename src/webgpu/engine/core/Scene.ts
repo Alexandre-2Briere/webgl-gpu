@@ -1,5 +1,5 @@
-import type { Renderable } from '../gameObject/3D/renderables/Renderable';
-import type { SkyboxRenderable } from '../gameObject/3D/renderables/SkyboxRenderable';
+import type { Renderable } from '../gameObject/Renderable';
+import type { SkyboxRenderable } from '../gameObject/Unique/renderable/SkyboxRenderable';
 import { Camera } from './Camera';
 import { Renderer } from './Renderer';
 import type { LightBuffer } from '../buffers/LightBuffer';

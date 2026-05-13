@@ -1,4 +1,4 @@
-import type { Renderable, RenderableInitArgs } from './Renderable';
+import type { Renderable, RenderableInitArgs } from '../../Renderable';
 import type { Quad2DOptions } from '../../../types';
 import type { Camera } from '../../../core/Camera';
 import { VertexBuffer } from '../../../buffers/VertexBuffer';

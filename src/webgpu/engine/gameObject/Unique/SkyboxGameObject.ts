@@ -1,5 +1,5 @@
 import type { ISceneObject } from '../3D/3DGameObject';
-import { SkyboxRenderable } from '../3D/renderables/SkyboxRenderable';
+import { SkyboxRenderable } from './renderable/SkyboxRenderable';
 import type { Scene } from '../../core/Scene';
 import type { Vec3, Vec4 } from '../../math/vec';
 import type { Rigidbody3D } from '../3D/rigidbody/Rigidbody3D';

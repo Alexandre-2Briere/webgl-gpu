@@ -3,9 +3,9 @@ import { yawPitchRollToQuat, rotateByQuat } from '../../math/quat';
 import type { LightBuffer } from '../../buffers/LightBuffer';
 import type { ISceneObject } from '../3D/3DGameObject';
 import type { Rigidbody3D } from '../3D/rigidbody/Rigidbody3D';
-import type { RenderableInitArgs } from '../3D/renderables/Renderable';
+import type { RenderableInitArgs } from '../Renderable';
 import type { Scene } from '../../core/Scene';
-import { LightCrossRenderable } from '../3D/renderables/LightCrossRenderable';
+import { LightCrossRenderable } from './renderable/LightCrossRenderable';
 import { logger } from '../../utils/logger';
 
 export const LightType = {

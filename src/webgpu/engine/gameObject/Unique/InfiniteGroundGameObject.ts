@@ -1,7 +1,7 @@
 import type { ISceneObject } from '../3D/3DGameObject';
 import { Rigidbody3D } from '../3D/rigidbody/Rigidbody3D';
 import { PlaneHitbox } from '../3D/hitbox/PlaneHitbox';
-import { InfiniteGroundRenderable } from '../3D/renderables/InfiniteGroundRenderable';
+import { InfiniteGroundRenderable } from './renderable/InfiniteGroundRenderable';
 import type { Scene } from '../../core/Scene';
 import type { Vec3, Vec4 } from '../../math/vec';
 
