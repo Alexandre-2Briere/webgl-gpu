@@ -1,7 +1,8 @@
+import type { ArrowGizmoHandle } from "./ArrowGizmoHandle";
 import type { Bar3DHandle } from "./Bar3DHandle";
 import type { TextHandle } from "./TextHandle";
 
-type Handle = Bar3DHandle | TextHandle | null;
+type Handle = Bar3DHandle | TextHandle | ArrowGizmoHandle | null;
 
 export class UIGameObject<T extends Handle> {
     private _uiHandle: T | null = null;

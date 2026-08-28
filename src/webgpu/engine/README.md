@@ -31,21 +31,22 @@ A lightweight, modular WebGPU rendering engine with a clean facade API. Supports
 ## Quick Start
 
 ```typescript
-import { Engine } from './index'
-
-const canvas = document.getElementById('canvas') as HTMLCanvasElement
-const engine = await Engine.create(canvas, { powerPreference: 'high-performance' })
-
-// 48-byte vertex: vec3 pos | f32 pad | vec3 normal | f32 pad | vec4 color
-const vertices = new Float32Array([
-//  px    py    pz   pad   nx    ny    nz   pad   r     g     b     a
-    0,    0,    0,   0,    0,    1,    0,   0,    1,    0,    0,    1,
-    1,    0,    0,   0,    0,    1,    0,   0,    0,    1,    0,    1,
-    0,    0,    1,   0,    0,    1,    0,   0,    0,    0,    1,    1,
-])
-const mesh = engine.createMesh({ vertices })
-
-engine.start()
+export async function initEngine(): Promise<Engine> {
+    const canvas = document.getElementById('game-canvas') as HTMLCanvasElement
+    const engine = await Engine.create(canvas, { powerPreference: 'high-performance' })
+    const camera = engine.createCamera({
+        position: [0, 0, 5],
+        near: 0.1,
+        far: 100,
+    })
+    engine.setCamera(camera)
+    engine.createCube({
+        color: [1, 1, 1, 1],
+        label: "init cube"
+    });
+    engine.start()
+    return engine;
+}
 ```
 
 ---
