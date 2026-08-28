@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/webgpu/engine/index.ts'),
+      entry: resolve(__dirname, 'engine/index.ts'),
       name: 'WebGPUEngine',
       fileName: 'index',
       formats: ['es'],

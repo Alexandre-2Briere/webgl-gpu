@@ -14,9 +14,10 @@
     "skipLibCheck": true,
     "declaration": true,
     "declarationDir": "./dist/engine",
-    "rootDir": "src/webgpu/engine",
+    "rootDir": "engine",
     "emitDeclarationOnly": true,
     "stripInternal": true
   },
-  "include": ["src/webgpu/engine"]
+  "include": ["engine"],
+  "exclude": ["engine/tests"]
 }
