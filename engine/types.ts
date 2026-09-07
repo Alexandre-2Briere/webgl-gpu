@@ -20,12 +20,8 @@ export interface EngineOptions {
 // ── Camera ─────────────────────────────────────────────────────────────────
 
 export interface CameraOptions {
-  fovY?: number                        // radians, default Math.PI / 3
-  near?: number                        // default 0.1
-  far?: number                         // default 2000
   position?: [number, number, number]  // world-space, default [0, 0, 0]
-  yaw?: number                         // radians, default 0
-  pitch?: number                       // radians, default 0
+  rotation?: [number, number, number]  // [rotX, rotY, rotZ], default [0, 0, 0]
 }
 
 // ── Shared bind group layouts passed to renderable init ────────────────────

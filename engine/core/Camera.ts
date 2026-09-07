@@ -15,16 +15,7 @@ const PITCH_LIMIT = (89 * Math.PI) / 180;
  */
 export class Camera {
   position: Float32Array;    // [x, y, z]
-  yaw   = 0;  // radians, rotation around Y axis
-  pitch = 0;  // radians, rotation around X axis
-
-  private _fovY: number;
-  private readonly _near: number;
-  private readonly _far: number;
-
-  private readonly _view    = new Float32Array(16);
-  private readonly _proj    = new Float32Array(16);
-  private readonly _viewProj = new Float32Array(16);
+  private _rotation: Float32Array;  // [rotX, rotY, rotZ]
 
   private readonly _uniformBuf: GPUBuffer;
   private readonly _data = new Float32Array(36);  // 144 bytes / 4
@@ -36,14 +27,10 @@ export class Camera {
     cameraLayout: GPUBindGroupLayout,
     opts: CameraOptions = {},
   ) {
-    this._fovY = opts.fovY ?? Math.PI / 3;
-    this._near = opts.near ?? 0.1;
-    this._far  = opts.far  ?? 2000;
-
     const p = opts.position ?? [0, 0, 0];
     this.position = new Float32Array([p[0], p[1], p[2]]);
-    this.yaw   = opts.yaw   ?? 0;
-    this.pitch = opts.pitch ?? 0;
+    const r = opts.rotation ?? [0, 0, 0];
+    this._rotation = new Float32Array([r[0], r[1], r[2]]);
 
     this._uniformBuf = device.createBuffer({
       label: 'CameraUniforms',
@@ -59,9 +46,14 @@ export class Camera {
   }
 
   get bindGroup(): GPUBindGroup { return this._bindGroup; }
-  get fovY(): number { return this._fovY; }
-  set fovY(value: number) { this._fovY = value; }
 
+  set rotation(value: [number, number, number]) { 
+    value[0] > 360 ? value[0] -= 360 : value[0] < 0 ? value[0] += 360 : 0;
+    value[1] > 360 ? value[1] -= 360 : value[1] < 0 ? value[1] += 360 : 0;
+    value[2] > 360 ? value[2] -= 360 : value[2] < 0 ? value[2] += 360 : 0;
+    this._rotation.set(value); 
+  }
+  get rotation(): [number, number, number] { return [this._rotation[0], this._rotation[1], this._rotation[2]]; }
   // ── Movement ────────────────────────────────────────────────────────────────
 
   /** Set absolute world-space position. */
@@ -77,22 +69,10 @@ export class Camera {
    * @param right    positive = rightward
    * @param up       positive = world up
    */
-  move(forward: number, right: number, up: number): void {
-    const cosPitch = Math.cos(this.pitch);
-    const sinPitch = Math.sin(this.pitch);
-    const cosYaw   = Math.cos(this.yaw);
-    const sinYaw   = Math.sin(this.yaw);
-
-    const fx = sinYaw * cosPitch;
-    const fy = -sinPitch;
-    const fz = -cosYaw * cosPitch;
-
-    const rx = cosYaw;
-    const rz = sinYaw;
-
-    this.position[0] += fx * forward + rx * right;
-    this.position[1] += fy * forward + up;
-    this.position[2] += fz * forward + rz * right;
+  translate(x: number, y: number, z: number): void {
+    this.position[0] += x;
+    this.position[1] += y;
+    this.position[2] += z;
   }
 
   /**
@@ -100,9 +80,8 @@ export class Camera {
    * @param deltaYaw    radians, positive = rotate right
    * @param deltaPitch  radians, positive = look up
    */
-  rotate(deltaYaw: number, deltaPitch: number): void {
-    this.yaw   += deltaYaw;
-    this.pitch  = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, this.pitch + deltaPitch));
+  rotate(x: number, y: number, z: number): void {
+
   }
 
   // ── Matrices ────────────────────────────────────────────────────────────────
@@ -112,20 +91,6 @@ export class Camera {
    * Call this once per frame after updating position/yaw/pitch.
    */
   updateMatrices(aspectRatio: number): void {
-    this._buildView();
-    this._buildProj(aspectRatio);
-    mul4x4(this._proj, this._view, this._viewProj);
-
-    // Pack into data array
-    this._data.set(this._viewProj, 0);   // offset 0
-    this._data.set(this._view, 16);      // offset 64
-    this._data[32] = this.position[0];   // offset 128
-    this._data[33] = this.position[1];
-    this._data[34] = this.position[2];
-    this._data[35] = 0;                  // _pad
-
-    // We need access to device.queue — store a queue reference
-    // Note: uploaded by Engine via writeBuffer to avoid storing device ref here
   }
 
   /** Returns the packed 144-byte camera data ready for queue.writeBuffer. */
@@ -143,27 +108,7 @@ export class Camera {
    * camera position onto each basis axis (expressing world origin in camera space).
    */
   private _buildView(): void {
-    const yaw:   Vec2 = [Math.cos(this.yaw),   Math.sin(this.yaw)];
-    const pitch: Vec2 = [Math.cos(this.pitch),  Math.sin(this.pitch)];
 
-    const forwardDir = forward(yaw, pitch);
-    const rightDir   = right(yaw);
-    const upDir      = up(rightDir, forwardDir);
-
-    for (let i = 0; i < 3; i++) {
-      this._view[i * 4 + 0] = rightDir[i];    // right axis
-      this._view[i * 4 + 1] = upDir[i];       // up axis
-      this._view[i * 4 + 2] = -forwardDir[i]; // look axis (negated forward)
-      this._view[i * 4 + 3] = 0;              // homogeneous row
-    }
-    const positionArray = Array.from(this.position);
-
-    // Translation column: project camera position onto each basis axis
-    // to express the world origin in camera space
-    this._view[12] = -dot(rightDir,   positionArray);  // right axis
-    this._view[13] = -dot(upDir,      positionArray);  // up axis
-    this._view[14] =  dot(forwardDir, positionArray);  // look axis — sign flipped because -forward is the look axis
-    this._view[15] = 1;
   }
 
   /**
@@ -171,16 +116,7 @@ export class Camera {
    * Produces WebGPU NDC depth [0, 1] (not OpenGL [-1, 1]).
    * m[11] = -1 triggers the perspective divide; m[10]/m[14] encode the depth range.
    */
-  private _buildProj(aspect: number): void {
-    const f = 1.0 / Math.tan(this._fovY * 0.5);
-    const rangeInv = 1.0 / (this._near - this._far);
-    const m = this._proj;
-    m.fill(0);
-    m[0]  = f / aspect;
-    m[5]  = f;
-    m[10] = this._far * rangeInv;
-    m[11] = -1;
-    m[14] = this._near * this._far * rangeInv;
+  private _buildProj(): void {
   }
 
   destroy(): void {

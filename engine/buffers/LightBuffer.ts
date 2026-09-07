@@ -1,28 +1,67 @@
+/**
+ * @file LightBuffer.ts
+ * @description Specialized uniform buffer that structures and manages dynamic scene lighting data
+ * (up to a maximum of 250 lights).
+ * 
+ * Shape / Layout:
+ *   - Header (16 bytes):
+ *       - Offset 0 (4 bytes): count (u32, active lights count)
+ *       - Offset 4 (12 bytes): padding (unused)
+ *   - Light Array (Offset 16 to 8016): Array of 250 elements, each element is exactly 32 bytes:
+ *       - Offset +0 (12 bytes): position (vec3f)
+ *       - Offset +12 (4 bytes): radius (f32)
+ *       - Offset +16 (12 bytes): color (vec3f) -> matching color * intensity
+ *       - Offset +28 (4 bytes): lightType (u32)
+ * 
+ * Total Buffer Size: 8016 bytes
+ * 
+ * GPU Usage Flags:
+ *   - UNIFORM | COPY_DST (inherited from UniformBuffer)
+ * 
+ * For detailed code examples and integration instructions, refer to type-specific markdown:
+ * [LightBuffer.md](LightBuffer.md)
+ * 
+ * @internal
+ */
+
 import { UniformBuffer } from './UniformBuffer';
 import { logger } from '../utils/logger';
 import type { LightGameObject } from '../gameObject/Light/LightGameObject';
 import { FLOAT_SIZE } from '../math/vec';
 
-/** @internal */
+/** 
+ * Maximum supported lights in the buffer. 
+ * @internal 
+ */
 export const MAX_LIGHTS = 250;
 
-// GPU buffer layout (see common.wgsl LightBuffer struct):
-//   offset  0: count (u32) + 12 bytes padding  → 16 bytes header
-//   offset 16: array of Light[250], each 32 bytes
-//     Light: position(vec3f=12) + radius(f32=4) + color(vec3f=12) + lightType(u32=4)
+// GPU buffer layout calculations (matching common.wgsl LightBuffer struct)
 const HEADER_SIZE = 4 * FLOAT_SIZE;              
 const LIGHT_SIZE  = 8 * FLOAT_SIZE;              
 const BUFFER_SIZE = HEADER_SIZE + MAX_LIGHTS * LIGHT_SIZE;  
 
 /** @internal */
 export class LightBuffer extends UniformBuffer {
-  private _dirty = true;
+  // --- Instance Fields ---
   private readonly _lights: LightGameObject[] = [];
+  private _dirty = true;
 
+  // --- Constructor ---
+  /**
+   * Creates a new instance of LightBuffer.
+   * @param device - The active GPUDevice.
+   * @param layout - Bind group layout, must have a uniform buffer entry at binding 0.
+   */
   constructor(device: GPUDevice, layout: GPUBindGroupLayout) {
     super(device, BUFFER_SIZE, layout, 'light-buffer');
   }
 
+  // --- Public Methods ---
+  /**
+   * Appends an active light game object to buffer management.
+   * Sets the dirty flag to queue a data upload on the next engine loop tick.
+   * @param light - The LightGameObject to add.
+   */
   addLight(light: LightGameObject): void {
     if (this._lights.length >= MAX_LIGHTS) {
       logger.error(`LightBuffer: max ${MAX_LIGHTS} lights reached, ignoring addLight()`);
@@ -32,6 +71,11 @@ export class LightBuffer extends UniformBuffer {
     this._dirty = true;
   }
 
+  /**
+   * Removes an existing light game object from buffer management.
+   * Sets the dirty flag to queue a data upload on the next engine loop tick.
+   * @param light - The LightGameObject to remove.
+   */
   removeLight(light: LightGameObject): void {
     const index = this._lights.indexOf(light);
     if (index === -1) {
@@ -42,22 +86,20 @@ export class LightBuffer extends UniformBuffer {
     this._dirty = true;
   }
 
-  markDirty(): void { this._dirty = true; }
+  /**
+   * Flags the buffer as dirty. Used to force data refresh on next cycle
+   * even if no lights were added or removed (e.g. dynamic changes to light position/color).
+   */
+  markDirty(): void { 
+    this._dirty = true; 
+  }
 
   /**
-   * Serialises all registered lights into the GPU uniform buffer.
-   * No-ops when no light or transform has changed since the last upload.
-   *
-   * Mirrors the WGSL `LightBuffer` struct layout:
-   *   [0]  count (u32) + 12 bytes padding        → 16-byte header
-   *   [16] Light[n], each 32 bytes:
-   *          +0  position.x/y/z  (3 × f32)
-   *          +12 radius          (f32)
-   *          +16 color.r/g/b     (3 × f32)
-   *          +28 lightType       (u32)
-   *
-   * DataView is used instead of a typed array because the struct mixes f32 and u32
-   * fields at arbitrary byte offsets within each 32-byte light entry.
+   * Serializes all registered lights into the GPU uniform buffer using a DataView
+   * to align integers (lightType/count) and floats (radius/positions) correctly.
+   * 
+   * Operates as a no-op if the dirty flag is false.
+   * @param queue - The active GPUQueue execution context.
    */
   upload(queue: GPUQueue): void {
     if (!this._dirty) return;
@@ -80,3 +122,4 @@ export class LightBuffer extends UniformBuffer {
     this._dirty = false;
   }
 }
+
